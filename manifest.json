@@ -1,0 +1,9 @@
+{
+  "domain": "radiators_integration",
+  "name": "IRSAP NOW Integration",
+  "version": "1.0.0",
+  "documentation": "https://example.com/documentation",
+  "dependencies": [],
+  "codeowners": ["@hexCut"],
+  "requirements": ["warrant", "requests"]
+}
