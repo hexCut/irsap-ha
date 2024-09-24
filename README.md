@@ -20,11 +20,12 @@ Example of data extracted from the payload JSON:
 
 ### Installation
 
-To use this integration, follow these steps:
+## Installation
 
-	1.	Download the repository files.
-	2.	Copy the custom integration into your Home Assistant /config/custom_components/ directory.
-	3.	Restart Home Assistant to load the new component.
+1. Download the custom component and place it in the `custom_components/radiators_integration` directory in your Home Assistant configuration.
+2. Add the necessary configuration to your `configuration.yaml` file (explained below).
+3. Replace the `envId` value with your own from the IRSAP API in the `sensor.py` and `switch.py` files. The default value in the files is `"envId": "5f742ece-5b53-41c2-8996-1d6793e6a7e9"`.
+4. Restart Home Assistant to activate the integration.
 
 Setup in configuration.yaml
 
