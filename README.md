@@ -18,11 +18,30 @@ The integration connects to the IRSAP API endpoint and retrieves a JSON payload 
 
 Example of data extracted from the payload JSON:
 
-```json
-{
-  "data": {
-    "getShadow": {
-      "payload": "{\"version\":264,\"state\":{\"desired\":{\"DEV1_TMP\":2290,\"DEV2_TMP\":2300,\"DEV3_TMP\":2300}}}"
-    }
-  }
-}
+### Installation
+
+To use this integration, follow these steps:
+
+	1.	Download the repository files.
+	2.	Copy the custom integration into your Home Assistant /config/custom_components/ directory.
+	3.	Restart Home Assistant to load the new component.
+
+Setup in configuration.yaml
+
+After adding the component, include the following configuration in your configuration.yaml file:
+
+```
+sensor:
+  - platform: radiators_integration
+    username: "EMAIL"
+    password: "PASSWORD"
+
+switch:
+  - platform: radiators_integration
+    username: "EMAIL"
+    password: "PASSWORD"
+```
+
+Replace EMAIL with your actual email address used to log in, and PASSWORD with your IRSAP account password.    
+
+Restart Home Assistant again to apply the changes.
