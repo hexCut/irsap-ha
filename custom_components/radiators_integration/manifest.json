@@ -2,7 +2,8 @@
   "domain": "radiators_integration",
   "name": "IRSAP NOW Integration",
   "version": "1.0.0",
-  "documentation": "https://example.com/documentation",
+  "documentation": "https://github.com/hexCut/irsap-ha",
+  "issue_tracker": "https://github.com/hexCut/irsap-ha/issues",
   "dependencies": [],
   "codeowners": ["@hexCut"],
   "requirements": ["warrant", "requests"]
