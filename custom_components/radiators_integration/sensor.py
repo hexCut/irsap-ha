@@ -47,6 +47,7 @@ def login_with_srp(username, password):
         u.authenticate(password=password)
 
         # Get access token
+        _LOGGER.debug(f"All info retrieved: {u}")
         _LOGGER.debug(f"Access Token: {u.access_token}")
         return u.access_token
     except Exception as e:
