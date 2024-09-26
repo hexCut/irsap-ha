@@ -108,29 +108,71 @@ def get_radiators(token, envID):
             data = response.json()
             payload = json.loads(data["data"]["getShadow"]["payload"])
             _LOGGER.debug(f"Payload retrieved from API: {payload}")
-            return [
-                {
-                    "serial": payload["state"]["desired"]["D-I_SRL"],
-                    "is_on": payload["state"]["desired"]["Pca_ENB"],
-                    "name": "Bagno Padronale",
-                },
-                {
-                    "serial": payload["state"]["desired"]["DfO_SRL"],
-                    "is_on": payload["state"]["desired"]["Pwg_ENB"],
-                    "name": "Bagno Piano Primo",
-                },
-                {
-                    "serial": payload["state"]["desired"]["DO4_SRL"],
-                    "is_on": payload["state"]["desired"]["PTG_ENB"],
-                    "name": "Bagno Piano Terra",
-                },
-            ]
+            return extract_device_info(payload["state"]["desired"])
         else:
             _LOGGER.error(f"API request error: {response.status_code}")
             return []
     except Exception as e:
         _LOGGER.error(f"Error during API call: {e}")
         return []
+
+
+def extract_device_info(
+    payload,
+    nam_suffix="_NAM",
+    srl_suffix="_SRL",
+    enb_suffix="_ENB",
+    exclude_suffix="E_NAM",
+):
+    devices_info = []
+
+    # Funzione ricorsiva per cercare chiavi che terminano con _NAM, _SRL e _ENB
+    def find_device_keys(obj):
+        if isinstance(obj, dict):  # Se l'oggetto è un dizionario
+            for key, value in obj.items():
+                # Ignora le chiavi che iniziano con E_NAM
+                if key.startswith(exclude_suffix):
+                    continue
+
+                # Verifica se la chiave termina con _NAM e che non sia vuoto
+                if key.endswith(nam_suffix) and value:
+                    device_info = {
+                        "serial": None,  # Default a None
+                        "is_on": False,  # Default a False
+                        "name": value,  # Usa il valore di _NAM come nome
+                    }
+
+                    # Cerca il corrispondente _SRL
+                    corresponding_srl_key = key[: -len(nam_suffix)] + srl_suffix
+                    if corresponding_srl_key in obj and obj[corresponding_srl_key]:
+                        device_info["serial"] = obj[
+                            corresponding_srl_key
+                        ]  # Assegna il valore di _SRL
+
+                    # Cerca il corrispondente _ENB
+                    corresponding_enb_key = key[: -len(nam_suffix)] + enb_suffix
+                    if corresponding_enb_key in obj:
+                        enb_value = obj[corresponding_enb_key]
+                        if enb_value:  # Se _ENB non è vuoto, usa il suo valore
+                            device_info["is_on"] = True if enb_value == "1" else False
+                        else:
+                            device_info["is_on"] = (
+                                False  # Se _ENB è vuoto, assegna False
+                            )
+
+                    devices_info.append(
+                        device_info
+                    )  # Aggiunge l'informazione del dispositivo
+
+                # Ricorsione su sotto-dizionari
+                find_device_keys(value)
+        elif isinstance(obj, list):  # Se l'oggetto è una lista
+            for item in obj:
+                find_device_keys(item)  # Ricorsione sugli elementi della lista
+
+    # Inizio della ricerca nel payload
+    find_device_keys(payload)
+    return devices_info
 
 
 class RadiatorSwitch(SwitchEntity):
@@ -140,7 +182,8 @@ class RadiatorSwitch(SwitchEntity):
         self._radiator = radiator
         self._token = token
         self._state = radiator["is_on"]
-        self._name = f"{radiator['name']}_switch"
+        self._name = f"{radiator['name']}"
+        self._envID = envID
 
     @property
     def name(self):
@@ -162,7 +205,7 @@ class RadiatorSwitch(SwitchEntity):
         _LOGGER.debug(f"Turn off called for radiator {self._radiator['serial']}")
         self._set_radiator_state(False)
 
-    def _set_radiator_state(self, state, envID):
+    def _set_radiator_state(self, state):
         """Send request to set the radiator state."""
         _LOGGER.debug(
             f"Setting radiator state: {self._radiator['serial']} to {'on' if state else 'off'}"
@@ -178,12 +221,12 @@ class RadiatorSwitch(SwitchEntity):
         payload = {
             "operationName": "UpdateShadow",
             "variables": {
-                "envId": envID,
+                "envId": self._envID,
                 "payload": json.dumps(
                     {
                         "state": {
                             "desired": {
-                                "Pca_ENB": 1
+                                "PCM_ENB": 1
                                 if state
                                 else 0  # Turns the radiator on/off
                             }
@@ -213,7 +256,7 @@ class RadiatorSwitch(SwitchEntity):
                 f"Error setting radiator state {self._radiator['serial']}: {e}"
             )
 
-    def update(self, envID):
+    def update(self):
         """Update the switch state by querying the API."""
         _LOGGER.debug(f"Updating radiator state {self._radiator['serial']}")
 
@@ -225,7 +268,7 @@ class RadiatorSwitch(SwitchEntity):
 
         graphql_query = {
             "operationName": "GetShadow",
-            "variables": {"envId": envID},  # Replace with the correct envId
+            "variables": {"envId": self._envID},  # Replace with the correct envId
             "query": "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n",
         }
 
@@ -237,7 +280,7 @@ class RadiatorSwitch(SwitchEntity):
                 _LOGGER.debug(f"Payload updated from API: {payload}")
 
                 # Update the switch state with the current value
-                self._state = payload["state"]["desired"]["Pca_ENB"]
+                self._state = payload["state"]["desired"]["PCM_ENB"]
             else:
                 _LOGGER.error(
                     f"API request error during state update: {response.status_code}"

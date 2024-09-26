@@ -114,21 +114,7 @@ def get_radiators(token, envID):
             payload = json.loads(data["data"]["getShadow"]["payload"])
             _LOGGER.debug(f"Payload retrieved from API: {payload}")
 
-            # Convert temperatures to float
-            return [
-                {
-                    "serial": payload["state"]["desired"]["PCM_NAM"],
-                    "temperature": float(payload["state"]["desired"]["PCM_TMP"]) / 10,
-                },
-                {
-                    "serial": payload["state"]["desired"]["PDP_NAM"],
-                    "temperature": float(payload["state"]["desired"]["PDP_TMP"]) / 10,
-                },
-                {
-                    "serial": payload["state"]["desired"]["PTO_NAM"],
-                    "temperature": float(payload["state"]["desired"]["PTO_TMP"]) / 10,
-                },
-            ]
+            return extract_device_info(payload["state"]["desired"])
         else:
             _LOGGER.error(f"API request error: {response.status_code}")
             return []
@@ -140,6 +126,45 @@ def get_radiators(token, envID):
         return []
 
 
+def extract_device_info(
+    payload, nam_suffix="_NAM", tmp_suffix="_TMP", exclude_suffix="E_NAM"
+):
+    devices_info = []
+
+    # Funzione ricorsiva per cercare chiavi che terminano con _NAM e _TMP
+    def find_device_keys(obj):
+        if isinstance(obj, dict):  # Se l'oggetto è un dizionario
+            for key, value in obj.items():
+                # Verifica se la chiave termina con _NAM e non è una chiave esclusa
+                if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
+                    # Aggiunge un dizionario con il suo serial
+                    device_info = {
+                        "serial": value,  # Usa il valore della chiave _NAM come serial
+                        "temperature": 0,  # Default a 0 se non trovata
+                    }
+                    # Trova il corrispondente _TMP
+                    corresponding_tmp_key = key[: -len(nam_suffix)] + tmp_suffix
+                    if corresponding_tmp_key in obj:
+                        # Assegna la temperatura se esiste e non è None
+                        tmp_value = obj[corresponding_tmp_key]
+                        device_info["temperature"] = (
+                            float(tmp_value) / 10 if tmp_value is not None else 0
+                        )
+
+                    devices_info.append(
+                        device_info
+                    )  # Aggiunge l'informazione del dispositivo
+                # Ricorsione su sotto-dizionari
+                find_device_keys(value)
+        elif isinstance(obj, list):  # Se l'oggetto è una lista
+            for item in obj:
+                find_device_keys(item)  # Ricorsione sugli elementi della lista
+
+    # Inizio della ricerca nel payload
+    find_device_keys(payload)
+    return devices_info
+
+
 class RadiatorTemperatureSensor(SensorEntity):
     """Sensor for radiator temperature."""
 
@@ -147,8 +172,8 @@ class RadiatorTemperatureSensor(SensorEntity):
         self._radiator = radiator
         self._token = token
         self._state = None
-        self._name = f"{radiator['serial']}_temp"
-        self._unique_id = f"radiator_{radiator['serial']}_temp"
+        self._name = f"{radiator['serial']}"
+        self._unique_id = f"radiator_{radiator['serial']}"
 
     @property
     def name(self):
