@@ -1,98 +1,48 @@
-import requests
+import aiohttp
 import logging
 import json
+from datetime import timedelta
 from homeassistant.components.sensor import SensorEntity
-from warrant import Cognito
+from homeassistant.helpers.event import async_track_time_interval
 
 _LOGGER = logging.getLogger(__name__)
 
-# Configuration for your User Pool ID, Client ID, and region
-USER_POOL_ID = "eu-west-1_qU4ok6EGG"  # Replace with your User Pool ID
-CLIENT_ID = "4eg8veup8n831ebokk4ii5uasf"  # Replace with your Client ID
-REGION = "eu-west-1"  # Replace with your region
 
+async def setup_sensor(hass, entry, async_add_entities):
+    """Setup the sensor platform for an entry."""
+    _LOGGER.debug("Starting async setup entry for sensor platform.")
 
-# Define radiators from YAML configuration
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Setup the sensor platform."""
-    username = config.get("username")
-    password = config.get("password")
+    token = entry["data"]["token"]
+    envID = entry["data"]["envID"]
 
-    _LOGGER.debug("Starting platform setup. Fetching token...")
+    if token and envID:
+        _LOGGER.debug("Token and envID successfully obtained. Retrieving sensors.")
+        sensors = await get_radiators(token, envID)
+        if sensors:
+            _LOGGER.debug(f"Sensors to be added: {sensors}")
+            async_add_entities(sensors, True)
+            _LOGGER.debug(f"Created {len(sensors)} sensors.")
 
-    # Login to obtain the access token
-    token = login_with_srp(username, password)
-    if token:
-        _LOGGER.debug("Token successfully obtained. Fetching radiators.")
-        # Obtain envID
-        envID = envid_with_srp(username, password, token)
-        if envID:
-            _LOGGER.debug("envID successfully obtained. Fetching radiators.")
-
-            radiators = get_radiators(token, envID)
-            if radiators:
-                sensors = []
-                for radiator in radiators:
-                    _LOGGER.debug(f"Adding radiator: {radiator['serial']}")
-                    sensors.append(RadiatorTemperatureSensor(radiator, token))
-                add_entities(sensors, True)
-                _LOGGER.debug(f"Created {len(sensors)} sensors.")
-            else:
-                _LOGGER.warning("No radiators found in the API.")
+            # Pianifica il controllo periodico ogni 10 minuti (600 secondi)
+            async_track_time_interval(
+                hass,
+                lambda now: async_update_sensors(hass, sensors),
+                timedelta(minutes=10),
+            )
         else:
-            _LOGGER.error("Unable to get the envID. Check credentials.")
+            _LOGGER.warning("No sensors found in the API.")
     else:
-        _LOGGER.error("Unable to get the token. Check credentials.")
+        _LOGGER.error("Unable to obtain the token or envID. Check configuration.")
 
 
-def login_with_srp(username, password):
-    """Login and obtain the access token using Warrant."""
-    try:
-        # Configure Cognito client with User Pool ID, Client ID, username, and region
-        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
-
-        # Authenticate using SRP
-        u.authenticate(password=password)
-
-        # Get access token
-        _LOGGER.debug(f"Access Token: {u.access_token}")
-        return u.access_token
-    except Exception as e:
-        _LOGGER.error(f"Error during login: {e}")
-        return None
+async def async_update_sensors(hass, sensors):
+    """Aggiorna i sensori."""
+    _LOGGER.debug("Updating sensors...")
+    for sensor in sensors:
+        await sensor.async_update()
 
 
-def envid_with_srp(username, password, token):
-    """Login and obtain the envID using Warrant."""
-    url = (
-        "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-    )
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    graphql_query = {
-        "operationName": "ListEnvironments",
-        "variables": {},
-        "query": "query ListEnvironments {\n listEnvironments {\n environments {\n envId\n envName\n userRole\n __typename\n }\n __typename\n }\n}\n",
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=graphql_query)
-        if response.status_code == 200:
-            data = response.json()
-            envId = data["data"]["listEnvironments"]["environments"][0]["envId"]
-            _LOGGER.debug(f"envId retrieved from API: {envId}")
-            return envId
-        else:
-            _LOGGER.error(f"API request error: {response.status_code}")
-            return []
-    except Exception as e:
-        _LOGGER.error(f"Error during API call: {e}")
-        return []
-
-
-def get_radiators(token, envID):
+async def get_radiators(token, envID):
     """Fetch radiator data from the API."""
     url = (
         "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
@@ -108,16 +58,19 @@ def get_radiators(token, envID):
     }
 
     try:
-        response = requests.post(url, headers=headers, json=graphql_query)
-        if response.status_code == 200:
-            data = response.json()
-            payload = json.loads(data["data"]["getShadow"]["payload"])
-            _LOGGER.debug(f"Payload retrieved from API: {payload}")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url, json=graphql_query, headers=headers
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    payload = json.loads(data["data"]["getShadow"]["payload"])
+                    _LOGGER.debug(f"Payload retrieved from API: {payload}")
 
-            return extract_device_info(payload["state"]["desired"])
-        else:
-            _LOGGER.error(f"API request error: {response.status_code}")
-            return []
+                    return extract_device_info(payload["state"]["desired"])
+                else:
+                    _LOGGER.error(f"API request error: {response.status}")
+                    return []
     except ValueError as e:
         _LOGGER.error(f"Error converting temperature: {e}")
         return []
@@ -151,9 +104,8 @@ def extract_device_info(
                             float(tmp_value) / 10 if tmp_value is not None else 0
                         )
 
-                    devices_info.append(
-                        device_info
-                    )  # Aggiunge l'informazione del dispositivo
+                    devices_info.append(RadiatorTemperatureSensor(device_info))
+                # Aggiunge l'informazione del dispositivo
                 # Ricorsione su sotto-dizionari
                 find_device_keys(value)
         elif isinstance(obj, list):  # Se l'oggetto è una lista
@@ -168,9 +120,8 @@ def extract_device_info(
 class RadiatorTemperatureSensor(SensorEntity):
     """Sensor for radiator temperature."""
 
-    def __init__(self, radiator, token):
+    def __init__(self, radiator):
         self._radiator = radiator
-        self._token = token
         self._state = None
         self._name = f"{radiator['serial']}"
         self._unique_id = f"radiator_{radiator['serial']}"
@@ -200,9 +151,10 @@ class RadiatorTemperatureSensor(SensorEntity):
         """Return the device class."""
         return "temperature"  # Indicates this is a temperature sensor
 
-    def update(self):
+    async def async_update(self):
         """Update the sensor value."""
         _LOGGER.debug(f"Updating radiator temperature {self._radiator['serial']}")
+        # Logic to update the temperature from the API or payload
         self._state = float(
-            self._radiator["temperature"]
-        )  # Ensure it's treated as a number
+            self._radiator.get("temperature", 0)
+        )  # Default to 0 if not found
