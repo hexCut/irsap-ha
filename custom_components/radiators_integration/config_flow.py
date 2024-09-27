@@ -5,8 +5,6 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
-from .sensor import setup_sensor
-from .switch import setup_switch
 from warrant import Cognito
 import requests
 
@@ -72,21 +70,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Se tutto è andato bene, salviamo l'entry
         return self.async_create_entry(
-            title=username, data={"username": username, "token": token, "envID": envID}
+            title=username,
+            data={
+                "username": username,
+                "password": password,
+                "token": token,
+                "envID": envID,
+            },
         )
 
-    async def async_setup_entry(
-        self, hass: HomeAssistant, entry: config_entries.ConfigEntry
-    ) -> bool:
-        """Set up the radiators integration from a config entry."""
-        # Imposta le piattaforme sensor e switch
-        hass.config_entries.async_setup_platforms(entry, ["sensor", "switch"])
-
-        # Richiama il setup dei sensori e degli switch
-        await setup_sensor(hass, entry, hass.helpers.entity_platform.async_add_entities)
-        await setup_switch(hass, entry, hass.helpers.entity_platform.async_add_entities)
-
-        return True
+    #    async def async_setup_entry(
+    #        self, hass: HomeAssistant, entry: config_entries.ConfigEntry
+    #    ) -> bool:
+    #        """Set up the radiators integration from a config entry."""
+    #        _LOGGER.debug("Setting up climate entities...")
+    #
+    #        # Imposta le piattaforme sensor e switch
+    #        # hass.config_entries.async_setup_platforms(entry, ["sensor", "switch"])
+    #
+    #        _LOGGER.debug("Climate entities setup complete.")
+    #        return True
 
     @staticmethod
     @callback
@@ -135,18 +138,6 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
         )
         for entity in entities:
             entity_registry.async_remove(entity.entity_id)
-
-        # Ricarica le nuove entità con le credenziali aggiornate
-        await setup_sensor(
-            self.hass,
-            self.config_entry,
-            self.hass.helpers.entity_platform.async_add_entities,
-        )
-        await setup_switch(
-            self.hass,
-            self.config_entry,
-            self.hass.helpers.entity_platform.async_add_entities,
-        )
 
         return self.async_create_entry(title="", data=user_input)
 
