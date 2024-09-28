@@ -151,6 +151,8 @@ def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
 class RadiatorClimate(ClimateEntity):
     """Representation of a radiator climate entity."""
 
+    _attr_should_poll = True  # polling update dei sensori 
+    
     def __init__(self, radiator, token, envID):
         self._radiator = radiator
         self._name = f"Radiator {radiator['serial']}"
@@ -640,3 +642,6 @@ class RadiatorClimate(ClimateEntity):
                     )  # In gradi Celsius
 
                 break
+
+ 
+    self.async_write_ha_state() # Notifica a Home Assistant che lo stato è cambiato
