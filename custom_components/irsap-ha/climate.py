@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up climate platform."""
+    "Set up climate platform."
     envID = config_entry.data["envID"]
     username = config_entry.data["username"]
     password = config_entry.data["password"]
@@ -47,7 +47,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 def login_with_srp(username, password):
-    """Log in and obtain the access token using Warrant."""
+    "Log in and obtain the access token using Warrant."
     try:
         u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
         u.authenticate(password=password)
@@ -59,7 +59,7 @@ def login_with_srp(username, password):
 
 
 async def get_radiators(token, envID):
-    """Fetch radiator data from the API."""
+    "Fetch radiator data from the API."
     url = (
         "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
     )
@@ -139,7 +139,7 @@ def extract_device_info(
 
 
 def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
-    """Trova la chiave del dispositivo in base al nome."""
+    "Trova la chiave del dispositivo in base al nome."
     for key, value in payload.items():
         if key.endswith(nam_suffix) and value == device_name:
             return key[
@@ -149,7 +149,7 @@ def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
 
 
 class RadiatorClimate(ClimateEntity):
-    """Representation of a radiator climate entity."""
+    "Representation of a radiator climate entity."
 
     def __init__(self, radiator, token, envID):
         self._radiator = radiator
@@ -191,52 +191,52 @@ class RadiatorClimate(ClimateEntity):
 
     @property
     def min_temp(self):
-        """Restituisce la temperatura minima raggiungibile."""
+        "Restituisce la temperatura minima raggiungibile."
         return 12  # Temperatura minima di 12 gradi
 
     @property
     def max_temp(self):
-        """Restituisce la temperatura massima raggiungibile."""
+        "Restituisce la temperatura massima raggiungibile."
         return 32  # Temperatura massima di 32 gradi
 
     @property
     def name(self):
-        """Return the name of the climate device."""
+        "Return the name of the climate device."
         return self._name
 
     @property
     def unique_id(self):
-        """Return a unique ID for the climate device."""
+        "Return a unique ID for the climate device."
         return self._unique_id
 
     @property
     def temperature_unit(self):
-        """Return the unit of measurement."""
+        "Return the unit of measurement."
         return UnitOfTemperature.CELSIUS  # Usa UnitOfTemperature
 
     @property
     def current_temperature(self):
-        """Return the current temperature."""
+        "Return the current temperature."
         return self._current_temperature
 
     @property
     def target_temperature(self):
-        """Return the target temperature."""
+        "Return the target temperature."
         return self._target_temperature
 
     @property
     def hvac_mode(self):
-        """Return current HVAC mode."""
+        "Return current HVAC mode."
         return self._attr_hvac_mode
 
     @property
     def hvac_modes(self):
-        """Return available HVAC modes."""
+        "Return available HVAC modes."
         return self._attr_hvac_modes
 
     # Funzione per inviare il payload aggiornato alle API
     async def _send_target_temperature_to_api(self, token, envID, updated_payload):
-        """Invia il payload aggiornato alle API."""
+        "Invia il payload aggiornato alle API."
         url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
         headers = {
             "Authorization": f"Bearer {token}",
@@ -253,16 +253,12 @@ class RadiatorClimate(ClimateEntity):
             ),
         }
 
-        # Log del payload completo
-        _LOGGER.info(f"Payload da inviare all'API: {graphql_query}")
-
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     url, json=graphql_query, headers=headers
                 ) as response:
                     if response.status == 200:
-                        _LOGGER.info("Payload successfully sent to the API.")
                         return True
                     else:
                         _LOGGER.error(
@@ -274,7 +270,7 @@ class RadiatorClimate(ClimateEntity):
             return False
 
     async def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
-        """Trova la chiave del dispositivo in base al nome."""
+        "Trova la chiave del dispositivo in base al nome."
         for key, value in payload.items():
             if key.endswith(nam_suffix) and value == device_name:
                 return key[
@@ -295,10 +291,15 @@ class RadiatorClimate(ClimateEntity):
             "app-now2-1.9.19-2124-ios-0409cdbc-2bb4-4a56-9114-453920ab21df"  # Fake clientId iOS
         )
 
-        """Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento."""
+        "Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento."
         desired_payload = payload.get("state", {}).get(
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
+
+        # Calcola la data e ora attuali nel formato ISO 8601
+        current_time_iso = (
+            datetime.utcnow().isoformat() + "Z"
+        )  # Aggiunge la 'Z' per indicare UTC
 
         # Cerca il device nel payload basato sul nome
         for key, value in desired_payload.items():
@@ -322,7 +323,8 @@ class RadiatorClimate(ClimateEntity):
                                 "v": int(temperature * 10),
                                 "m": 3,
                                 "k": "TEMPORARY",
-                            }
+                            },
+                            "e": current_time_iso,  # Usa il calcolo corrente della data e ora
                         }
 
                     # Aggiorna _CSP con il formato richiesto
@@ -337,11 +339,10 @@ class RadiatorClimate(ClimateEntity):
                             }
                         }
 
-                # Aggiorna lo stato di accensione/spegnimento se fornito
-                if enable is not None:
+                    # Aggiorna lo stato di accensione/spegnimento se fornito
                     enable_key = f"{base_key}_ENB"
                     if enable_key in desired_payload:
-                        desired_payload[enable_key] = 1 if enable else 0
+                        desired_payload[enable_key] = 1
 
                 # Aggiorna _CLL se presente, impostandolo a 1
                 cll_key = f"{base_key}_CLL"
@@ -349,6 +350,31 @@ class RadiatorClimate(ClimateEntity):
                     desired_payload[cll_key] = 1  # Imposta _CLL a 1
 
                 break
+            else:
+                # Se non è il device_name, cerca _TSP
+                tsp_key = f"{key[:-4]}_TSP"  # Costruisci il _TSP basato sulla chiave
+                if tsp_key in desired_payload:
+                    tsp_value = desired_payload[tsp_key]
+                    if (
+                        isinstance(tsp_value, dict)
+                        and "p" in tsp_value
+                        and tsp_value["p"].get("k") == "TEMPORARY"
+                        and tsp_value["p"].get("m") == 3
+                        and tsp_value["p"].get("u") == 0
+                    ):
+                        tsp_value["p"]["v"] = int(
+                            temperature * 10
+                        )  # Aggiorna il valore 'v'
+
+                # Aggiorna _CLL a 0 se prima era 1
+                cll_key = f"{key[:-4]}_CLL"  # Costruisci la chiave _CLL
+                if cll_key in desired_payload and desired_payload[cll_key] == 1:
+                    desired_payload[cll_key] = 1  # Imposta _CLL a 0
+
+                # Aggiorna _CPC a 0 se prima era 1
+                cpc_key = f"{key[:-4]}_CPC"  # Costruisci la chiave _CPC
+                if cpc_key in desired_payload and desired_payload[cpc_key] == 1:
+                    desired_payload[cpc_key] = 1  # Imposta _CPC a 0
 
         # Rimuovi 'sk' se esistente
         desired_payload.pop("sk", None)
@@ -378,7 +404,7 @@ class RadiatorClimate(ClimateEntity):
             "app-now2-1.9.19-2124-ios-0409cdbc-2bb4-4a56-9114-453920ab21df"  # Aggiorna il clientId facendo finta di essere l'App su iOS
         )
 
-        """Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento."""
+        "Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento."
         desired_payload = payload.get("state", {}).get(
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
@@ -413,7 +439,7 @@ class RadiatorClimate(ClimateEntity):
         return ordered_payload  # Restituisci il payload aggiornato
 
     async def get_current_payload(self, token, envID):
-        """Fetch the current device payload from the API."""
+        "Fetch the current device payload from the API."
         url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
         headers = {
             "Authorization": f"Bearer {token}",
@@ -466,7 +492,7 @@ class RadiatorClimate(ClimateEntity):
 
         # Function to handle token regeneration and payload retrieval
         async def retrieve_payload(token, envID):
-            """Attempt to retrieve the payload, regenerate the token if it fails."""
+            "Attempt to retrieve the payload, regenerate the token if it fails."
             payload = await self.get_current_payload(token, envID)
             if payload is None:
                 _LOGGER.warning(
@@ -507,14 +533,11 @@ class RadiatorClimate(ClimateEntity):
             self._target_temperature = temperature
             # Cambia lo stato in HEAT
             self._attr_hvac_mode = HVACMode.HEAT
-            _LOGGER.info(
-                f"Temperature set to {temperature} for {self._name}, mode changed to HEAT"
-            )
         else:
             _LOGGER.error(f"Failed to update temperature for {self._name}")
 
     async def async_set_hvac_mode(self, hvac_mode):
-        """Set new target HVAC mode."""
+        "Set new target HVAC mode."
         username = self.hass.data[DOMAIN].get("username")
         password = self.hass.data[DOMAIN].get("password")
 
@@ -529,7 +552,6 @@ class RadiatorClimate(ClimateEntity):
 
         if hvac_mode == HVACMode.OFF:
             _LOGGER.debug(f"Setting {self._radiator['serial']} to OFF")
-            _LOGGER.info(f"Setting {self._radiator['serial']} to OFF")
             await self._set_radiator_state(False)
 
             device_name = self._name.replace(
@@ -558,9 +580,6 @@ class RadiatorClimate(ClimateEntity):
         elif hvac_mode == HVACMode.HEAT:
             _LOGGER.debug(f"Setting {self._radiator['serial']} to HEAT")
             await self._set_radiator_state(True)
-
-            _LOGGER.info(f"Setting {self._radiator['serial']} to OFF")
-            await self._set_radiator_state(False)
 
             device_name = self._name.replace(
                 "Radiator ", ""
@@ -597,7 +616,7 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.error(f"Failed to update HVAC mode for {self._name}")
 
     async def _set_radiator_state(self, state):
-        """Send request to set the radiator state."""
+        "Send request to set the radiator state."
         _LOGGER.debug(
             f"Setting radiator state: {self._radiator['serial']} to {'on' if state else 'off'}"
         )
@@ -656,7 +675,7 @@ class RadiatorClimate(ClimateEntity):
             )
 
     async def async_update(self):
-        """Fetch new state data for this climate entity."""
+        "Fetch new state data for this climate entity."
         _LOGGER.info(f"Updating radiator climate {self._name}")
 
         # Recupera token e envID
@@ -669,7 +688,7 @@ class RadiatorClimate(ClimateEntity):
 
         # Function to handle token regeneration and payload retrieval
         async def retrieve_payload(token, envID):
-            """Attempt to retrieve the payload, regenerate the token if it fails."""
+            "Attempt to retrieve the payload, regenerate the token if it fails."
             payload = await self.get_current_payload(token, envID)
             if payload is None:
                 _LOGGER.warning(
