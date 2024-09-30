@@ -1,0 +1,12 @@
+{
+  "domain": "irsap-ha",
+  "name": "IRSAP NOW Integration",
+  "version": "1.0.0",
+  "documentation": "https://github.com/hexCut/irsap-ha",
+  "issue_tracker": "https://github.com/hexCut/irsap-ha/issues",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": ["@hexCut", "@valerix85"],
+  "iot_class": "cloud_polling",
+  "requirements": []
+}
