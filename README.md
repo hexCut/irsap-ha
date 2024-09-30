@@ -39,8 +39,6 @@ Easiest install is via [HACS](https://hacs.xyz/):
 
 OR
 
-### Using [Home Assistant Community Store](https://hacs.xyz/) (recommended)
-
 1. Click on HACS in the Home Assistant menu
 2. Click on Add Custom Repositories
 3. Add the following GitHub repo
