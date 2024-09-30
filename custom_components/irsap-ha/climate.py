@@ -462,7 +462,6 @@ class RadiatorClimate(ClimateEntity):
                         payload = json.loads(data["data"]["getShadow"]["payload"])
                         return payload
                     else:
-                        _LOGGER.error(f"Error fetching payload: {response.status}")
                         return None
         except Exception as e:
             _LOGGER.error(f"Exception during payload retrieval: {e}")
@@ -495,9 +494,6 @@ class RadiatorClimate(ClimateEntity):
             "Attempt to retrieve the payload, regenerate the token if it fails."
             payload = await self.get_current_payload(token, envID)
             if payload is None:
-                _LOGGER.warning(
-                    f"Failed to retrieve current payload for {self._name}. Regenerating token."
-                )
                 # Regenerate token and retry
                 token = await self.hass.async_add_executor_job(
                     login_with_srp, username, password
