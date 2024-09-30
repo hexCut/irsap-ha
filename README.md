@@ -19,7 +19,7 @@ This custom integration for [Home Assistant](https://www.home-assistant.io) allo
 ## Features
 
 - **Temperature Monitoring**: Sensors display the current temperature of the installed radiators.
-- **On/Off Control**: Switches allow you to turn radiators on or off directly from Home Assistant. (Actually not fully working)
+- **On/Off Control**: Switches allow you to turn radiators on or off directly from Home Assistant.
 - **Real-time Updates**: Radiator data is updated periodically through API requests to IRSAP.
 
 ### Data Retrieved from the IRSAP API
