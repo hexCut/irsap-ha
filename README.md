@@ -31,6 +31,14 @@ The integration connects to the IRSAP API endpoint and retrieves a JSON payload 
 
 ## Installation
 
+Easiest install is via [HACS](https://hacs.xyz/):
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hexCut&repository=irsap-ha&category=integration)
+
+`HACS -> Integrations -> Explore & Add Repositories -> IRSAP NOW Integration`
+
+OR
+
 ### Using [Home Assistant Community Store](https://hacs.xyz/) (recommended)
 
 1. Click on HACS in the Home Assistant menu
