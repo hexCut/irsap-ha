@@ -84,4 +84,5 @@ The use of these names, trademarks and brands appearing in these image files, do
 [github release date]: https://img.shields.io/github/release-date/hexCut/irsap-ha
 [maintenancebadge]: https://img.shields.io/badge/Maintained%3F-Yes-brightgreen.svg
 [maintenance]: https://github.com/hexCut/irsap-ha/graphs/commit-activity
+[github issuesbadge]: https://img.shields.io/github/issues/irsap-ha/issues
 [github issues]: https://github.com/hexCut/irsap-ha/issues
