@@ -12,12 +12,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for radiators integration."""
+    "Handle a config flow for radiators integration."
 
     VERSION = 1
 
     async def async_step_user(self, user_input=None) -> FlowResult:
-        """Handle the initial step."""
+        "Handle the initial step."
         if user_input is None:
             return self.async_show_form(
                 step_id="user",
@@ -79,18 +79,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    #    async def async_setup_entry(
-    #        self, hass: HomeAssistant, entry: config_entries.ConfigEntry
-    #    ) -> bool:
-    #        """Set up the radiators integration from a config entry."""
-    #        _LOGGER.debug("Setting up climate entities...")
-    #
-    #        # Imposta le piattaforme sensor e switch
-    #        # hass.config_entries.async_setup_platforms(entry, ["sensor", "switch"])
-    #
-    #        _LOGGER.debug("Climate entities setup complete.")
-    #        return True
-
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
@@ -98,14 +86,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
-    """Handle the options flow for the integration."""
+    "Handle the options flow for the integration."
 
     def __init__(self, config_entry):
-        """Initialize the options flow."""
+        "Initialize the options flow."
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
-        """Manage the options."""
+        "Manage the options."
         if user_input is not None:
             # Update the config entry options with new values
             return self.async_create_entry(title="", data=user_input)
@@ -125,7 +113,7 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="init", data_schema=options_schema)
 
     async def _update_options(self, user_input):
-        """Update config entry options and reload entities."""
+        "Update config entry options and reload entities."
         # Aggiorna le opzioni con le nuove credenziali
         self.hass.config_entries.async_update_entry(self.config_entry, data=user_input)
 
@@ -143,7 +131,7 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
 
 
 def login_with_srp(username, password):
-    """Log in and obtain the access token using Warrant."""
+    "Log in and obtain the access token using Warrant."
     try:
         u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
         u.authenticate(password=password)
@@ -155,7 +143,7 @@ def login_with_srp(username, password):
 
 
 def envid_with_srp(username, password, token):
-    """Login and obtain the envID using Warrant."""
+    "Login and obtain the envID using Warrant."
     url = (
         "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
     )
