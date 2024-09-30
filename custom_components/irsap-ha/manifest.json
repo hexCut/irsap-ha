@@ -6,7 +6,7 @@
   "issue_tracker": "https://github.com/hexCut/irsap-ha/issues",
   "dependencies": [],
   "config_flow": true,
-  "codeowners": ["@hexCut", "@valerix85"],
+  "codeowners": ["@hexCut", "@valerix85", "@Sim0cYz"],
   "iot_class": "cloud_polling",
   "requirements": []
 }
