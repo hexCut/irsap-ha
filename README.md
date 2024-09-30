@@ -45,11 +45,11 @@ OR
 ```
 https://github.com/hexCut/irsap-ha
 ```
-2. Click on `Integrations`
-3. Click the `EXPLORE & ADD REPOSITORIES` button
-4. Search for `IRSAP NOW Integration`
-5. Click the `INSTALL THIS REPOSITORY IN HACS` button
-6. Restart Home Assistant
+4. Click on `Integrations`
+5. Click the `EXPLORE & ADD REPOSITORIES` button
+6. Search for `IRSAP NOW Integration`
+7. Click the `INSTALL THIS REPOSITORY IN HACS` button
+8. Restart Home Assistant
 
 ## Configuration
 
