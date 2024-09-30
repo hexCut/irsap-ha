@@ -6,7 +6,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.components.climate.const import ClimateEntityFeature
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTemperature  # Importa UnitOfTemperature
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
 import aiohttp
 import json
@@ -151,8 +151,6 @@ def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
 class RadiatorClimate(ClimateEntity):
     """Representation of a radiator climate entity."""
 
-    should_poll = True  # Aggiunto per abilitare l'aggiornamento periodico
-
     def __init__(self, radiator, token, envID):
         self._radiator = radiator
         self._name = f"Radiator {radiator['serial']}"
@@ -246,6 +244,7 @@ class RadiatorClimate(ClimateEntity):
         }
 
         json_payload = json.dumps(updated_payload)
+
         graphql_query = {
             "operationName": "UpdateShadow",
             "variables": {"envId": envID, "payload": json_payload},
@@ -433,17 +432,38 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.error("Token or envID not found in hass.data.")
             return
 
-        device_name = self._name.replace("Radiator ", "")  # Usa il nome del dispositivo
+        device_name = self._name.replace("Radiator ", "")  # Use the device name
 
-        # Ottieni il payload attuale del dispositivo dalle API
-        payload = await self.get_current_payload(token, envID)
+        # Function to handle token regeneration and payload retrieval
+        async def retrieve_payload(token, envID):
+            """Attempt to retrieve the payload, regenerate the token if it fails."""
+            payload = await self.get_current_payload(token, envID)
+            if payload is None:
+                _LOGGER.warning(
+                    f"Failed to retrieve current payload for {self._name}. Regenerating token."
+                )
+                # Regenerate token and retry
+                token = await self.hass.async_add_executor_job(
+                    login_with_srp, username, password
+                )
+                if not token:
+                    _LOGGER.error("Failed to regenerate token.")
+                    return None, None
+                # Try to retrieve payload again
+                payload = await self.get_current_payload(token, envID)
+            return token, payload
+
+        # Retrieve the payload and handle token regeneration if necessary
+        token, payload = await retrieve_payload(token, envID)
 
         if payload is None:
-            _LOGGER.error(f"Failed to retrieve current payload for {self._name}")
+            _LOGGER.error(
+                f"Failed to retrieve payload after token regeneration for {self._name}"
+            )
             return
 
         # Aggiorna il payload con la nuova temperatura
-        updated_payload = await self.generate_device_payload(
+        updated_payload = await self.generate_device_payload(  # Add 'await' here if this method is async
             payload=payload,
             device_name=device_name,
             temperature=temperature,  # Passa la temperatura come keyword argument
@@ -494,7 +514,7 @@ class RadiatorClimate(ClimateEntity):
                 return
 
             # Aggiorna il payload con la nuova temperatura
-            updated_payload = await self.generate_device_payload_for_hvac(
+            updated_payload = await self.generate_device_payload_for_hvac(  # Add 'await' here if this method is async
                 payload=payload,
                 device_name=device_name,
                 hvac_mode=0,
@@ -509,8 +529,8 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.debug(f"Setting {self._radiator['serial']} to HEAT")
             await self._set_radiator_state(True)
 
-            _LOGGER.info(f"Setting {self._radiator['serial']} to HEAT")
-            await self._set_radiator_state(True)
+            _LOGGER.info(f"Setting {self._radiator['serial']} to OFF")
+            await self._set_radiator_state(False)
 
             device_name = self._name.replace(
                 "Radiator ", ""
@@ -524,7 +544,7 @@ class RadiatorClimate(ClimateEntity):
                 return
 
             # Aggiorna il payload con la nuova temperatura
-            updated_payload = await self.generate_device_payload_for_hvac(
+            updated_payload = await self.generate_device_payload_for_hvac(  # Add 'await' here if this method is async
                 payload=payload,
                 device_name=device_name,
                 hvac_mode=1,
@@ -634,9 +654,10 @@ class RadiatorClimate(ClimateEntity):
                 tmp_key = f"{base_key}_TMP"
 
                 if tmp_key in desired_payload:
-                    # Aggiorna la temperatura attuale del dispositivo
+                    # Se il valore non è None, impostalo, altrimenti imposta a 0
+                    tmp_value = desired_payload.get(tmp_key, 0)
                     self._current_temperature = (
-                        desired_payload[tmp_key] / 10
+                        tmp_value / 10 if tmp_value is not None else 0
                     )  # In gradi Celsius
 
                 break

@@ -1,6 +1,6 @@
-"""Constants for the radiators_integration integration."""
+"""Constants for the irsap-ha integration."""
 
-DOMAIN = "radiators_integration"
+DOMAIN = "irsap-ha"
 
 # Config Entry Keys
 CONF_USERNAME = "username"
