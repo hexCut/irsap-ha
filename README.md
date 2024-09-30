@@ -1,4 +1,4 @@
-# Home Assistant - Custom Components DPC Alert
+# Home Assistant - Custom Components IRSAP Integration
 
 [hacs]: https://github.com/hacs/integration
 [githubrelease]: https://github.com/hexCut/irsap-ha/releases
