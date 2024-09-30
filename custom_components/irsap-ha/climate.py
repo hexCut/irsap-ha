@@ -292,7 +292,7 @@ class RadiatorClimate(ClimateEntity):
         payload["timestamp"] = current_timestamp  # Aggiorna il timestamp nel payload
 
         payload["clientId"] = (
-            "app-now2-1.9.19-2124-ios-0409cdbc-2bb4-4a56-9114-453920ab21df"  # Aggiorna il clientId facendo finta di essere l'App su iOS
+            "app-now2-1.9.19-2124-ios-0409cdbc-2bb4-4a56-9114-453920ab21df"  # Fake clientId iOS
         )
 
         """Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento."""
@@ -307,18 +307,48 @@ class RadiatorClimate(ClimateEntity):
 
                 # Aggiorna la temperatura se fornita
                 if temperature is not None:
+                    # Aggiorna _MSP
                     msp_key = f"{base_key}_MSP"
                     if msp_key in desired_payload:
-                        # Aggiorna il valore 'v' all'interno del dizionario
                         if "p" in desired_payload[msp_key]:
-                            desired_payload[msp_key]["p"]["v"] = int(
-                                temperature * 10
-                            )  # Converti in decimi di grado
-                        # Aggiorna lo stato di accensione/spegnimento se fornito
-                        enable_key = f"{base_key}_ENB"
-                        if enable_key in desired_payload:
-                            desired_payload[enable_key] = 1
-                        break
+                            desired_payload[msp_key]["p"]["v"] = int(temperature * 10)
+
+                    # Aggiorna _TSP con il formato richiesto
+                    tsp_key = f"{base_key}_TSP"
+                    if tsp_key in desired_payload:
+                        desired_payload[tsp_key] = {
+                            "p": {
+                                "u": 0,
+                                "v": int(temperature * 10),
+                                "m": 3,
+                                "k": "TEMPORARY",
+                            }
+                        }
+
+                    # Aggiorna _CSP con il formato richiesto
+                    csp_key = f"{base_key}_CSP"
+                    if csp_key in desired_payload:
+                        desired_payload[csp_key] = {
+                            "p": {
+                                "k": "CURRENT",
+                                "m": 3,
+                                "u": 0,
+                                "v": int(temperature * 10),
+                            }
+                        }
+
+                # Aggiorna lo stato di accensione/spegnimento se fornito
+                if enable is not None:
+                    enable_key = f"{base_key}_ENB"
+                    if enable_key in desired_payload:
+                        desired_payload[enable_key] = 1 if enable else 0
+
+                # Aggiorna _CLL se presente, impostandolo a 1
+                cll_key = f"{base_key}_CLL"
+                if cll_key in desired_payload:
+                    desired_payload[cll_key] = 1  # Imposta _CLL a 1
+
+                break
 
         # Rimuovi 'sk' se esistente
         desired_payload.pop("sk", None)
@@ -626,7 +656,7 @@ class RadiatorClimate(ClimateEntity):
             )
 
     async def async_update(self):
-        "Fetch new state data for this climate entity."
+        """Fetch new state data for this climate entity."""
         _LOGGER.info(f"Updating radiator climate {self._name}")
 
         # Recupera token e envID
@@ -637,11 +667,34 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.error("Token or envID not found in hass.data.")
             return
 
-        # Ottieni il payload corrente dal dispositivo tramite le API
-        payload = await self.get_current_payload(token, envID)
+        # Function to handle token regeneration and payload retrieval
+        async def retrieve_payload(token, envID):
+            """Attempt to retrieve the payload, regenerate the token if it fails."""
+            payload = await self.get_current_payload(token, envID)
+            if payload is None:
+                _LOGGER.warning(
+                    f"Failed to retrieve current payload for {self._name}. Regenerating token."
+                )
+                # Regenerate token and retry
+                token = await self.hass.async_add_executor_job(
+                    login_with_srp,
+                    self.hass.data[DOMAIN]["username"],
+                    self.hass.data[DOMAIN]["password"],
+                )
+                if not token:
+                    _LOGGER.error("Failed to regenerate token.")
+                    return None, None
+                # Try to retrieve payload again
+                payload = await self.get_current_payload(token, envID)
+            return token, payload
+
+        # Retrieve the payload and handle token regeneration if necessary
+        token, payload = await retrieve_payload(token, envID)
 
         if payload is None:
-            _LOGGER.error(f"Failed to retrieve current payload for {self._name}")
+            _LOGGER.error(
+                f"Failed to retrieve payload after token regeneration for {self._name}"
+            )
             return
 
         # Cerca la temperatura nel payload (_TMP)
