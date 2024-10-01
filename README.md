@@ -16,6 +16,8 @@
 
 This custom integration for [Home Assistant](https://www.home-assistant.io) allows monitoring and controlling IRSAP radiators via AWS Cognito authentication and API requests. Radiator data is retrieved from the IRSAP API endpoint and displayed in Home Assistant as a climate entity
 
+!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/rsplab)
+
 ## Features
 
 - **Temperature Monitoring**: Sensors display the current temperature of the installed radiators.
