@@ -324,7 +324,7 @@ class RadiatorClimate(ClimateEntity):
                                 "m": 3,
                                 "k": "TEMPORARY",
                             },
-                            "e": current_time_iso,  # Usa il calcolo corrente della data e ora
+                            "e": "2106-02-07T06:28:15.000Z",
                         }
 
                     # Aggiorna _CSP con il formato richiesto
@@ -336,7 +336,8 @@ class RadiatorClimate(ClimateEntity):
                                 "m": 3,
                                 "u": 0,
                                 "v": int(temperature * 10),
-                            }
+                            },
+                            "e": "2106-02-07T06:28:15.000Z",
                         }
 
                     # Aggiorna lo stato di accensione/spegnimento se fornito
