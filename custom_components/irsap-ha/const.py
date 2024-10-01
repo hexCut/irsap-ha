@@ -1,6 +1,6 @@
-"""Constants for the irsap-ha integration."""
+"""Constants for the irsap_ha integration."""
 
-DOMAIN = "irsap-ha"
+DOMAIN = "irsap_ha"
 
 # Config Entry Keys
 CONF_USERNAME = "username"
