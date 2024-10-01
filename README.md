@@ -76,7 +76,7 @@ Now the integration is added to HACS and available in the normal HA integration 
 
 ## Contributions are welcome
 
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/rsplab)
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/rsplab)
 
 ---
 
