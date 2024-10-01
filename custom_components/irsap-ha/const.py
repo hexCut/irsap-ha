@@ -1,4 +1,4 @@
-"""Constants for the irsap-ha integration."""
+"""Constants for the irsap_ha integration."""
 
 DOMAIN = "irsap_ha"
 
