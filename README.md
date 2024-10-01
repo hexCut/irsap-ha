@@ -75,6 +75,8 @@ Now the integration is added to HACS and available in the normal HA integration 
 
 ## Contributions are welcome
 
+[buymeacoffee] https://buymeacoffee.com/rsplab
+
 ---
 
 ## Trademark Legal Notices
