@@ -472,9 +472,6 @@ class RadiatorClimate(ClimateEntity):
     async def async_set_temperature(self, **kwargs):
         "Imposta la temperatura target del radiatore."
         temperature = kwargs.get("temperature")  # Estrae la temperatura dai kwargs
-        if temperature is None:
-            _LOGGER.error("Nessuna temperatura fornita per il settaggio.")
-            return
 
         username = self.hass.data[DOMAIN].get("username")
         password = self.hass.data[DOMAIN].get("password")
