@@ -11,6 +11,7 @@ import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     "Handle a config flow for radiators integration."
 
@@ -88,6 +89,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             envid_with_srp, username, password, token
         )
 
+
 class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
     "Handle the options flow for the integration."
 
@@ -132,10 +134,12 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_create_entry(title="", data=user_input)
 
+
 async def login_with_srp(username, password):
     "Log in and obtain the access token using Warrant."
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _sync_login_with_srp, username, password)
+
 
 def _sync_login_with_srp(username, password):
     """Synchronous function to log in using Warrant."""
@@ -147,6 +151,7 @@ def _sync_login_with_srp(username, password):
     except Exception as e:
         _LOGGER.error(f"Error during login: {e}")
         return None
+
 
 async def envid_with_srp(username, password, token):
     "Login and obtain the envID using Warrant."
@@ -163,7 +168,9 @@ async def envid_with_srp(username, password, token):
         }
 
         try:
-            async with session.post(url, headers=headers, json=graphql_query) as response:
+            async with session.post(
+                url, headers=headers, json=graphql_query
+            ) as response:
                 if response.status == 200:
                     data = await response.json()
                     envId = data["data"]["listEnvironments"]["environments"][0]["envId"]
