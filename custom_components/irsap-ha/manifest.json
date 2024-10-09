@@ -8,5 +8,5 @@
   "config_flow": true,
   "codeowners": ["@hexCut", "@valerix85", "@Sim0cYz"],
   "iot_class": "cloud_polling",
-  "requirements": ["cryptography", "cffi", "PyJWT"]
+  "requirements": ["warrant"]
 }
