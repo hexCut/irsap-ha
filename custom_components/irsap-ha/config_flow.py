@@ -34,10 +34,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         username = user_input["username"]
         password = user_input["password"]
 
-        # Chiamiamo la funzione per ottenere il token e l'envID in modo asincrono
-        token = await self.hass.async_add_executor_job(
-            login_with_srp, username, password
-        )
+        # Call the function directly since login_with_srp already handles executor wrapping
+        token = await login_with_srp(self.hass, username, password)
 
         if token is None:
             _LOGGER.error("Login failed, invalid credentials.")
@@ -135,10 +133,9 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
         return self.async_create_entry(title="", data=user_input)
 
 
-async def login_with_srp(username, password):
+async def login_with_srp(hass, username, password):
     "Log in and obtain the access token using Warrant."
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _sync_login_with_srp, username, password)
+    return await hass.async_add_executor_job(_sync_login_with_srp, username, password)
 
 
 def _sync_login_with_srp(username, password):
@@ -171,14 +168,29 @@ async def envid_with_srp(username, password, token):
             async with session.post(
                 url, headers=headers, json=graphql_query
             ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    envId = data["data"]["listEnvironments"]["environments"][0]["envId"]
+                if response.status != 200:
+                    error_msg = await response.text()
+                    _LOGGER.error(f"API request error: {response.status} - {error_msg}")
+                    return None
+
+                data = await response.json()
+                environments = (
+                    data.get("data", {})
+                    .get("listEnvironments", {})
+                    .get("environments", [])
+                )
+                if not environments:
+                    _LOGGER.error("No environments found in the API response")
+                    return None
+
+                envId = environments[0].get("envId")
+                if envId:
                     _LOGGER.debug(f"envId retrieved from API: {envId}")
                     return envId
                 else:
-                    _LOGGER.error(f"API request error: {response.status}")
+                    _LOGGER.error("envId missing in the API response")
                     return None
+
         except Exception as e:
             _LOGGER.error(f"Error during API call: {e}")
             return None
