@@ -19,6 +19,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         "Handle the initial step."
+
+        # Controlla se esiste già un'istanza dell'integrazione
+        await self.async_set_unique_id(DOMAIN)
+        existing_entry = self._async_current_entries()
+
+        if existing_entry:
+            # Se esiste già un'istanza, abortisci il flusso con un messaggio personalizzato
+            return self.async_abort(reason="Only one istance is allowed")
+
         if user_input is None:
             return self.async_show_form(
                 step_id="user",
@@ -83,9 +92,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_get_envID(self, username, password, token):
         """Asynchronous method to get envID."""
-        return await self.hass.async_add_executor_job(
-            envid_with_srp, username, password, token
-        )
+        return await envid_with_srp(username, password, token)
 
 
 class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
@@ -151,7 +158,7 @@ def _sync_login_with_srp(username, password):
 
 
 async def envid_with_srp(username, password, token):
-    "Login and obtain the envID using Warrant."
+    """Login and obtain the envID using Warrant."""
     async with aiohttp.ClientSession() as session:
         url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
         headers = {
