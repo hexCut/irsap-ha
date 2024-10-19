@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from homeassistant.components.climate import (
@@ -769,6 +770,17 @@ class RadiatorClimate(ClimateEntity):
                 if tmp_key in desired_payload:
                     # Se il valore è None, invia una notifica e imposta a 0
                     tmp_value = desired_payload.get(tmp_key, 0)
+                    retry_count = 0
+                    max_retries = 5
+                    while tmp_value is None and retry_count < max_retries:
+                        retry_count += 1
+                        _LOGGER.warning(
+                            f"Attempt {retry_count}: Temperature is None for {self._name}. Retrying..."
+                        )
+                        await asyncio.sleep(
+                            1
+                        )  # Wait before retrying (you can adjust the wait time)
+
                     if tmp_value is None:
                         _LOGGER.warning(
                             f"Received None for {self._name}, setting temperature to 0"
