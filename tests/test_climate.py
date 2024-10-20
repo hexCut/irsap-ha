@@ -3,7 +3,7 @@ import os
 import pytest
 
 # Aggiungi la directory 'irsap-ha' al PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'irsap-ha')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'custom_components', 'irsap-ha')))
 
 # Ora puoi importare i moduli dal pacchetto irsap-ha
 from climate import RadiatorClimate
