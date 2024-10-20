@@ -7,13 +7,13 @@ from homeassistant import config_entries
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'irsap-ha')))
 
 # Importa il modulo config_flow e const dal pacchetto irsap-ha
-from config_flow import MyClimateConfigFlow  # Assicurati che il nome della classe sia corretto
+from config_flow import ConfigFlow  # Assicurati che il nome della classe sia corretto
 from const import DOMAIN  # Assicurati che il file const.py sia presente e correttamente importato
 
 @pytest.fixture
 def config_flow():
     """Fixture per il config flow."""
-    return MyClimateConfigFlow()
+    return ConfigFlow()
 
 async def test_show_form(hass, config_flow):
     """Test della visualizzazione del form di configurazione."""
