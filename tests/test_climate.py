@@ -1,5 +1,12 @@
+import sys
+import os
 import pytest
-from irsap_ha.climate import MyClimate
+
+# Aggiungi la directory 'irsap-ha' al PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'irsap-ha')))
+
+# Ora puoi importare i moduli dal pacchetto irsap-ha
+from climate import MyClimate
 from homeassistant.components.climate.const import HVAC_MODE_HEAT, HVAC_MODE_OFF
 
 @pytest.fixture
