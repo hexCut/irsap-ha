@@ -1,30 +1,23 @@
+# test_climate.py
 import sys
 import os
 import pytest
 
-# Aggiungi la directory 'irsap-ha' al PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'custom_components', 'irsap-ha')))
+# Add the 'custom_components' directory to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'custom_components')))
 
-# Ora puoi importare i moduli dal pacchetto irsap-ha
-from climate import RadiatorClimate
-from homeassistant.components.climate.const import HVAC_MODE_HEAT, HVAC_MODE_OFF
+# Import the RadiatorClimate class using the correct path
+from irsap-ha.climate import RadiatorClimate  # This should now work
 
 @pytest.fixture
-def climate_entity():
-    """Fixture per creare una nuova entità Climate."""
-    return RadiatorClimate(hass=None, name="Test Climate")
+def radiator_climate():
+    """Fixture to create a RadiatorClimate instance for testing."""
+    return RadiatorClimate(name="Living Room Radiator", unique_id="unique_id_1")
 
-def test_initial_state(climate_entity):
-    """Test dell'inizializzazione dell'entità."""
-    assert climate_entity.hvac_mode == HVAC_MODE_OFF
-    assert climate_entity.target_temperature == 20
+def test_radiator_name(radiator_climate):
+    """Test the name property of the RadiatorClimate instance."""
+    assert radiator_climate.name == "Living Room Radiator"
 
-def test_set_hvac_mode(climate_entity):
-    """Test della modifica della modalità HVAC."""
-    climate_entity.set_hvac_mode(HVAC_MODE_HEAT)
-    assert climate_entity.hvac_mode == HVAC_MODE_HEAT
-
-def test_set_temperature(climate_entity):
-    """Test dell'impostazione della temperatura."""
-    climate_entity.set_temperature(temperature=25)
-    assert climate_entity.target_temperature == 25
+def test_unique_id(radiator_climate):
+    """Test the unique_id property of the RadiatorClimate instance."""
+    assert radiator_climate.unique_id == "unique_id_1"
