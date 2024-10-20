@@ -2,11 +2,11 @@ import sys
 import os
 import pytest
 
-# Add the 'custom_components' directory to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'custom_components')))
+# Add the 'custom_components/irsap-ha' directory to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'custom_components', 'irsap-ha')))
 
-# Import the RadiatorClimate class (use underscore instead of hyphen)
-from irsap_ha.climate import RadiatorClimate  # Adjust the import to use underscore
+# Import the RadiatorClimate class
+from climate import RadiatorClimate  # This should work now
 
 @pytest.fixture
 def radiator_climate():
