@@ -1,5 +1,5 @@
 import pytest
-from custom_component_name.climate import MyClimate
+from irsap_ha.climate import MyClimate
 from homeassistant.components.climate.const import HVAC_MODE_HEAT, HVAC_MODE_OFF
 
 @pytest.fixture
