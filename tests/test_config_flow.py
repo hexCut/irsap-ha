@@ -1,7 +1,7 @@
 import pytest
 from homeassistant import config_entries
-from custom_component_name.config_flow import MyClimateConfigFlow
-from custom_component_name.const import DOMAIN
+from irsap_ha.config_flow import MyClimateConfigFlow
+from irsap_ha.const import DOMAIN
 
 @pytest.fixture
 def config_flow():
