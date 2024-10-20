@@ -6,13 +6,13 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'irsap-ha')))
 
 # Ora puoi importare i moduli dal pacchetto irsap-ha
-from climate import MyClimate
+from climate import RadiatorClimate
 from homeassistant.components.climate.const import HVAC_MODE_HEAT, HVAC_MODE_OFF
 
 @pytest.fixture
 def climate_entity():
     """Fixture per creare una nuova entità Climate."""
-    return MyClimate(hass=None, name="Test Climate")
+    return RadiatorClimate(hass=None, name="Test Climate")
 
 def test_initial_state(climate_entity):
     """Test dell'inizializzazione dell'entità."""
