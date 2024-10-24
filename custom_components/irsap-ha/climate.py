@@ -765,6 +765,8 @@ class RadiatorClimate(ClimateEntity):
             if key.endswith("_NAM") and value == device_name:
                 base_key = key[:-4]  # Ottieni la chiave di base
                 tmp_key = f"{base_key}_TMP"
+                msp_key = f"{base_key}_MSP"
+                tsp_key = f"{base_key}_TSP"
                 enb_key = f"{base_key}_ENB"  # Key for enabling state
 
                 if tmp_key in desired_payload:
@@ -799,6 +801,29 @@ class RadiatorClimate(ClimateEntity):
                         )
                     else:
                         self._current_temperature = tmp_value / 10  # In gradi Celsius
+
+                        # Dismiss any existing persistent notification if the value is valid
+                        await self.hass.services.async_call(
+                            "persistent_notification",
+                            "dismiss",
+                            {
+                                "notification_id": f"radiator_{self._name}_temperature_warning",
+                            },
+                        )
+
+                    # Check for _MSP, _TSP, and _CSP keys to find the setpoint
+                    for sp_key in [msp_key, tsp_key]:
+                        if sp_key in desired_payload:
+                            sp_value = (
+                                desired_payload[sp_key].get("p", {}).get("v", None)
+                            )
+                            if sp_value is not None:
+                                self._target_temperature = (
+                                    sp_value / 10
+                                )  # Imposta il setpoint in gradi Celsius
+                                _LOGGER.info(
+                                    f"Setpoint for {self._name} found: {self._target_temperature}"
+                                )
 
                     # Check the _ENB key and set the state accordingly
                     if enb_key in desired_payload:
