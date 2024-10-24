@@ -11,6 +11,7 @@ from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
 import aiohttp
 import json
 from warrant import Cognito
+import re
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ def extract_device_info(
     nam_suffix="_NAM",
     tmp_suffix="_TMP",
     enb_suffix="_ENB",
+    srl_suffix="_SRL",
     exclude_suffix="E_NAM",
 ):
     devices_info = []
@@ -127,6 +129,42 @@ def extract_device_info(
                     if corresponding_enb_key in obj:
                         enb_value = obj[corresponding_enb_key]
                         device_info["state"] = "HEAT" if enb_value == 1 else "OFF"
+
+                    # Trova il MAC
+                    for k in obj.keys():
+                        if re.match(
+                            r"^D[a-zA-Z]{2}_SRL$", k
+                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
+                            device_info["mac"] = obj[
+                                k
+                            ]  # Aggiungi il MAC all'informazione del dispositivo
+
+                    # Trova il Firmware Version
+                    for k in obj.keys():
+                        if re.match(
+                            r"^D[a-zA-Z]{2}_FWV$", k
+                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
+                            device_info["firmware"] = obj[
+                                k
+                            ]  # Aggiungi il Firmware Version all'informazione del dispositivo
+
+                    # Trova il Type
+                    for k in obj.keys():
+                        if re.match(
+                            r"^D[a-zA-Z]{2}_TYP$", k
+                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
+                            device_info["model"] = obj[
+                                k
+                            ]  # Aggiungi il Type all'informazione del dispositivo
+
+                    # Trova l'indirizzo IP
+                    for k in obj.keys():
+                        if re.match(
+                            r"^D[a-zA-Z]{2}_X_ipAddress$", k
+                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
+                            device_info["ip_address"] = obj[
+                                k
+                            ]  # Aggiungi l'indirizzo IP all'informazione del dispositivo
 
                     devices_info.append(device_info)
                 find_device_keys(value)
@@ -160,6 +198,9 @@ class RadiatorClimate(ClimateEntity):
         self._state = radiator["state"]  # Usa il valore di _ENB per lo stato
         self._token = token
         self._envID = envID
+        self._serial_number = radiator.get("mac")
+        self._sw_version = radiator.get("firmware")
+        self._model = radiator.get("model")
 
         # Modalità HVAC supportate (HEAT, OFF, AUTO se supportato)
         self._attr_hvac_modes = [
@@ -233,6 +274,18 @@ class RadiatorClimate(ClimateEntity):
     def hvac_modes(self):
         "Return available HVAC modes."
         return self._attr_hvac_modes
+
+    @property
+    def device_info(self):
+        """Return device information."""
+        return {
+            "identifiers": {(self._unique_id,)},
+            "name": self._name,
+            "model": self._model,  # Modello del dispositivo
+            "manufacturer": "IRSAP",  # Sostituisci con il tuo produttore
+            "sw_version": self._sw_version,  # Versione del software, se applicabile
+            "serial_number": self._serial_number,  # Aggiungi il numero di serie
+        }
 
     # Funzione per inviare il payload aggiornato alle API
     async def _send_target_temperature_to_api(self, token, envID, updated_payload):
