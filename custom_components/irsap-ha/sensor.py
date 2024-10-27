@@ -1,18 +1,20 @@
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
-import asyncio
 import logging
-import time
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.device_registry import DeviceRegistry
+from homeassistant.components.sensor import SensorEntity, datetime
 import aiohttp
 import json
 from warrant import Cognito
+import re
+from .device_manager import device_manager
+import pytz
+from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up sensor platform."""
+    from .climate import RadiatorClimate  # Importa RadiatorClimate qui
+
     envID = config_entry.data["envID"]
     username = config_entry.data["username"]
     password = config_entry.data["password"]
@@ -22,79 +24,93 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     if token and envID:
         _LOGGER.debug("Token and envID successfully obtained. Retrieving sensors.")
 
-        # Salviamo token ed envID nel contesto di Home Assistant
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN]["token"] = token
         hass.data[DOMAIN]["envID"] = envID
         hass.data[DOMAIN]["username"] = username
         hass.data[DOMAIN]["password"] = password
 
-        sensor_data = await get_sensor_data(token, envID)
-        if sensor_data:
-            device_name = sensor_data["name"]
-            device_unique_id = (
-                f"radiator_{device_name.replace(' ', '_').lower()}_device"
-            )
-            device_info = {
-                "identifiers": {(DOMAIN, device_unique_id)},
-                "name": device_name,
-                "model": "Radiator",
-                "manufacturer": "IRSAP",
-                "serial_number": sensor_data["eid"],
-                "sw_version": sensor_data["ever"],
-            }
+        devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
+        _LOGGER.debug(
+            f"Devices found: {[device.radiator['serial'] for device in devices]}"
+        )
 
-            # Crea un dispositivo
-            RadiatorDevice(device_name, device_unique_id)
+        if not devices:
+            _LOGGER.error(
+                "No devices found. Please ensure that climate entities are set up correctly."
+            )
+            return
 
-            sensor_entities = []
+        sensors = await get_sensor_data(token, envID)
+        sensor_entities = []
 
-            # Aggiungi i sensori al dispositivo
-            temperature_sensor = RadiatorSensor(
-                name=device_name + " Temperature",
-                sensor_type="temperature",
-                value=sensor_data["current_temperature"],
-                unique_id=f"{device_name}_temperature",
-                unit_of_measurement="°C",
-                device_info=device_info,  # Passa le informazioni sul dispositivo
-            )
-            humidity_sensor = RadiatorSensor(
-                name=device_name + " Humidity",
-                sensor_type="humidity",
-                value=sensor_data["humidity"],
-                unique_id=f"{device_name}_humidity",
-                unit_of_measurement="%",
-                device_info=device_info,
-            )
-            min_temperature_sensor = RadiatorSensor(
-                name=device_name + " Min Temperature",
-                sensor_type="temperature",
-                value=sensor_data["min_temperature"],
-                unique_id=f"{device_name}_min_temperature",
-                unit_of_measurement="°C",
-                device_info=device_info,
-            )
-            max_temperature_sensor = RadiatorSensor(
-                name=device_name + " Max Temperature",
-                sensor_type="temperature",
-                value=sensor_data["max_temperature"],
-                unique_id=f"{device_name}_max_temperature",
-                unit_of_measurement="°C",
-                device_info=device_info,
+        for r in sensors:
+            # Trova il dispositivo associato al sensore
+            device = next(
+                (d for d in devices if d.radiator["serial"] == r["serial"]), None
             )
 
-            sensor_entities.append(temperature_sensor)
-            sensor_entities.append(min_temperature_sensor)
-            sensor_entities.append(max_temperature_sensor)
-            sensor_entities.append(humidity_sensor)
+            if device is not None:
+                sensor_entity = RadiatorSensor(
+                    r, device, unique_id=f"{r['serial']}_ip_address"
+                )
+                sensor_entities.append(sensor_entity)
+                # Aggiungi tutti i sensori necessari per ciascun dispositivo
+                sensor_entities.append(
+                    LastUpdateSensor(r, device, unique_id=f"{r['serial']}_last_update")
+                )
+                sensor_entities.append(
+                    WifiSignalSensor(r, device, unique_id=f"{r['serial']}_wifi_signal")
+                )
+                sensor_entities.append(
+                    PiloteEnableSensor(
+                        r, device, unique_id=f"{r['serial']}_pilote_enable"
+                    )
+                )
+                sensor_entities.append(
+                    PiloteStatusSensor(
+                        r, device, unique_id=f"{r['serial']}_pilote_status"
+                    )
+                )
+                sensor_entities.append(
+                    StandbySensor(r, device, unique_id=f"{r['serial']}_standby")
+                )
+                sensor_entities.append(
+                    OpenWindowEnabledSensor(
+                        r, device, unique_id=f"{r['serial']}_openwindow_enabled"
+                    )
+                )
+                sensor_entities.append(
+                    OpenWindowOffsetSensor(
+                        r, device, unique_id=f"{r['serial']}_openwindow_offset"
+                    )
+                )
+                sensor_entities.append(
+                    TemperatureOffsetSensor(
+                        r, device, unique_id=f"{r['serial']}_temperature_offset"
+                    )
+                )
+                sensor_entities.append(
+                    HysteresisSensor(r, device, unique_id=f"{r['serial']}_hysteresis")
+                )
+                sensor_entities.append(
+                    VocSensor(r, device, unique_id=f"{r['serial']}_voc")
+                )
+                sensor_entities.append(
+                    Co2Sensor(r, device, unique_id=f"{r['serial']}_co2")
+                )
+                sensor_entities.append(
+                    OpenWindowDetectedSensor(
+                        r, device, unique_id=f"{r['serial']}_openwindow_detected"
+                    )
+                )
+                sensor_entities.append(
+                    LockSensor(r, device, unique_id=f"{r['serial']}_lock")
+                )  # Child lock sensor
+            else:
+                _LOGGER.warning(f"No matching device found for sensor {r['serial']}")
 
-            # Registra i sensori
-            async_add_entities(sensor_entities, True)
-            _LOGGER.debug(
-                f"Created {len(sensor_entities)} sensors for device '{device_name}'."
-            )
-        else:
-            _LOGGER.warning("No sensors found in the API.")
+        async_add_entities(sensor_entities, True)
     else:
         _LOGGER.error("Unable to obtain the token or envID. Check configuration.")
 
@@ -148,142 +164,456 @@ async def get_sensor_data(token, envID):
         return []
 
 
-def extract_device_info(payload):
-    # Inizializza un dizionario per memorizzare le informazioni estratte
-    device_info = {}
+def extract_device_info(
+    payload,
+    nam_suffix="_NAM",
+    tmp_suffix="_TMP",
+    enb_suffix="_ENB",
+    exclude_suffix="E_NAM",
+):
+    devices_info = []
 
-    # Estrai il nome del sensore dalla chiave "E_NAM"
-    if "E_NAM" in payload:
-        device_info["name"] = payload["E_NAM"]
+    # Trova tutte le chiavi _NAM, _CNT, _FWV, _TYP, _SLV, _LUP, _X_ipAddress, _X_filPiloteEnabled, _X_filPiloteStatus, _X_standby, _X_OpenWindowSensorEnabled, _X_OpenWindowDetected, _X_OpenWindowSensorOffTime, _X_temperatureSensorOffset, _X_hysteresis, _X_vocValue, _X_co2Value in ordine
+    nam_keys = []
+    cnt_keys = []
+    fwv_keys = []
+    typ_keys = []
+    slv_keys = []
+    lup_keys = []
+    ip_keys = []
+    pilote_enb_keys = []
+    pilote_sta_keys = []
+    stand_keys = []
+    openwin_enab_keys = []
+    openwin_dect_keys = []
+    openwin_off_keys = []
+    temp_off_keys = []
+    hyst_keys = []
+    voc_keys = []
+    co2_keys = []
+    lock_keys = []
 
-    # Estrai le informazioni sulle temperature dalla chiave "E_WDT"
-    if "E_WTD" in payload:
-        wdt_data = payload["E_WTD"]
-        device_info["current_temperature"] = (
-            wdt_data["current"]["temperature"] / 10
-        )  # Converti in gradi
-        device_info["humidity"] = wdt_data["current"]["humidity"]
-        device_info["min_temperature"] = (
-            wdt_data["dayDetails"]["temperatures"]["min"] / 10
-        )  # Converti in gradi
-        device_info["max_temperature"] = (
-            wdt_data["dayDetails"]["temperatures"]["max"] / 10
-        )  # Converti in gradi
+    def find_device_keys(obj):
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                # Raccogli chiavi _NAM e aggiungi i dettagli iniziali
+                if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
+                    device_info = {
+                        "serial": value,
+                        "temperature": 0,  # Default a 0 se non trovata
+                        "state": "OFF",  # Default a OFF se non trovato
+                    }
+                    nam_keys.append((key, device_info))
 
-    # Estrai le informazioni sull'indirizzo dalla chiave "E_LOC"
-    if "E_LOC" in payload:
-        loc_data = payload["E_LOC"]
-        address = loc_data["address"]
-        device_info["latitude"], device_info["longitude"] = map(
-            float, loc_data["latLon"].split(",")
-        )
-        device_info["city"] = address["city"]
-        device_info["country"] = address["country"]
-        device_info["postal_code"] = address["postalCode"]
-        device_info["state"] = address["state"]
-        device_info["street"] = address["street"]
-        device_info["iso"] = address["iso"]
+                # Trova chiavi _CNT, _FWV, _TYP, _X_ipAddress e aggiungile agli elenchi
+                if re.match(r"^D[a-zA-Z]{2}_CNT$", key):
+                    cnt_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_FWV$", key):
+                    fwv_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_TYP$", key):
+                    typ_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_SLV$", key):
+                    slv_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_LUP$", key):
+                    lup_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_ipAddress$", key):
+                    ip_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_filPiloteEnabled$", key):
+                    pilote_enb_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_filPiloteStatus$", key):
+                    pilote_sta_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_standby$", key):
+                    stand_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_OpenWindowSensorEnabled$", key):
+                    openwin_enab_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_OpenWindowDetected$", key):
+                    openwin_dect_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_OpenWindowSensorOffTime$", key):
+                    openwin_off_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_temperatureSensorOffset$", key):
+                    temp_off_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_hysteresis$", key):
+                    hyst_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_vocValue$", key):
+                    voc_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_co2Value$", key):
+                    co2_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_lock$", key):
+                    lock_keys.append((key, value))
 
-    if "E_ID" in payload:
-        device_info["eid"] = payload["E_ID"]
+                # Ricorsione per trovare chiavi nested
+                find_device_keys(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                find_device_keys(item)
 
-    if "E_VER" in payload:
-        device_info["ever"] = payload["E_VER"]
+    # Esegui la ricerca di chiavi nel payload
+    find_device_keys(payload)
 
-    return device_info
+    # Associa ogni _NAM ai suoi corrispondenti attributi in ordine di apparizione
+    for i, (nam_key, device_info) in enumerate(nam_keys):
+        base_key = nam_key[: -len(nam_suffix)]
+        corresponding_tmp_key = base_key + tmp_suffix
+        corresponding_enb_key = base_key + enb_suffix
 
-
-def extract_sensor_data(sensor_data, token, envID):
-    entities = []
-
-    # Nome base del sensore
-    base_name = sensor_data["name"]
-
-    # Creazione di sensori per ogni informazione
-    if "current_temperature" in sensor_data:
-        entities.append(
-            RadiatorSensor(
-                base_name,
-                "Current Temperature",
-                sensor_data["current_temperature"],
-                "°C",
+        # Trova la temperatura
+        if corresponding_tmp_key in payload:
+            tmp_value = payload[corresponding_tmp_key]
+            device_info["temperature"] = (
+                float(tmp_value) / 10 if tmp_value is not None else 0
             )
-        )
 
-    if "humidity" in sensor_data:
-        entities.append(
-            RadiatorSensor(base_name, "Humidity", sensor_data["humidity"], "%")
-        )
+        # Trova lo stato (ON/OFF)
+        if corresponding_enb_key in payload:
+            enb_value = payload[corresponding_enb_key]
+            device_info["state"] = "HEAT" if enb_value == 1 else "OFF"
 
-    if "min_temperature" in sensor_data:
-        entities.append(
-            RadiatorSensor(
-                base_name, "Min Temperature", sensor_data["min_temperature"], "°C"
-            )
-        )
+        # Associa SRL, FWV, TYP e IP in base alla posizione dell'indice
+        if i < len(cnt_keys):
+            device_info["mac"] = cnt_keys[i][1]
+        if i < len(fwv_keys):
+            device_info["firmware"] = fwv_keys[i][1]
+        if i < len(typ_keys):
+            device_info["model"] = typ_keys[i][1]
+        if i < len(slv_keys):
+            device_info["wifi_signal"] = slv_keys[i][1]
+        if i < len(lup_keys):
+            device_info["last_update"] = lup_keys[i][1]
+        if i < len(ip_keys):
+            device_info["ip_address"] = ip_keys[i][1]
+        if i < len(pilote_enb_keys):
+            device_info["pilote_enable"] = pilote_enb_keys[i][1]
+        if i < len(pilote_sta_keys):
+            device_info["pilote_status"] = pilote_sta_keys[i][1]
+        if i < len(stand_keys):
+            device_info["standby"] = stand_keys[i][1]
+        if i < len(openwin_enab_keys):
+            device_info["open_window_enabled"] = openwin_enab_keys[i][1]
+        if i < len(openwin_dect_keys):
+            device_info["openwindow_detected"] = openwin_dect_keys[i][1]
+        if i < len(openwin_off_keys):
+            device_info["openwindow_offset"] = openwin_off_keys[i][1]
+        if i < len(temp_off_keys):
+            device_info["temperature_offset"] = temp_off_keys[i][1]
+        if i < len(hyst_keys):
+            device_info["hysteresis"] = hyst_keys[i][1]
+        if i < len(voc_keys):
+            device_info["voc"] = voc_keys[i][1]
+        if i < len(co2_keys):
+            device_info["co2"] = co2_keys[i][1]
+        if i < len(lock_keys):
+            device_info["lock"] = lock_keys[i][1]
 
-    if "max_temperature" in sensor_data:
-        entities.append(
-            RadiatorSensor(
-                base_name, "Max Temperature", sensor_data["max_temperature"], "°C"
-            )
-        )
+        devices_info.append(device_info)
 
-    # Altre metriche come latitudine e longitudine, se necessario, possono essere aggiunte
-
-    return entities
-
-
-class RadiatorDevice:
-    def __init__(self, name, unique_id):
-        self._name = name
-        self._unique_id = unique_id
-        self._sensors = []
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def unique_id(self):
-        return self._unique_id
-
-    def add_sensor(self, sensor):
-        self._sensors.append(sensor)
-
-    @property
-    def sensors(self):
-        return self._sensors
+    return devices_info
 
 
 class RadiatorSensor(SensorEntity):
-    def __init__(
-        self, name, sensor_type, value, unique_id, unit_of_measurement, device_info=None
-    ):
-        self._name = name
-        self._sensor_type = sensor_type
-        self._value = value
-        self._unique_id = unique_id
-        self._unit_of_measurement = unit_of_measurement
-        self._device_info = device_info  # Aggiungi questa riga
-        self._state = value  # Imposta lo stato iniziale
+    def __init__(self, radiator, device, unique_id):
+        self._radiator = radiator
+        self._device = device  # Store device reference
+        self._attr_name = f"{radiator['serial']} IP Address"
+        self._attr_unique_id = unique_id
+        self._attr_icon = "mdi:ip"
+        self._radiator_serial = radiator["serial"]
+        self._model = radiator.get("model", "Modello Sconosciuto")
+        self._attr_native_value = radiator.get("ip_address", "IP non disponibile")
+        self._sw_version = radiator.get("firmware")
+
+    @property
+    def native_value(self):
+        return self._attr_native_value
 
     @property
     def unique_id(self):
-        return self._unique_id
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def unit_of_measurement(self):
-        return self._unit_of_measurement
+        return self._attr_unique_id
 
     @property
     def device_info(self):
-        return self._device_info
+        """Associa il sensore al dispositivo climate con il seriale corrispondente."""
+        return {
+            "identifiers": {
+                (DOMAIN, self._device.radiator["serial"])
+            },  # Use device serial number
+            "name": f"{self._radiator['serial']}",
+            "model": self._device.radiator.get("model", "Unknown model"),
+            "manufacturer": "IRSAP",
+            "sw_version": self._device.radiator.get("firmware", "unknown"),
+        }
+
+
+class BaseRadiatorSensor(SensorEntity):
+    """Base class for radiator sensors."""
+
+    def __init__(
+        self, radiator, device, unique_id, attr_name, icon, data_key, formatter=None
+    ):
+        self._radiator = radiator
+        self._device = device
+        self._attr_name = f"{radiator['serial']} {attr_name}"
+        self._attr_unique_id = unique_id
+        self._attr_icon = icon
+        self._attr_native_value = None
+        self._data_key = data_key
+        self._formatter = formatter
+
+    @property
+    def native_value(self):
+        """Retrieve and format the value for the sensor."""
+        raw_value = self._radiator.get(self._data_key)
+        if raw_value is None:
+            return "N/A"
+        if self._formatter:
+            return self._formatter(raw_value)
+        return raw_value
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self._device.radiator["serial"])},
+            "name": f"{self._radiator['serial']}",
+            "model": self._device.radiator.get("model", "Unknown model"),
+            "manufacturer": "IRSAP",
+            "sw_version": self._device.radiator.get("firmware", "unknown"),
+        }
+
+    async def async_update(self):
+        """Update the sensor value periodically."""
+        self._attr_native_value = self.native_value
+        _LOGGER.debug(f"Updated {self._attr_name} to {self._attr_native_value}")
+
+
+class WifiSignalSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator,
+            device,
+            unique_id,
+            "WiFi Signal Strength",
+            "mdi:wifi",
+            "wifi_signal",
+        )
+
+    @property
+    def native_value(self):
+        """Return the WiFi signal strength in dBm."""
+        return self._radiator.get("wifi_signal", "N/A")
+
+
+class PiloteEnableSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator, device, unique_id, "Pilote Enable", "mdi:power", "pilote_enable"
+        )
+
+    @property
+    def native_value(self):
+        """Return 'Enabled' if pilote feature is active (1), otherwise 'Disabled' (0)."""
+        status = self._radiator.get("pilote_enable", None)
+        if status == 1:
+            return "Enabled"
+        elif status == 0:
+            return "Disabled"
+        return "Unknown"  # Default if status is not available
+
+
+class PiloteStatusSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator,
+            device,
+            unique_id,
+            "Pilote Status",
+            "mdi:check-circle",
+            "pilote_status",
+        )
+
+    @property
+    def native_value(self):
+        """Return 'Active' if pilote is currently active (1), otherwise 'Inactive' (0)."""
+        status = self._radiator.get("pilote_status", None)
+        if status == 1:
+            return "Active"
+        elif status == 0:
+            return "Inactive"
+        return "Unknown"  # Default if status is not available
+
+
+class StandbySensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(radiator, device, unique_id, "Standby", "mdi:sleep", "standby")
+
+    @property
+    def native_value(self):
+        """Return 'Yes' if standby feature is active (1), otherwise 'No' (0)."""
+        status = self._radiator.get("standby", None)
+        if status == 1:
+            return "Yes"
+        elif status == 0:
+            return "No"
+        return "Unknown"  # Default if status is not available
+
+
+class OpenWindowEnabledSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator,
+            device,
+            unique_id,
+            "Open Window Enabled",
+            "mdi:window-open",
+            "open_window_enabled",
+        )
+
+    @property
+    def native_value(self):
+        """Return 'Enabled' if open window feature is active (1), otherwise 'Disabled' (0)."""
+        status = self._radiator.get("open_window_enabled", None)
+        if status == 1:
+            return "Enabled"
+        elif status == 0:
+            return "Disabled"
+        return "Unknown"  # Default if status is not available
+
+
+class OpenWindowOffsetSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator,
+            device,
+            unique_id,
+            "Open Window Offset",
+            "mdi:window-closed",
+            "openwindow_offset",
+        )
+
+
+class TemperatureOffsetSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator,
+            device,
+            unique_id,
+            "Temperature Offset",
+            "mdi:thermometer",
+            "temperature_offset",
+        )
+
+    @property
+    def native_value(self):
+        """Convert the temperature offset from two digits to a decimal format."""
+        offset = self._radiator.get("temperature_offset", None)
+        if offset is not None:
+            return offset / 10.0  # Convert two-digit value to decimal
+        return "Unknown"  # Default if offset is not available
+
+
+class HysteresisSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator, device, unique_id, "Hysteresis", "mdi:sine-wave", "hysteresis"
+        )
+
+
+class VocSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(radiator, device, unique_id, "VOC", "mdi:air-filter", "voc")
+
+
+class Co2Sensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(radiator, device, unique_id, "CO2", "mdi:molecule-co2", "co2")
+
+
+class OpenWindowDetectedSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator,
+            device,
+            unique_id,
+            "Open Window Detected",
+            "mdi:window-open",
+            "openwindow_detected",
+        )
+
+    @property
+    def native_value(self):
+        """Return 'Open' if window is detected open (1), otherwise 'Closed' (0)."""
+        status = self._radiator.get("openwindow_detected", None)
+        if status == 1:
+            return "Open"
+        elif status == 0:
+            return "Closed"
+        return "Unknown"  # Default if status is not available
+
+
+class LastUpdateSensor(SensorEntity):
+    def __init__(self, radiator, device, unique_id):
+        self._radiator = radiator
+        self._device = device  # Store device reference
+        self._attr_name = f"{radiator['serial']} Last Update"
+        self._attr_unique_id = unique_id
+        self._attr_icon = "mdi:update"
+        self._attr_native_value = None  # Initialize the sensor value
+
+    @property
+    def native_value(self):
+        # Retrieve the last update timestamp
+        last_update_raw = self._radiator.get("last_update")
+
+        # Convert the timestamp to a readable format if it exists
+        if last_update_raw:
+            # Parse the ISO string
+            last_update_dt = datetime.fromisoformat(
+                last_update_raw.replace("Z", "+00:00")
+            )
+
+            # Convert to the local timezone configured in Home Assistant
+            local_tz = dt_util.DEFAULT_TIME_ZONE
+            last_update_local = last_update_dt.astimezone(local_tz)
+            return last_update_local.strftime(
+                "%d-%m-%Y %H:%M"
+            )  # Format as "DD-MM-YYYY HH:MM"
+
+        return "N/A"  # Return a default if `last_update` is missing
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self._device.radiator["serial"])},
+            "name": f"{self._radiator['serial']}",
+            "model": self._device.radiator.get("model", "Unknown model"),
+            "manufacturer": "IRSAP",
+            "sw_version": self._device.radiator.get("firmware", "unknown"),
+        }
+
+    async def async_update(self):
+        """Update the sensor value periodically."""
+        self._attr_native_value = (
+            self.native_value
+        )  # Trigger conversion in native_value
+        _LOGGER.debug(f"Updated {self._attr_name} to {self._attr_native_value}")
+
+
+class LockSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(radiator, device, unique_id, "Child Lock", "mdi:lock", "lock")
+
+    @property
+    def native_value(self):
+        """Return 'Locked' if child lock is active (1), otherwise 'Unlocked' (0)."""
+        lock_status = self._radiator.get("lock", None)
+        if lock_status == 1:
+            return "Locked"
+        elif lock_status == 0:
+            return "Unlocked"
+        return "Unknown"  # Default value if lock status is not available
