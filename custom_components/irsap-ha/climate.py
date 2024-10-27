@@ -6,18 +6,27 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.components.climate.const import ClimateEntityFeature
-from homeassistant.const import UnitOfTemperature  # Importa UnitOfTemperature
+from homeassistant.const import UnitOfTemperature
+from homeassistant.helpers.entity_platform import (
+    AddEntitiesCallback,
+)  # Importa UnitOfTemperature
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
 import aiohttp
 import json
 from warrant import Cognito
 import re
+from .device import RadiatorDevice
+from .device_manager import device_manager
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    "Set up climate platform."
+async def async_setup_entry(
+    hass, config_entry, async_add_entities: AddEntitiesCallback
+):
+    from .sensor import RadiatorSensor
+
+    """Set up climate platform."""
     envID = config_entry.data["envID"]
     username = config_entry.data["username"]
     password = config_entry.data["password"]
@@ -35,14 +44,18 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hass.data[DOMAIN]["password"] = password
 
         radiators = await get_radiators(token, envID)
-        if radiators:
-            entities = [
-                RadiatorClimate(radiator, token, envID) for radiator in radiators
-            ]
-            async_add_entities(entities, True)  # Aggiungi le entità alla piattaforma
-            _LOGGER.debug(f"Created {len(entities)} radiators.")
-        else:
-            _LOGGER.warning("No radiators found in the API.")
+        _LOGGER.debug(
+            f"Retrieved radiators: {radiators}"
+        )  # Log per verificare i radiatori
+
+        for r in radiators:
+            device = RadiatorDevice(r, token, envID)
+            device_manager.add_device(device)  # Aggiungi il dispositivo al manager
+            climate_entity = RadiatorClimate(
+                r, token, envID, unique_id=f"{r['serial']}_climate"
+            )
+            async_add_entities([climate_entity], True)
+
     else:
         _LOGGER.error("Unable to obtain the token or envID. Check configuration.")
 
@@ -106,73 +119,74 @@ def extract_device_info(
 ):
     devices_info = []
 
+    # Trova tutte le chiavi _NAM, _SRL, _FWV, _TYP e _X_ipAddress in ordine
+    nam_keys = []
+    srl_keys = []
+    fwv_keys = []
+    typ_keys = []
+    ip_keys = []
+
     def find_device_keys(obj):
         if isinstance(obj, dict):
             for key, value in obj.items():
+                # Raccogli chiavi _NAM e aggiungi i dettagli iniziali
                 if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
                     device_info = {
                         "serial": value,
                         "temperature": 0,  # Default a 0 se non trovata
                         "state": "OFF",  # Default a OFF se non trovato
                     }
-                    corresponding_tmp_key = key[: -len(nam_suffix)] + tmp_suffix
-                    corresponding_enb_key = key[: -len(nam_suffix)] + enb_suffix
+                    nam_keys.append((key, device_info))
 
-                    # Trova la temperatura
-                    if corresponding_tmp_key in obj:
-                        tmp_value = obj[corresponding_tmp_key]
-                        device_info["temperature"] = (
-                            float(tmp_value) / 10 if tmp_value is not None else 0
-                        )
+                # Trova chiavi _SRL, _FWV, _TYP, _X_ipAddress e aggiungile agli elenchi
+                if re.match(r"^D[a-zA-Z]{2}_SRL$", key):
+                    srl_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_FWV$", key):
+                    fwv_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_TYP$", key):
+                    typ_keys.append((key, value))
+                elif re.match(r"^D[a-zA-Z]{2}_X_ipAddress$", key):
+                    ip_keys.append((key, value))
 
-                    # Trova lo stato (ON/OFF)
-                    if corresponding_enb_key in obj:
-                        enb_value = obj[corresponding_enb_key]
-                        device_info["state"] = "HEAT" if enb_value == 1 else "OFF"
-
-                    # Trova il MAC
-                    for k in obj.keys():
-                        if re.match(
-                            r"^D[a-zA-Z]{2}_SRL$", k
-                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
-                            device_info["mac"] = obj[
-                                k
-                            ]  # Aggiungi il MAC all'informazione del dispositivo
-
-                    # Trova il Firmware Version
-                    for k in obj.keys():
-                        if re.match(
-                            r"^D[a-zA-Z]{2}_FWV$", k
-                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
-                            device_info["firmware"] = obj[
-                                k
-                            ]  # Aggiungi il Firmware Version all'informazione del dispositivo
-
-                    # Trova il Type
-                    for k in obj.keys():
-                        if re.match(
-                            r"^D[a-zA-Z]{2}_TYP$", k
-                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
-                            device_info["model"] = obj[
-                                k
-                            ]  # Aggiungi il Type all'informazione del dispositivo
-
-                    # Trova l'indirizzo IP
-                    for k in obj.keys():
-                        if re.match(
-                            r"^D[a-zA-Z]{2}_X_ipAddress$", k
-                        ):  # Controlla se la chiave inizia con 'D' e seguita da due lettere
-                            device_info["ip_address"] = obj[
-                                k
-                            ]  # Aggiungi l'indirizzo IP all'informazione del dispositivo
-
-                    devices_info.append(device_info)
+                # Ricorsione per trovare chiavi nested
                 find_device_keys(value)
         elif isinstance(obj, list):
             for item in obj:
                 find_device_keys(item)
 
+    # Esegui la ricerca di chiavi nel payload
     find_device_keys(payload)
+
+    # Associa ogni _NAM ai suoi corrispondenti attributi in ordine di apparizione
+    for i, (nam_key, device_info) in enumerate(nam_keys):
+        base_key = nam_key[: -len(nam_suffix)]
+        corresponding_tmp_key = base_key + tmp_suffix
+        corresponding_enb_key = base_key + enb_suffix
+
+        # Trova la temperatura
+        if corresponding_tmp_key in payload:
+            tmp_value = payload[corresponding_tmp_key]
+            device_info["temperature"] = (
+                float(tmp_value) / 10 if tmp_value is not None else 0
+            )
+
+        # Trova lo stato (ON/OFF)
+        if corresponding_enb_key in payload:
+            enb_value = payload[corresponding_enb_key]
+            device_info["state"] = "HEAT" if enb_value == 1 else "OFF"
+
+        # Associa SRL, FWV, TYP e IP in base alla posizione dell'indice
+        if i < len(srl_keys):
+            device_info["mac"] = srl_keys[i][1]
+        if i < len(fwv_keys):
+            device_info["firmware"] = fwv_keys[i][1]
+        if i < len(typ_keys):
+            device_info["model"] = typ_keys[i][1]
+        if i < len(ip_keys):
+            device_info["ip_address"] = ip_keys[i][1]
+
+        devices_info.append(device_info)
+
     return devices_info
 
 
@@ -189,10 +203,11 @@ def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
 class RadiatorClimate(ClimateEntity):
     "Representation of a radiator climate entity."
 
-    def __init__(self, radiator, token, envID):
+    def __init__(self, radiator, token, envID, unique_id):
         self._radiator = radiator
-        self._name = f"Radiator {radiator['serial']}"
-        self._unique_id = f"radiator_{radiator['serial']}"
+        self._device = RadiatorDevice(radiator, token, envID)
+        self._attr_name = f"{radiator['serial']} Climate"
+        self._attr_unique_id = unique_id
         self._current_temperature = radiator.get("temperature", 0)
         self._target_temperature = 18.0  # Imposta una temperatura target predefinita
         self._state = radiator["state"]  # Usa il valore di _ENB per lo stato
@@ -228,7 +243,7 @@ class RadiatorClimate(ClimateEntity):
             | ClimateEntityFeature.TURN_OFF
         )
 
-        _LOGGER.info(f"Initialized {self._name} with state {self._attr_hvac_mode}")
+        _LOGGER.info(f"Initialized {self._attr_name} with state {self._attr_hvac_mode}")
 
     @property
     def min_temp(self):
@@ -243,12 +258,12 @@ class RadiatorClimate(ClimateEntity):
     @property
     def name(self):
         "Return the name of the climate device."
-        return self._name
+        return self._attr_name
 
     @property
     def unique_id(self):
         "Return a unique ID for the climate device."
-        return self._unique_id
+        return self._attr_unique_id
 
     @property
     def temperature_unit(self):
@@ -276,15 +291,24 @@ class RadiatorClimate(ClimateEntity):
         return self._attr_hvac_modes
 
     @property
+    def extra_state_attributes(self):
+        """Return additional attributes like IP address."""
+        return {
+            "min_temperature": self._radiator.get("min_temperature"),
+            "max_temperature": self._radiator.get("max_temperature"),
+        }
+
+    @property
     def device_info(self):
         """Return device information."""
         return {
-            "identifiers": {(self._unique_id,)},
-            "name": self._name,
-            "model": self._model,  # Modello del dispositivo
-            "manufacturer": "IRSAP",  # Sostituisci con il tuo produttore
-            "sw_version": self._sw_version,  # Versione del software, se applicabile
-            "serial_number": self._serial_number,  # Aggiungi il numero di serie
+            "identifiers": {
+                (DOMAIN, self._device.radiator["serial"])
+            },  # Use device serial number
+            "name": self._device.radiator["serial"],
+            "model": self._device.radiator.get("model", "Unknown model"),
+            "manufacturer": "IRSAP",
+            "sw_version": self._device.radiator.get("firmware", "unknown"),
         }
 
     # Funzione per inviare il payload aggiornato alle API
@@ -575,7 +599,7 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.error("Token or envID not found in hass.data")
             return
 
-        device_name = self._name.replace("Radiator ", "")  # Use the device name
+        device_name = self._attr_name.replace("Radiator ", "")  # Use the device name
 
         # Function to handle token regeneration and payload retrieval
         async def retrieve_payload(token, envID):
@@ -598,7 +622,7 @@ class RadiatorClimate(ClimateEntity):
 
         if payload is None:
             _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._name}"
+                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
             )
             return
 
@@ -618,7 +642,7 @@ class RadiatorClimate(ClimateEntity):
             # Cambia lo stato in HEAT
             self._attr_hvac_mode = HVACMode.HEAT
         else:
-            _LOGGER.error(f"Failed to update temperature for {self._name}")
+            _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
 
     async def async_set_hvac_mode(self, hvac_mode):
         "Set new target HVAC mode."
@@ -638,7 +662,7 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.debug(f"Setting {self._radiator['serial']} to OFF")
             await self._set_radiator_state(False)
 
-            device_name = self._name.replace(
+            device_name = self._attr_name.replace(
                 "Radiator ", ""
             )  # Usa il nome del dispositivo
 
@@ -646,7 +670,9 @@ class RadiatorClimate(ClimateEntity):
             payload = await self.get_current_payload(token, envID)
 
             if payload is None:
-                _LOGGER.error(f"Failed to retrieve current payload for {self._name}")
+                _LOGGER.error(
+                    f"Failed to retrieve current payload for {self._attr_name}"
+                )
                 return
 
             # Aggiorna il payload con la nuova temperatura
@@ -665,7 +691,7 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.debug(f"Setting {self._radiator['serial']} to HEAT")
             await self._set_radiator_state(True)
 
-            device_name = self._name.replace(
+            device_name = self._attr_name.replace(
                 "Radiator ", ""
             )  # Usa il nome del dispositivo
 
@@ -673,7 +699,9 @@ class RadiatorClimate(ClimateEntity):
             payload = await self.get_current_payload(token, envID)
 
             if payload is None:
-                _LOGGER.error(f"Failed to retrieve current payload for {self._name}")
+                _LOGGER.error(
+                    f"Failed to retrieve current payload for {self._attr_name}"
+                )
                 return
 
             # Aggiorna il payload con la nuova temperatura
@@ -697,7 +725,7 @@ class RadiatorClimate(ClimateEntity):
             self._attr_hvac_mode = hvac_mode
             self.async_write_ha_state()
         else:
-            _LOGGER.error(f"Failed to update HVAC mode for {self._name}")
+            _LOGGER.error(f"Failed to update HVAC mode for {self._attr_name}")
 
     async def _set_radiator_state(self, state):
         "Send request to set the radiator state."
@@ -717,7 +745,7 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.error("Token or envID not found in hass.data")
             return
 
-        device_name = self._name.replace("Radiator ", "")  # Use the device name
+        device_name = self._attr_name.replace("Radiator ", "")  # Use the device name
 
         # Function to handle token regeneration and payload retrieval
         async def retrieve_payload(token, envID):
@@ -725,7 +753,7 @@ class RadiatorClimate(ClimateEntity):
             payload = await self.get_current_payload(token, envID)
             if payload is None:
                 _LOGGER.warning(
-                    f"Failed to retrieve current payload for {self._name}. Regenerating token."
+                    f"Failed to retrieve current payload for {self._attr_name}. Regenerating token."
                 )
                 # Regenerate token and retry
                 token = await self.hass.async_add_executor_job(
@@ -743,7 +771,7 @@ class RadiatorClimate(ClimateEntity):
 
         if payload is None:
             _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._name}"
+                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
             )
             return
 
@@ -765,11 +793,11 @@ class RadiatorClimate(ClimateEntity):
             else:
                 self._attr_hvac_mode = HVACMode.OFF  # Spegni l'HVAC se lo stato è off
         else:
-            _LOGGER.error(f"Failed to update radiator state for {self._name}")
+            _LOGGER.error(f"Failed to update radiator state for {self._attr_name}")
 
     async def async_update(self):
         "Fetch new state data for this climate entity."
-        _LOGGER.info(f"Updating radiator climate {self._name}")
+        _LOGGER.info(f"Updating radiator climate {self._attr_name}")
 
         # Recupera token e envID
         token = self.hass.data[DOMAIN].get("token")
@@ -785,7 +813,7 @@ class RadiatorClimate(ClimateEntity):
             payload = await self.get_current_payload(token, envID)
             if payload is None:
                 _LOGGER.warning(
-                    f"Failed to retrieve current payload for {self._name}. Regenerating token."
+                    f"Failed to retrieve current payload for {self._attr_name}. Regenerating token."
                 )
                 # Regenerate token and retry
                 token = await self.hass.async_add_executor_job(
@@ -805,12 +833,12 @@ class RadiatorClimate(ClimateEntity):
 
         if payload is None:
             _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._name}"
+                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
             )
             return
 
         # Cerca la temperatura nel payload (_TMP)
-        device_name = self._name.replace("Radiator ", "")
+        device_name = self._attr_name.replace("Radiator ", "")
         desired_payload = payload.get("state", {}).get("desired", {})
 
         # Loop through payload items to find the matching device
@@ -830,7 +858,7 @@ class RadiatorClimate(ClimateEntity):
                     while tmp_value is None and retry_count < max_retries:
                         retry_count += 1
                         _LOGGER.warning(
-                            f"Attempt {retry_count}: Temperature is None for {self._name}. Retrying..."
+                            f"Attempt {retry_count}: Temperature is None for {self._attr_name}. Retrying..."
                         )
                         await asyncio.sleep(
                             1
@@ -838,7 +866,7 @@ class RadiatorClimate(ClimateEntity):
 
                     if tmp_value is None:
                         _LOGGER.warning(
-                            f"Received None for {self._name}, setting temperature to 0"
+                            f"Received None for {self._attr_name}, setting temperature to 0"
                         )
                         self._current_temperature = 0
 
@@ -847,9 +875,9 @@ class RadiatorClimate(ClimateEntity):
                             "persistent_notification",
                             "create",
                             {
-                                "title": f"Device {self._name} Issue",
+                                "title": f"Device {self._attr_name} Issue",
                                 "message": "Temperature is set to 0 due to an invalid value received (None). Please check the device.",
-                                "notification_id": f"radiator_{self._name}_temperature_warning",
+                                "notification_id": f"radiator_{self._attr_name}_temperature_warning",
                             },
                         )
                     else:
@@ -860,7 +888,7 @@ class RadiatorClimate(ClimateEntity):
                             "persistent_notification",
                             "dismiss",
                             {
-                                "notification_id": f"radiator_{self._name}_temperature_warning",
+                                "notification_id": f"radiator_{self._attr_name}_temperature_warning",
                             },
                         )
 
@@ -875,7 +903,7 @@ class RadiatorClimate(ClimateEntity):
                                     sp_value / 10
                                 )  # Imposta il setpoint in gradi Celsius
                                 _LOGGER.info(
-                                    f"Setpoint for {self._name} found: {self._target_temperature}"
+                                    f"Setpoint for {self._attr_name} found: {self._target_temperature}"
                                 )
 
                     # Check the _ENB key and set the state accordingly
