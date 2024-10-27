@@ -1,41 +1,41 @@
+from homeassistant.helpers import device_registry as dr
+from .const import DOMAIN
+
 import logging
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from .setup import async_setup as setup_component
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    # "Set up the integration."
-    _LOGGER.debug("Setting up your integration")
-    return True
+async def async_setup(hass: HomeAssistant, config: dict):
+    return await setup_component(hass, config)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: config_entries.ConfigEntry):
-    # "Set up the radiators integration from a config entry."
-    _LOGGER.debug("Setting up entry: %s", entry.entry_id)
-    await hass.config_entries.async_forward_entry_setups(entry, ["climate", "sensor"])
+async def async_setup_entry(hass, config_entry):
+    """Imposta il custom component"""
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][config_entry.entry_id] = {
+        "token": config_entry.data["token"],
+        "envID": config_entry.data["envID"],
+    }
 
-    return True
-
-
-async def async_unload_entry(
-    hass: HomeAssistant, entry: config_entries.ConfigEntry
-) -> bool:
-    # "Unload a config entry."
-    _LOGGER.debug("Unloading entry: %s", entry.entry_id)
-
-    # Rimuovi i dispositivi associati all'entrata di configurazione
-    # Puoi aggiungere la logica per rimuovere i dispositivi se necessario
-    # Ad esempio, puoi interagire con il device registry
-    device_registry = dr.async_get(hass)
-    devices = device_registry.async_entries_for_config_entry(entry.entry_id)
-
-    for device in devices:
-        device_registry.async_remove_device(device.id)
+    # Carica prima 'climate' e poi 'sensor'
+    await hass.config_entries.async_forward_entry_setups(config_entry, ["climate"])
+    await hass.config_entries.async_forward_entry_setups(config_entry, ["sensor"])
 
     return True
+
+
+async def async_unload_entry(hass, config_entry):
+    """Scarica le entità del custom component"""
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        config_entry, ["climate", "sensor"]
+    )
+    if unload_ok:
+        hass.data[DOMAIN].pop(config_entry.entry_id)
+    return unload_ok
 
 
 async def async_remove_config_entry_device(
