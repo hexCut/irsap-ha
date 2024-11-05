@@ -1,5 +1,5 @@
 {
-  "domain": "irsap_ha",
+  "domain": "irsap-ha",
   "name": "IRSAP NOW Integration",
   "version": "1.3",
   "documentation": "https://github.com/hexCut/irsap-ha",
