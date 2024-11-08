@@ -9,7 +9,8 @@ from homeassistant.components.climate.const import ClimateEntityFeature
 from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
-)  # Importa UnitOfTemperature
+)
+from homeassistant.util import datetime, timedelta  # Importa UnitOfTemperature
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
 import aiohttp
 import json
@@ -119,6 +120,14 @@ def extract_device_info(
 ):
     devices_info = []
 
+    # Suffixi di interesse per le chiavi
+    suffixes = [
+        "_SRL",
+        "_FWV",
+        "_TYP",
+        "_X_ipAddress",
+    ]
+
     # Trova tutte le chiavi _NAM, _SRL, _FWV, _TYP e _X_ipAddress in ordine
     nam_keys = []
     srl_keys = []
@@ -139,14 +148,15 @@ def extract_device_info(
                     nam_keys.append((key, device_info))
 
                 # Trova chiavi _SRL, _FWV, _TYP, _X_ipAddress e aggiungile agli elenchi
-                if re.match(r"^D[a-zA-Z]{2}_SRL$", key):
-                    srl_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_FWV$", key):
-                    fwv_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_TYP$", key):
-                    typ_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_ipAddress$", key):
-                    ip_keys.append((key, value))
+                if any(key.endswith(suffix) for suffix in suffixes):
+                    if key.endswith("_SRL"):
+                        srl_keys.append((key, value))
+                    elif key.endswith("_FWV"):
+                        fwv_keys.append((key, value))
+                    elif key.endswith("_TYP"):
+                        typ_keys.append((key, value))
+                    elif key.endswith("_X_ipAddress"):
+                        ip_keys.append((key, value))
 
                 # Ricorsione per trovare chiavi nested
                 find_device_keys(value)
@@ -321,6 +331,7 @@ class RadiatorClimate(ClimateEntity):
         }
 
         json_payload = json.dumps(updated_payload)
+        # _LOGGER.info(f"Payload to send: {json_payload}")
 
         graphql_query = {
             "operationName": "UpdateShadow",
@@ -329,6 +340,8 @@ class RadiatorClimate(ClimateEntity):
                 "mutation UpdateShadow($envId: ID!, $payload: AWSJSON!) {\n asyncUpdateShadow(envId: $envId, payload: $payload) {\n status\n code\n message\n payload\n __typename\n }\n}\n"
             ),
         }
+
+        # _LOGGER.info(f"graphql_query to send: {graphql_query}")
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -363,7 +376,7 @@ class RadiatorClimate(ClimateEntity):
         payload["timestamp"] = current_timestamp  # Aggiorna il timestamp nel payload
 
         payload["clientId"] = (
-            "app-now2-1.9.38-2143-ios-0409cdbc-2bb4-4a56-9114-453920ab21df"  # Fake clientId iOS
+            "app-now2-1.9.38-2143-ios-bdd093f2-8e08-4541-8a7e-800c23274f21"  # Fake clientId iOS
         )
 
         # "Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento"
@@ -371,9 +384,22 @@ class RadiatorClimate(ClimateEntity):
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
 
+        future_timestamp = time.time() + 24 * 3600
+        future_time = time.strftime(
+            "%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(future_timestamp)
+        )
+
+        # Imposta il valore di "e" in base ai valori di E_CLL e E_CPC
+        if desired_payload.get("E_CLL") == 1 or desired_payload.get("E_CPC") == 1:
+            timestamp_value = future_time  # 24 ore nel futuro
+            mod_value = 2  # Pianificazione attiva
+        else:
+            timestamp_value = "1970-01-01T00:00:00.000Z"  # Data predefinita
+            mod_value = 1  # Pianificazione disattivata
+
         # Cerca il device nel payload basato sul nome
         for key, value in desired_payload.items():
-            if key.endswith("_NAM") and len(key) <= 7 and value == device_name:
+            if key.endswith("_NAM") and value == device_name:
                 base_key = key[:-4]  # Ottieni la chiave di base senza il suffisso
 
                 # Aggiorna la temperatura se fornita
@@ -383,39 +409,107 @@ class RadiatorClimate(ClimateEntity):
                     if msp_key in desired_payload:
                         if "p" in desired_payload[msp_key]:
                             desired_payload[msp_key]["p"]["v"] = int(temperature * 10)
+                    # Aggiorna _MSP con il formato richiesto
+                    # msp_key = f"{base_key}_MSP"
+                    # if msp_key in desired_payload:
+                    #    desired_payload[msp_key] = {
+                    #        "p": {
+                    #            "u": 0,
+                    #            "v": int(temperature * 10),
+                    #            "m": 3,
+                    #            "k": "TEMPORARY",
+                    #        },
+                    #        # "e": "1970-01-01T00:00:00.000Z",
+                    #    }
 
-                    # Aggiorna _TSP con il formato richiesto
                     tsp_key = f"{base_key}_TSP"
                     if tsp_key in desired_payload:
+                        # Imposta il valore "e" in base alla logica definita sopra
                         desired_payload[tsp_key] = {
                             "p": {
                                 "u": 0,
                                 "v": int(temperature * 10),
                                 "m": 3,
                                 "k": "TEMPORARY",
-                                # "k": "MANUAL",
                             },
-                            "e": "1970-01-01T00:00:00.000Z",
+                            "e": timestamp_value,
                         }
 
+                    # Imposta _MOD in base alla logica definita sopra
+                    mod_key = f"{base_key}_MOD"
+                    desired_payload[mod_key] = mod_value
+
+                    # Aggiorna _CSP
+                    csp_key = f"{base_key}_CSP"
+                    if csp_key in desired_payload:
+                        if "p" in desired_payload[csp_key]:
+                            desired_payload[csp_key]["p"]["v"] = int(temperature * 10)
+                    # Aggiorna _CSP con il formato richiesto
+                    # csp_key = f"{base_key}_CSP"
+                    # if csp_key in desired_payload:
+                    #    desired_payload[csp_key] = {
+                    #        "p": {
+                    #            "k": "CURRENT",
+                    #            "m": 3,
+                    #            "u": 0,
+                    #            "v": int(temperature * 10),
+                    #        },
+                    #        #        "e": "1970-01-01T00:00:00.000Z",
+                    #    }
+
                     # Aggiorna lo stato di accensione/spegnimento se fornito
-                    enable_key = f"{base_key}_ENB"
-                    if enable_key in desired_payload:
-                        desired_payload[enable_key] = 1
+                    # enable_key = f"{base_key}_ENB"
+                    # if enable_key in desired_payload:
+                    #    desired_payload[enable_key] = 1
 
                     # Aggiorna _CLL se presente, impostandolo a 1
-                    cll_key = f"{base_key}_CLL"
-                    if cll_key in desired_payload:
-                        desired_payload[cll_key] = 1  # Imposta _CLL a 1
+                    # cll_key = f"{base_key}_CLL"
+                    # if cll_key in desired_payload:
+                    #    desired_payload[cll_key] = 1  # Imposta _CLL a 1
 
-                    mod_key = f"{base_key}_MOD"
-                    if mod_key in desired_payload:
-                        desired_payload[mod_key] = 1  # Imposta _MOD a 1
-                    sta_key = f"{base_key}_STA"
-                    if sta_key in desired_payload:
-                        desired_payload[sta_key] = 2  # Imposta _STA a 2
+                    # mod_key = f"{base_key}_MOD"
+                    # if mod_key in desired_payload:
+                    #    desired_payload[mod_key] = 1  # Imposta _MOD a 1
+                    # sta_key = f"{base_key}_STA"
+                    # if sta_key in desired_payload:
+                    #    desired_payload[sta_key] = 2  # Imposta _STA a 2
+
+                    # Aggiorna E_CLL se presente, impostandolo a 1
+                    ecll_key = "E_CLL"
+                    if ecll_key in desired_payload:
+                        desired_payload[ecll_key] = 1  # Imposta E_CLL a 1
+
+                    # Aggiorna E_CPC se presente, impostandolo a 1
+                    ecpc_key = "E_CPC"
+                    if ecpc_key in desired_payload:
+                        desired_payload[ecpc_key] = 1  # Imposta E_CPC a 1
 
                     break
+            # else:
+            # Se non è il device_name, cerca _TSP
+            #    tsp_key = f"{key[:-4]}_TSP"  # Costruisci il _TSP basato sulla chiave
+            #    if tsp_key in desired_payload:
+            #        tsp_value = desired_payload[tsp_key]
+            #        if (
+            #            isinstance(tsp_value, dict)
+            #            and "p" in tsp_value
+            #            and tsp_value["p"].get("k") == "TEMPORARY"
+            #            and tsp_value["p"].get("m") == 3
+            #            and tsp_value["p"].get("u") == 0
+            #        ):
+            #            tsp_value["p"]["v"] = int(
+            #                temperature * 10
+            #            )  # Aggiorna il valore 'v'
+
+            # Aggiorna _CLL a 0 se prima era 1
+            #    cll_key = f"{key[:-4]}_CLL"  # Costruisci la chiave _CLL
+            #    if cll_key in desired_payload and desired_payload[cll_key] == 1:
+            #        desired_payload[cll_key] = 1  # Imposta _CLL a 0
+
+            # Aggiorna _CPC a 0 se prima era 1
+            #    cpc_key = f"{key[:-4]}_CPC"  # Costruisci la chiave _CPC
+            #    if cpc_key in desired_payload and desired_payload[cpc_key] == 1:
+            #        desired_payload[cpc_key] = 1  # Imposta _CPC a 0
 
         # Rimuovi 'sk' se esistente
         desired_payload.pop("sk", None)
@@ -423,13 +517,19 @@ class RadiatorClimate(ClimateEntity):
         # Aggiorna il payload originale
         payload["state"]["desired"] = desired_payload
 
+        # Aggiungi il campo deleted subito dopo state
+        # payload["deleted"] = {"reported": {}, "desired": {}}
+
         # Riordina il payload secondo l'ordine richiesto
         ordered_payload = {
+            # "version": payload.get("version"),
+            # "sk": payload.get("sk"),
             "id": payload.get("id"),
             "clientId": payload.get("clientId"),
             "timestamp": payload.get("timestamp"),
             "version": payload.get("version"),
             "state": payload["state"],
+            # "deleted": payload["deleted"],  # Aggiungi deleted dopo state
         }
 
         return ordered_payload  # Restituisci il payload aggiornato
@@ -485,7 +585,7 @@ class RadiatorClimate(ClimateEntity):
         payload["timestamp"] = current_timestamp  # Aggiorna il timestamp nel payload
 
         payload["clientId"] = (
-            "app-now2-1.9.38-2143-ios-0409cdbc-2bb4-4a56-9114-453920ab21df"  # Aggiorna il clientId facendo finta di essere l'App su iOS
+            "app-now2-1.9.38-2143-ios-bdd093f2-8e08-4541-8a7e-800c23274f21"  # Aggiorna il clientId facendo finta di essere l'App su iOS
         )
 
         # "Aggiorna il payload del dispositivo con una nuova temperatura o stato di accensione/spegnimento"
@@ -599,12 +699,15 @@ class RadiatorClimate(ClimateEntity):
             )
             return
 
+        # _LOGGER.info(f"Payload loaded  {payload}")
         # Aggiorna il payload con la nuova temperatura
         updated_payload = await self.generate_device_payload(  # Add 'await' here if this method is async
             payload=payload,
             device_name=self._attr_name.replace("Radiator", "").strip(),
             temperature=temperature,  # Passa la temperatura come keyword argument
         )
+        # print(f"Payload updated: {updated_payload}")
+        # _LOGGER.info(f"Payload updated  {updated_payload}")
 
         # Invia il nuovo payload aggiornato alle API
         success = await self._send_target_temperature_to_api(
@@ -770,6 +873,7 @@ class RadiatorClimate(ClimateEntity):
             # Evita l'aggiornamento se è in corso un'impostazione temperatura
             self._pending_update = False
             return
+        _LOGGER.info(f"Updating radiator climate {self._attr_name}")
 
         # Rimuove "Radiator" dal nome dell'entità, se presente, per facilitare il matching
         device_name = self._attr_name.replace("Radiator", "").strip()
@@ -785,6 +889,9 @@ class RadiatorClimate(ClimateEntity):
 
         while tmp_value is None and retry_count < max_retries:
             retry_count += 1
+            _LOGGER.info(
+                f"Attempt {retry_count}: Retrieving payload for {self._attr_name}"
+            )
 
             # Ottieni un nuovo token e payload ad ogni retry
             token = await self.hass.async_add_executor_job(
@@ -808,6 +915,7 @@ class RadiatorClimate(ClimateEntity):
                 if key.endswith("_NAM") and value == device_name:
                     base_key = key[:-4]  # Ottieni la chiave base
                     tmp_key = f"{base_key}_TMP"
+                    msp_key = f"{base_key}_MSP"
                     enb_key = f"{base_key}_ENB"
 
                     # Ottieni la temperatura
@@ -850,3 +958,7 @@ class RadiatorClimate(ClimateEntity):
         if enb_key in desired_payload:
             enb_value = desired_payload.get(enb_key, 0)
             self._attr_hvac_mode = HVACMode.HEAT if enb_value == 1 else HVACMode.OFF
+
+        _LOGGER.info(
+            f"Final state for {self._attr_name}: Temperature={self._current_temperature}, HVAC mode={self._attr_hvac_mode}"
+        )
