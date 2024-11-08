@@ -164,6 +164,9 @@ async def get_sensor_data(token, envID):
         return []
 
 
+import re
+
+
 def extract_device_info(
     payload,
     nam_suffix="_NAM",
@@ -173,7 +176,28 @@ def extract_device_info(
 ):
     devices_info = []
 
-    # Trova tutte le chiavi _NAM, _CNT, _FWV, _TYP, _SLV, _LUP, _X_ipAddress, _X_filPiloteEnabled, _X_filPiloteStatus, _X_standby, _X_OpenWindowSensorEnabled, _X_OpenWindowDetected, _X_OpenWindowSensorOffTime, _X_temperatureSensorOffset, _X_hysteresis, _X_vocValue, _X_co2Value in ordine
+    # Suffixi di interesse per le chiavi
+    suffixes = [
+        "_CNT",
+        "_FWV",
+        "_TYP",
+        "_SLV",
+        "_LUP",
+        "_X_ipAddress",
+        "_X_filPiloteEnabled",
+        "_X_filPiloteStatus",
+        "_X_standby",
+        "_X_OpenWindowSensorEnabled",
+        "_X_OpenWindowDetected",
+        "_X_OpenWindowSensorOffTime",
+        "_X_temperatureSensorOffset",
+        "_X_hysteresis",
+        "_X_vocValue",
+        "_X_co2Value",
+        "_X_lock",
+    ]
+
+    # Liste per raccogliere le chiavi
     nam_keys = []
     cnt_keys = []
     fwv_keys = []
@@ -205,52 +229,54 @@ def extract_device_info(
                     }
                     nam_keys.append((key, device_info))
 
-                # Trova chiavi _CNT, _FWV, _TYP, _X_ipAddress e aggiungile agli elenchi
-                if re.match(r"^D[a-zA-Z]{2}_CNT$", key):
-                    cnt_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_FWV$", key):
-                    fwv_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_TYP$", key):
-                    typ_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_SLV$", key):
-                    slv_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_LUP$", key):
-                    lup_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_ipAddress$", key):
-                    ip_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_filPiloteEnabled$", key):
-                    pilote_enb_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_filPiloteStatus$", key):
-                    pilote_sta_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_standby$", key):
-                    stand_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_OpenWindowSensorEnabled$", key):
-                    openwin_enab_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_OpenWindowDetected$", key):
-                    openwin_dect_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_OpenWindowSensorOffTime$", key):
-                    openwin_off_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_temperatureSensorOffset$", key):
-                    temp_off_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_hysteresis$", key):
-                    hyst_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_vocValue$", key):
-                    voc_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_co2Value$", key):
-                    co2_keys.append((key, value))
-                elif re.match(r"^D[a-zA-Z]{2}_X_lock$", key):
-                    lock_keys.append((key, value))
+                # Controlla se la chiave finisce con uno dei suffissi
+                if any(key.endswith(suffix) for suffix in suffixes):
+                    # Aggiungi la chiave alla lista corrispondente
+                    if key.endswith("_CNT"):
+                        cnt_keys.append((key, value))
+                    elif key.endswith("_FWV"):
+                        fwv_keys.append((key, value))
+                    elif key.endswith("_TYP"):
+                        typ_keys.append((key, value))
+                    elif key.endswith("_SLV"):
+                        slv_keys.append((key, value))
+                    elif key.endswith("_LUP"):
+                        lup_keys.append((key, value))
+                    elif key.endswith("_X_ipAddress"):
+                        ip_keys.append((key, value))
+                    elif key.endswith("_X_filPiloteEnabled"):
+                        pilote_enb_keys.append((key, value))
+                    elif key.endswith("_X_filPiloteStatus"):
+                        pilote_sta_keys.append((key, value))
+                    elif key.endswith("_X_standby"):
+                        stand_keys.append((key, value))
+                    elif key.endswith("_X_OpenWindowSensorEnabled"):
+                        openwin_enab_keys.append((key, value))
+                    elif key.endswith("_X_OpenWindowDetected"):
+                        openwin_dect_keys.append((key, value))
+                    elif key.endswith("_X_OpenWindowSensorOffTime"):
+                        openwin_off_keys.append((key, value))
+                    elif key.endswith("_X_temperatureSensorOffset"):
+                        temp_off_keys.append((key, value))
+                    elif key.endswith("_X_hysteresis"):
+                        hyst_keys.append((key, value))
+                    elif key.endswith("_X_vocValue"):
+                        voc_keys.append((key, value))
+                    elif key.endswith("_X_co2Value"):
+                        co2_keys.append((key, value))
+                    elif key.endswith("_X_lock"):
+                        lock_keys.append((key, value))
 
-                # Ricorsione per trovare chiavi nested
+                # Ricorsione per esplorare eventuali chiavi annidate
                 find_device_keys(value)
         elif isinstance(obj, list):
             for item in obj:
                 find_device_keys(item)
 
-    # Esegui la ricerca di chiavi nel payload
+    # Esegui la ricerca nel payload
     find_device_keys(payload)
 
-    # Associa ogni _NAM ai suoi corrispondenti attributi in ordine di apparizione
+    # Associa ogni _NAM ai suoi corrispondenti attributi
     for i, (nam_key, device_info) in enumerate(nam_keys):
         base_key = nam_key[: -len(nam_suffix)]
         corresponding_tmp_key = base_key + tmp_suffix
@@ -258,17 +284,17 @@ def extract_device_info(
 
         # Trova la temperatura
         if corresponding_tmp_key in payload:
-            tmp_value = payload[corresponding_tmp_key]
+            tmp_value = payload.get(corresponding_tmp_key)
             device_info["temperature"] = (
                 float(tmp_value) / 10 if tmp_value is not None else 0
             )
 
         # Trova lo stato (ON/OFF)
         if corresponding_enb_key in payload:
-            enb_value = payload[corresponding_enb_key]
+            enb_value = payload.get(corresponding_enb_key)
             device_info["state"] = "HEAT" if enb_value == 1 else "OFF"
 
-        # Associa SRL, FWV, TYP e IP in base alla posizione dell'indice
+        # Associa altri dati (es. MAC, firmware, IP, etc.)
         if i < len(cnt_keys):
             device_info["mac"] = cnt_keys[i][1]
         if i < len(fwv_keys):
@@ -334,12 +360,12 @@ class RadiatorSensor(SensorEntity):
         """Associa il sensore al dispositivo climate con il seriale corrispondente."""
         return {
             "identifiers": {
-                (DOMAIN, self._device.radiator["serial"])
+                (DOMAIN, self._radiator["serial"])
             },  # Use device serial number
             "name": f"{self._radiator['serial']}",
-            "model": self._device.radiator.get("model", "Unknown model"),
+            "model": self._radiator["model"],
             "manufacturer": "IRSAP",
-            "sw_version": self._device.radiator.get("firmware", "unknown"),
+            "sw_version": self._radiator["firmware"],
         }
 
 
@@ -375,11 +401,11 @@ class BaseRadiatorSensor(SensorEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, self._device.radiator["serial"])},
+            "identifiers": {(DOMAIN, self._radiator["serial"])},
             "name": f"{self._radiator['serial']}",
-            "model": self._device.radiator.get("model", "Unknown model"),
+            "model": self._radiator["model"],
             "manufacturer": "IRSAP",
-            "sw_version": self._device.radiator.get("firmware", "unknown"),
+            "sw_version": self._radiator["firmware"],
         }
 
     async def async_update(self):
@@ -589,11 +615,11 @@ class LastUpdateSensor(SensorEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, self._device.radiator["serial"])},
+            "identifiers": {(DOMAIN, self._radiator["serial"])},
             "name": f"{self._radiator['serial']}",
-            "model": self._device.radiator.get("model", "Unknown model"),
+            "model": self._radiator["model"],
             "manufacturer": "IRSAP",
-            "sw_version": self._device.radiator.get("firmware", "unknown"),
+            "sw_version": self._radiator["firmware"],
         }
 
     async def async_update(self):
