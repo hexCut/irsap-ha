@@ -227,11 +227,10 @@ class RadiatorClimate(ClimateEntity):
         self._sw_version = radiator.get("firmware")
         self._model = radiator.get("model")
 
-        # Modalità HVAC supportate (HEAT, OFF, AUTO se supportato)
+        # Modalità HVAC supportate (HEAT, OFF)
         self._attr_hvac_modes = [
             HVACMode.HEAT,
             HVACMode.OFF,
-            HVACMode.AUTO,
         ]  # Usa HVACMode per le modalità
 
         # Imposta la modalità HVAC in base allo stato corrente
@@ -239,8 +238,6 @@ class RadiatorClimate(ClimateEntity):
             self._attr_hvac_mode = HVACMode.HEAT
         elif self._state == "OFF":
             self._attr_hvac_mode = HVACMode.OFF
-        elif self._state == "AUTO":
-            self._attr_hvac_mode = HVACMode.AUTO
         else:
             self._attr_hvac_mode = (
                 HVACMode.OFF
@@ -384,18 +381,14 @@ class RadiatorClimate(ClimateEntity):
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
 
-        future_timestamp = time.time() + 24 * 3600
-        future_time = time.strftime(
-            "%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(future_timestamp)
+        timestamp_24h_future = int(time.time()) + 24 * 3600
+        time_24h_future = time.strftime(
+            "%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(timestamp_24h_future)
         )
 
-        # Imposta il valore di "e" in base ai valori di E_CLL e E_CPC
-        if desired_payload.get("E_CLL") == 1 or desired_payload.get("E_CPC") == 1:
-            timestamp_value = future_time  # 24 ore nel futuro
-            mod_value = 2  # Pianificazione attiva
-        else:
-            timestamp_value = "1970-01-01T00:00:00.000Z"  # Data predefinita
-            mod_value = 1  # Pianificazione disattivata
+        # Controlla la pianificazione `E_SCH` per ciascun radiatore
+        num_radiatori = sum(1 for key in desired_payload if key.endswith("_NAM"))
+        has_scheduling = len(desired_payload.get("E_SCH", [])) == num_radiatori
 
         # Cerca il device nel payload basato sul nome
         for key, value in desired_payload.items():
@@ -424,7 +417,6 @@ class RadiatorClimate(ClimateEntity):
 
                     tsp_key = f"{base_key}_TSP"
                     if tsp_key in desired_payload:
-                        # Imposta il valore "e" in base alla logica definita sopra
                         desired_payload[tsp_key] = {
                             "p": {
                                 "u": 0,
@@ -432,12 +424,14 @@ class RadiatorClimate(ClimateEntity):
                                 "m": 3,
                                 "k": "TEMPORARY",
                             },
-                            "e": timestamp_value,
+                            "e": time_24h_future
+                            if has_scheduling
+                            else "1970-01-01T00:00:00.000Z",
                         }
 
                     # Imposta _MOD in base alla logica definita sopra
                     mod_key = f"{base_key}_MOD"
-                    desired_payload[mod_key] = mod_value
+                    desired_payload[mod_key] = 2 if has_scheduling else 1
 
                     # Aggiorna _CSP
                     csp_key = f"{base_key}_CSP"
@@ -593,7 +587,8 @@ class RadiatorClimate(ClimateEntity):
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
 
-        # Cerca il device nel payload basato sul nome
+        # Trova il dispositivo specifico e aggiorna solo quello
+        device_found = False
         for key, value in desired_payload.items():
             if key.endswith("_NAM") and value == device_name:
                 base_key = key[:-4]  # Ottieni la chiave di base senza il suffisso
@@ -603,11 +598,12 @@ class RadiatorClimate(ClimateEntity):
                     if enable_key in desired_payload:
                         # Set the value based on the hvac_mode
                         desired_payload[enable_key] = 1 if hvac_mode == 1 else 0
-                    cll_key = f"{base_key}_CLL"
-                    if cll_key in desired_payload:
-                        # Set the value based on the hvac_mode
-                        desired_payload[cll_key] = 1 if hvac_mode == 1 else 0
-                    break
+                device_found = True
+                break  # Esci dal ciclo una volta trovato e aggiornato il dispositivo
+
+        # Se il dispositivo non è stato trovato, non fare nulla
+        if not device_found:
+            return payload  # Restituisci il payload invariato
 
         # Rimuovi 'sk' se esistente
         desired_payload.pop("sk", None)
@@ -624,7 +620,12 @@ class RadiatorClimate(ClimateEntity):
             "state": payload.get("state"),
         }
 
-        return ordered_payload  # Restituisci il payload aggiornato
+        # Serializza il payload in JSON per garantire che None sia convertito in null
+        json_payload_str = json.dumps(ordered_payload)
+        # Deserializza il JSON per ottenere il payload nel formato corretto
+        final_payload = json.loads(json_payload_str)
+
+        return final_payload
 
     async def get_current_payload(self, token, envID):
         "Fetch the current device payload from the API."
@@ -699,15 +700,12 @@ class RadiatorClimate(ClimateEntity):
             )
             return
 
-        # _LOGGER.info(f"Payload loaded  {payload}")
         # Aggiorna il payload con la nuova temperatura
         updated_payload = await self.generate_device_payload(  # Add 'await' here if this method is async
             payload=payload,
             device_name=self._attr_name.replace("Radiator", "").strip(),
             temperature=temperature,  # Passa la temperatura come keyword argument
         )
-        # print(f"Payload updated: {updated_payload}")
-        # _LOGGER.info(f"Payload updated  {updated_payload}")
 
         # Invia il nuovo payload aggiornato alle API
         success = await self._send_target_temperature_to_api(
@@ -886,6 +884,9 @@ class RadiatorClimate(ClimateEntity):
         retry_count = 0
         max_retries = 5
         tmp_value = None
+        last_valid_temperature = (
+            self._current_temperature
+        )  # Memorizza l'ultima temperatura valida
 
         while tmp_value is None and retry_count < max_retries:
             retry_count += 1
@@ -924,7 +925,13 @@ class RadiatorClimate(ClimateEntity):
                         tmp_value is not None
                     ):  # Se il valore è valido, esci dal ciclo di retry
                         self._current_temperature = tmp_value / 10
-                        break
+
+                    # Ottieni la temperatura
+                    msp_value = desired_payload.get(msp_key, None)
+                    if (
+                        msp_value["p"]["v"] is not None
+                    ):  # Se il valore è valido, esci dal ciclo di retry
+                        self._target_temperature = msp_value["p"]["v"] / 10
 
             if tmp_value is None:
                 _LOGGER.warning(
@@ -937,7 +944,7 @@ class RadiatorClimate(ClimateEntity):
             _LOGGER.warning(
                 f"Temperature for {self._attr_name} remains None after retries; setting to 0"
             )
-            self._current_temperature = 0
+            self._current_temperature = last_valid_temperature
             await self.hass.services.async_call(
                 "persistent_notification",
                 "create",
