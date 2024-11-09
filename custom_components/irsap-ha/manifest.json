@@ -1,7 +1,7 @@
 {
   "domain": "irsap_ha",
   "name": "IRSAP NOW Integration",
-  "version": "1.4b8",
+  "version": "1.4b9",
   "documentation": "https://github.com/hexCut/irsap-ha",
   "issue_tracker": "https://github.com/hexCut/irsap-ha/issues",
   "dependencies": [],
