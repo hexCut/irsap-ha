@@ -108,7 +108,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     LockSensor(r, device, unique_id=f"{r['serial']}_lock")
                 )  # Child lock sensor
             else:
-                _LOGGER.warning(f"No matching device found for sensor {r['serial']}")
+                _LOGGER.debug(f"No matching device found for sensor {r['serial']}")
 
         async_add_entities(sensor_entities, True)
     else:
@@ -363,9 +363,9 @@ class RadiatorSensor(SensorEntity):
                 (DOMAIN, self._radiator["serial"])
             },  # Use device serial number
             "name": f"{self._radiator['serial']}",
-            "model": self._radiator["model"],
+            "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",
-            "sw_version": self._radiator["firmware"],
+            "sw_version": self._radiator.get("firmware", "Unknown Firmware"),
         }
 
 
@@ -403,9 +403,9 @@ class BaseRadiatorSensor(SensorEntity):
         return {
             "identifiers": {(DOMAIN, self._radiator["serial"])},
             "name": f"{self._radiator['serial']}",
-            "model": self._radiator["model"],
+            "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",
-            "sw_version": self._radiator["firmware"],
+            "sw_version": self._radiator.get("firmware", "Unknown Firmware"),
         }
 
     async def async_update(self):
@@ -617,9 +617,9 @@ class LastUpdateSensor(SensorEntity):
         return {
             "identifiers": {(DOMAIN, self._radiator["serial"])},
             "name": f"{self._radiator['serial']}",
-            "model": self._radiator["model"],
+            "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",
-            "sw_version": self._radiator["firmware"],
+            "sw_version": self._radiator.get("firmware", "Unknown Firmware"),
         }
 
     async def async_update(self):
