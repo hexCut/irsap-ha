@@ -1,4 +1,5 @@
 import logging
+import aiohttp
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
@@ -6,7 +7,7 @@ from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
 from warrant import Cognito
-import requests
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,6 +19,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         "Handle the initial step."
+
+        # Controlla se esiste già un'istanza dell'integrazione
+        await self.async_set_unique_id(DOMAIN)
+        existing_entry = self._async_current_entries()
+
+        if existing_entry:
+            # Se esiste già un'istanza, abortisci il flusso con un messaggio personalizzato
+            return self.async_abort(reason="Only one istance is allowed")
+
         if user_input is None:
             return self.async_show_form(
                 step_id="user",
@@ -33,10 +43,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         username = user_input["username"]
         password = user_input["password"]
 
-        # Qui chiamiamo la funzione per ottenere il token e l'envID
-        token = await self.hass.async_add_executor_job(
-            login_with_srp, username, password
-        )
+        # Call the function directly since login_with_srp already handles executor wrapping
+        token = await login_with_srp(self.hass, username, password)
 
         if token is None:
             _LOGGER.error("Login failed, invalid credentials.")
@@ -51,9 +59,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "invalid_credentials"},
             )
 
-        envID = await self.hass.async_add_executor_job(
-            envid_with_srp, username, password, token
-        )
+        envID = await self.async_get_envID(username, password, token)
 
         if envID is None:
             _LOGGER.error("Failed to obtain envID.")
@@ -83,6 +89,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         return RadiatorsIntegrationOptionsFlow(config_entry)
+
+    async def async_get_envID(self, username, password, token):
+        """Asynchronous method to get envID."""
+        return await envid_with_srp(username, password, token)
 
 
 class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
@@ -130,8 +140,13 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
         return self.async_create_entry(title="", data=user_input)
 
 
-def login_with_srp(username, password):
+async def login_with_srp(hass, username, password):
     "Log in and obtain the access token using Warrant."
+    return await hass.async_add_executor_job(_sync_login_with_srp, username, password)
+
+
+def _sync_login_with_srp(username, password):
+    """Synchronous function to log in using Warrant."""
     try:
         u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
         u.authenticate(password=password)
@@ -142,31 +157,47 @@ def login_with_srp(username, password):
         return None
 
 
-def envid_with_srp(username, password, token):
-    "Login and obtain the envID using Warrant."
-    url = (
-        "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-    )
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    graphql_query = {
-        "operationName": "ListEnvironments",
-        "variables": {},
-        "query": "query ListEnvironments {\n listEnvironments {\n environments {\n envId\n envName\n userRole\n __typename\n }\n __typename\n }\n}\n",
-    }
+async def envid_with_srp(username, password, token):
+    """Login and obtain the envID using Warrant."""
+    async with aiohttp.ClientSession() as session:
+        url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        graphql_query = {
+            "operationName": "ListEnvironments",
+            "variables": {},
+            "query": "query ListEnvironments {\n listEnvironments {\n environments {\n envId\n envName\n userRole\n __typename\n }\n __typename\n }\n}\n",
+        }
 
-    try:
-        response = requests.post(url, headers=headers, json=graphql_query)
-        if response.status_code == 200:
-            data = response.json()
-            envId = data["data"]["listEnvironments"]["environments"][0]["envId"]
-            _LOGGER.debug(f"envId retrieved from API: {envId}")
-            return envId
-        else:
-            _LOGGER.error(f"API request error: {response.status_code}")
+        try:
+            async with session.post(
+                url, headers=headers, json=graphql_query
+            ) as response:
+                if response.status != 200:
+                    error_msg = await response.text()
+                    _LOGGER.error(f"API request error: {response.status} - {error_msg}")
+                    return None
+
+                data = await response.json()
+                environments = (
+                    data.get("data", {})
+                    .get("listEnvironments", {})
+                    .get("environments", [])
+                )
+                if not environments:
+                    _LOGGER.error("No environments found in the API response")
+                    return None
+
+                envId = environments[0].get("envId")
+                if envId:
+                    _LOGGER.debug(f"envId retrieved from API: {envId}")
+                    return envId
+                else:
+                    _LOGGER.error("envId missing in the API response")
+                    return None
+
+        except Exception as e:
+            _LOGGER.error(f"Error during API call: {e}")
             return None
-    except Exception as e:
-        _LOGGER.error(f"Error during API call: {e}")
-        return None
