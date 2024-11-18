@@ -24,6 +24,7 @@ async def async_setup_entry(hass, config_entry):
     # Carica prima 'climate' e poi 'sensor'
     await hass.config_entries.async_forward_entry_setups(config_entry, ["climate"])
     await hass.config_entries.async_forward_entry_setups(config_entry, ["sensor"])
+    await hass.config_entries.async_forward_entry_setups(config_entry, ["light"])
 
     return True
 
@@ -31,7 +32,7 @@ async def async_setup_entry(hass, config_entry):
 async def async_unload_entry(hass, config_entry):
     """Scarica le entità del custom component"""
     unload_ok = await hass.config_entries.async_unload_platforms(
-        config_entry, ["climate", "sensor"]
+        config_entry, ["climate", "sensor", "light"]
     )
     if unload_ok:
         hass.data[DOMAIN].pop(config_entry.entry_id)
