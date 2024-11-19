@@ -1,14 +1,7 @@
 import time
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
 import logging
-from homeassistant.components.light import (
-    LightEntity,
-    ATTR_HS_COLOR,
-    ATTR_BRIGHTNESS,
-    SUPPORT_BRIGHTNESS,
-    SUPPORT_COLOR,
-)
-
+from homeassistant.components.light import LightEntity, ColorMode
 from homeassistant.components.sensor import datetime
 import aiohttp
 import json
@@ -18,6 +11,7 @@ from .device import RadiatorDevice
 from .device_manager import device_manager
 import asyncio
 from homeassistant.util import dt as dt_util
+import colorsys
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +46,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             return
 
         # Ottieni i dati delle luci
-        radiators_lights = await get_sensor_data(token, envID)
+        radiators_lights = await get_light_data(token, envID)
         _LOGGER.info(f"Radiators lights data: {radiators_lights}")
 
         # Crea entità light
@@ -91,7 +85,7 @@ def login_with_srp(username, password):
         return None
 
 
-async def get_sensor_data(token, envID):
+async def get_light_data(token, envID):
     "Fetch radiator data from the API."
     url = (
         "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
@@ -144,28 +138,31 @@ def extract_device_info(
         if isinstance(obj, dict):
             for key, value in obj.items():
                 # Verifica se il dispositivo ha un suffisso "_X_LED_ENB" (abilitazione della luce)
-                if key.endswith(led_enable_suffix):
-                    # Raccogli chiavi _NAM e aggiungi dettagli iniziali
-                    if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
-                        device_info = {
-                            "serial": value,
-                            "state": "OFF",  # Default a OFF
-                            "color": {"h": 0, "s": 0, "v": 0},  # Default colore
-                        }
-                        devices_info.append((key, device_info))
+                # if key.endswith(led_enable_suffix):
+                # Raccogli chiavi _NAM e aggiungi dettagli iniziali
+                if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
+                    device_info = {
+                        "serial": value,
+                        "state": False,  # Default a OFF
+                        "color": {"h": 0, "s": 0, "v": 0},  # Default colore
+                    }
+                    devices_info.append((key, device_info))
 
-                    # Gestisci chiave _X_LED_MSP per accensione e colore
-                    if key.endswith(led_suffix) and isinstance(value, dict):
-                        led_data = value.get("p", {})
-                        # Stato accensione
-                        device_info["state"] = "ON" if led_data.get("u") == 1 else "OFF"
-                        # Colore HSV
-                        color_data = led_data.get("v", {})
-                        device_info["color"] = {
-                            "h": color_data.get("h", 0),
-                            "s": color_data.get("s", 0),
-                            "v": color_data.get("v", 0),
-                        }
+                # Gestisci chiave _X_LED_ENB per accensione e colore
+                if key.endswith(led_enable_suffix):
+                    # Stato accensione
+                    device_info["state"] = True if value == 1 else False
+
+                # Gestisci chiave _X_LED_MSP per accensione e colore
+                if key.endswith(led_suffix) and isinstance(value, dict):
+                    led_data = value.get("p", {})
+                    # Colore HSV
+                    color_data = led_data.get("v", {})
+                    device_info["color"] = {
+                        "h": color_data.get("h", 0),
+                        "s": color_data.get("s", 0),
+                        "v": color_data.get("v", 0),
+                    }
 
                 # Ricorsione per chiavi annidate
                 find_device_keys(value)
@@ -191,9 +188,77 @@ class RadiatorLight(LightEntity):
         self._model = radiator.get("model", "Modello Sconosciuto")
         self._attr_native_value = radiator.get("ip_address", "IP non disponibile")
         self._sw_version = radiator.get("firmware")
-        self._attr_is_on = False  # Stato iniziale (spento)
-        self._attr_hs_color = None  # Colore iniziale
-        self._attr_brightness = 255  # Luminosità massima iniziale
+        self._attr_is_on = radiator.get("state", False)
+        # Convertire h, s, v in RGBW
+        h = radiator["color"]["h"]
+        s = radiator["color"]["s"]
+        v = radiator["color"]["v"]
+        self._attr_rgbw_color = self.hsv_to_rgbw(h, s, v)
+        self._attr_brightness = (radiator["color"]["v"] / 100) * 255
+        self._attr_supported_color_modes = {ColorMode.RGBW}
+
+    def hsv_to_rgbw(self, h, s, v):
+        """Converte HSV in RGBW."""
+        h = h / 360.0
+        s = s / 100.0
+        v = v / 100.0
+
+        r, g, b = colorsys.hsv_to_rgb(h, s, v)
+
+        w = min(r, g, b)
+
+        r = int((r - w) * 255)
+        g = int((g - w) * 255)
+        b = int((b - w) * 255)
+        w = int(w * 255)
+
+        return (r, g, b, w)
+
+    def _convert_rgbw_to_hsv(self, rgbw):
+        """Converte un colore RGBW in HSV."""
+        red, green, blue, white = rgbw
+
+        # Rimuovi il contributo del bianco per ottenere il colore RGB puro
+        red -= white
+        green -= white
+        blue -= white
+
+        # Assicurati che i valori non vadano sotto zero
+        red = max(0, red)
+        green = max(0, green)
+        blue = max(0, blue)
+
+        # Normalizza i valori RGB in un range 0-1
+        red_norm = red / 255.0
+        green_norm = green / 255.0
+        blue_norm = blue / 255.0
+
+        # Calcola HSV utilizzando formule standard
+        max_val = max(red_norm, green_norm, blue_norm)
+        min_val = min(red_norm, green_norm, blue_norm)
+        delta = max_val - min_val
+
+        # Calcola Hue (tonalità)
+        if delta == 0:
+            hue = 0
+        elif max_val == red_norm:
+            hue = ((green_norm - blue_norm) / delta) % 6
+        elif max_val == green_norm:
+            hue = ((blue_norm - red_norm) / delta) + 2
+        else:  # max_val == blue_norm
+            hue = ((red_norm - green_norm) / delta) + 4
+        hue = round(hue * 60)  # Converti in gradi
+        if hue < 0:
+            hue += 360
+
+        # Calcola Saturazione
+        saturation = 0 if max_val == 0 else (delta / max_val)
+        saturation = round(saturation * 100)  # Scala su 0-100
+
+        # Calcola Valore
+        value = round(max_val * 100)  # Scala su 0-100
+
+        return hue, saturation, value
 
     @property
     def native_value(self):
@@ -221,179 +286,46 @@ class RadiatorLight(LightEntity):
         return self._attr_is_on
 
     @property
-    def hs_color(self):
-        return self._attr_hs_color
-
-    @property
     def brightness(self):
+        """Return the brightness of the light."""
         return self._attr_brightness
 
     @property
-    def supported_features(self):
-        return SUPPORT_BRIGHTNESS | SUPPORT_COLOR
+    def rgbw_color(self):
+        """Return the RGBW color of the light."""
+        return self._attr_rgbw_color
 
-    async def async_turn_on(self, **kwargs):
-        """Accende la luce e aggiorna i parametri come colore e luminosità."""
-        await asyncio.sleep(1)
-        # Leggi i parametri di colore e luminosità
-        hs_color = kwargs.get(ATTR_HS_COLOR, self._attr_hs_color)
-        brightness = kwargs.get(ATTR_BRIGHTNESS, self._attr_brightness)
-
-        username = self.hass.data[DOMAIN].get("username")
-        password = self.hass.data[DOMAIN].get("password")
-
-        token = await self.hass.async_add_executor_job(
-            login_with_srp, username, password
-        )
-        envID = self.hass.data[DOMAIN].get("envID")
-
-        if not token or not envID:
-            _LOGGER.error("Token or envID not found in hass.data")
-            return
-
-        # Function to handle token regeneration and payload retrieval
-        async def retrieve_payload(token, envID):
-            "Attempt to retrieve the payload, regenerate the token if it fails"
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                if not token:
-                    _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
-                payload = await self.get_current_payload(token, envID)
-            return token, payload
-
-        # Retrieve the payload and handle token regeneration if necessary
-        token, payload = await retrieve_payload(token, envID)
-
-        if payload is None:
-            _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
-            )
-            return
-
-        updated_payload = await self.generate_device_payload(  # Add 'await' here if this method is async
-            payload=payload,
-            device_name=self._attr_name.replace("Radiator", "").strip(),
-            light_state=True,  # La luce è accesa
-            color=hs_color,
-            brightness=brightness,
-        )
-
-        # Invia il nuovo payload aggiornato alle API
-        success = await self._send_light_status_to_api(token, envID, updated_payload)
-        if success:
-            # Aggiorna lo stato interno
-            self._attr_is_on = True
-            self._attr_hs_color = hs_color
-            self._attr_brightness = brightness
-            self.async_write_ha_state()
-        else:
-            _LOGGER.error(f"Failed to update light for {self._attr_name}")
-
-    async def async_turn_off(self, **kwargs):
-        """Spegne la luce."""
-        await asyncio.sleep(1)
-        # Leggi i parametri di colore e luminosità
-        hs_color = kwargs.get(ATTR_HS_COLOR, self._attr_hs_color)
-        brightness = 0
-
-        username = self.hass.data[DOMAIN].get("username")
-        password = self.hass.data[DOMAIN].get("password")
-
-        token = await self.hass.async_add_executor_job(
-            login_with_srp, username, password
-        )
-        envID = self.hass.data[DOMAIN].get("envID")
-
-        if not token or not envID:
-            _LOGGER.error("Token or envID not found in hass.data")
-            return
-
-        # Function to handle token regeneration and payload retrieval
-        async def retrieve_payload(token, envID):
-            "Attempt to retrieve the payload, regenerate the token if it fails"
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                if not token:
-                    _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
-                payload = await self.get_current_payload(token, envID)
-            return token, payload
-
-        # Retrieve the payload and handle token regeneration if necessary
-        token, payload = await retrieve_payload(token, envID)
-
-        if payload is None:
-            _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
-            )
-            return
-
-        updated_payload = await self.generate_device_payload(  # Add 'await' here if this method is async
-            payload=payload,
-            device_name=self._attr_name.replace("Radiator", "").strip(),
-            light_state=False,  # La luce è spenta
-            color=hs_color,
-            brightness=brightness,
-        )
-
-        # Invia il nuovo payload aggiornato alle API
-        success = await self._send_light_status_to_api(token, envID, updated_payload)
-        if success:
-            # Aggiorna lo stato interno
-            self._attr_is_on = False
-            self._attr_hs_color = hs_color
-            self._attr_brightness = brightness
-            self.async_write_ha_state()
-        else:
-            _LOGGER.error(f"Failed to update light for {self._attr_name}")
-
-    async def _send_led_command(self, payload):
-        """Invia il comando per gestire lo stato del LED."""
-        key = f"{self._radiator_serial}_LED_MSP"  # Costruisci la chiave per il dispositivo
-        # Implementa la chiamata API o il comando verso il radiatore
-        await self._radiator.send_command(key, payload)
+    @property
+    def color_mode(self):
+        """Return the color mode of the light."""
+        return ColorMode.RGBW
 
     async def async_update(self):
+        """Aggiorna lo stato della luce dal dispositivo."""
         if getattr(self, "_pending_update", False):
-            # Evita l'aggiornamento se è in corso un'impostazione temperatura
             self._pending_update = False
             return
-        _LOGGER.debug(f"Updating radiator climate {self._attr_name}")
 
-        # Rimuove "Radiator" dal nome dell'entità, se presente, per facilitare il matching
-        device_name = self._attr_name.replace("Radiator", "").strip()
+        _LOGGER.debug(f"Updating radiator light {self._attr_name}")
 
-        # Recupera token e envID
+        # Configurazione iniziale
+        device_name = self._attr_name.replace("LED", "").strip()
         username = self.hass.data[DOMAIN]["username"]
         password = self.hass.data[DOMAIN]["password"]
         envID = self.hass.data[DOMAIN].get("envID")
 
         retry_count = 0
-        max_retries = 3
-        tmp_value = None
-        last_valid_brightness = (
-            self._attr_brightness
-        )  # Memorizza l'ultima brightness valida
-        last_valid_hs_color = self._attr_hs_color  # Memorizza l'ultima hs_color valida
+        max_retries = 1
+        last_valid_brightness = self._attr_brightness
+        last_valid_hs_color = self._attr_hs_color
 
-        while tmp_value is None and retry_count < max_retries:
+        while retry_count < max_retries:
             retry_count += 1
             _LOGGER.debug(
                 f"Attempt {retry_count}: Retrieving payload for {self._attr_name}"
             )
 
-            # Ottieni un nuovo token e payload ad ogni retry
+            # Recupera un nuovo token e il payload
             token = await self.hass.async_add_executor_job(
                 login_with_srp, username, password
             )
@@ -403,67 +335,249 @@ class RadiatorLight(LightEntity):
 
             payload = await self.get_current_payload(token, envID)
             if payload is None:
-                _LOGGER.warning(
-                    f"Failed to retrieve payload for {self._attr_name} on attempt {retry_count}"
-                )
-                await asyncio.sleep(1)  # Attende prima di riprovare
+                _LOGGER.warning(f"Payload retrieval failed for {self._attr_name}")
+                await asyncio.sleep(1)
                 continue
 
-            # Accesso al desired_payload
+            # Ottieni informazioni dal payload
             desired_payload = payload.get("state", {}).get("desired", {})
-            for key, value in desired_payload.items():
-                if key.endswith("_NAM") and value == device_name:
-                    base_key = key[:-4]  # Ottieni la chiave base
-                    msp_key = f"{base_key}_X_LED_MSP"
-                    enb_key = f"{base_key}_X_LED_ENB"
-
-                    # Ottieni colore e luminosità
-                    msp_value = desired_payload.get(msp_key, None)
-                    if (
-                        msp_value["p"]["v"] is not None
-                    ):  # Se il valore è valido, esci dal ciclo di retry
-                        self._attr_hs_color = (
-                            msp_value["p"]["v"]["h"],
-                            msp_value["p"]["v"]["s"],
-                        )
-                        self._attr_brightness = msp_value["p"]["v"]["v"]
-                    # Controlla e aggiorna modalità di funzionamento (es. HEAT, OFF)
-                    if enb_key in desired_payload:
-                        enb_value = desired_payload.get(enb_key, 0)
-                        self._attr_is_on = 1 if enb_value == 1 else 0
-
-                _LOGGER.debug(
-                    f"Final state for {self._attr_name}: Color={self._attr_brightness}, ON/OFF mode={self._attr_is_on}"
-                )
-
-            if msp_value is None:
+            if self._extract_light_info(desired_payload, device_name):
+                break
+            else:
                 _LOGGER.warning(
-                    f"Light info is None for {self._attr_name}. Retrying..."
+                    f"Light info is incomplete for {self._attr_name}. Retrying..."
                 )
-                await asyncio.sleep(1)  # Attende prima di riprovare
+                await asyncio.sleep(1)
 
-        # Se la temperatura è None dopo i tentativi, registra un avviso e imposta a 0
-        if msp_value is None:
+        if not self._attr_brightness:
             _LOGGER.warning(
-                f"Light info for {self._attr_name} remains None after {retry_count} retries;"
+                f"Light info for {self._attr_name} remains incomplete after {retry_count} retries."
             )
             self._attr_hs_color = last_valid_hs_color
             self._attr_brightness = last_valid_brightness
-            await self.hass.services.async_call(
-                "persistent_notification",
-                "create",
-                {
-                    "title": f"Device {self._attr_name} Issue",
-                    "message": "Light infos are set to previous state due to an invalid value received (None). Please check the device and try to reset it.",
-                    "notification_id": f"radiator_{self._attr_name}_brightness_warning",
-                },
-            )
+            await self._notify_issue()
         else:
-            await self.hass.services.async_call(
-                "persistent_notification",
-                "dismiss",
-                {"notification_id": f"radiator_{self._attr_name}_brightness_warning"},
+            await self._dismiss_issue()
+
+    async def async_turn_on(self, **kwargs):
+        await asyncio.sleep(1)
+        """Turn on the light with the specified settings."""
+        _LOGGER.debug(f"Turning on {self._attr_name} with kwargs: {kwargs}")
+
+        # Imposta la luminosità, se specificata, o utilizza quella attuale
+        brightness = kwargs.get("brightness", self._attr_brightness)
+        if brightness is not None:
+            # Converti la luminosità da Home Assistant (0-255) a IRSAP (0-100)
+            brightness_irsap = round((brightness / 255) * 100)
+            self._attr_brightness = brightness
+
+        # Imposta il colore RGBW, se specificato
+        if "rgbw_color" in kwargs:
+            rgbw = kwargs["rgbw_color"]
+            self._attr_rgbw_color = rgbw
+            hsv = self._convert_rgbw_to_hsv(rgbw)
+            h, s, v = hsv
+
+        else:
+            # Usa i valori HSV esistenti per mantenere il colore corrente
+            hsv = self._convert_rgbw_to_hsv(self._attr_rgbw_color)
+            h, s, v = hsv
+
+        username = self.hass.data[DOMAIN].get("username")
+        password = self.hass.data[DOMAIN].get("password")
+
+        token = await self.hass.async_add_executor_job(
+            login_with_srp, username, password
+        )
+        envID = self.hass.data[DOMAIN].get("envID")
+
+        if not token or not envID:
+            _LOGGER.error("Token or envID not found in hass.data")
+            return
+
+        # Function to handle token regeneration and payload retrieval
+        async def retrieve_payload(token, envID):
+            "Attempt to retrieve the payload, regenerate the token if it fails"
+            payload = await self.get_current_payload(token, envID)
+            if payload is None:
+                # Regenerate token and retry
+                token = await self.hass.async_add_executor_job(
+                    login_with_srp, username, password
+                )
+                if not token:
+                    _LOGGER.error("Failed to regenerate token")
+                    return None, None
+                # Try to retrieve payload again
+                payload = await self.get_current_payload(token, envID)
+            return token, payload
+
+        # Retrieve the payload and handle token regeneration if necessary
+        token, payload = await retrieve_payload(token, envID)
+
+        if payload is None:
+            _LOGGER.error(
+                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
             )
+            return
+
+        # Genera il payload con la funzione generate_device_payload
+        updated_payload = await self.generate_device_payload(
+            payload=payload,
+            device_name=self._attr_name.replace("LED", "").strip(),
+            light_state=True,  # Stato della luce (accensione)
+            color=(h, s, v),  # Passa i valori HSV
+            brightness=brightness_irsap,  # Passa la luminosità in scala 0-100
+        )
+
+        # print(f"Payload updated: {updated_payload}")
+        # _LOGGER.info(f"Payload updated  {updated_payload}")
+
+        # Invia il nuovo payload aggiornato alle API
+        success = await self._send_light_status_to_api(token, envID, updated_payload)
+        if success:
+            # Aggiorna lo stato interno
+            self._attr_is_on = True
+            self.async_write_ha_state()
+        else:
+            _LOGGER.error(
+                f"Failed to update color and status as ON for {self._attr_name}"
+            )
+
+    async def async_turn_off(self, **kwargs):
+        await asyncio.sleep(1)
+        """Turn on the light with the specified settings."""
+        _LOGGER.debug(f"Turning off {self._attr_name} with kwargs: {kwargs}")
+
+        # Imposta la luminosità, se specificata, o utilizza quella attuale
+        brightness = kwargs.get("brightness", self._attr_brightness)
+        if brightness is not None:
+            # Converti la luminosità da Home Assistant (0-255) a IRSAP (0-100)
+            brightness_irsap = round((brightness / 255) * 100)
+            self._attr_brightness = brightness
+
+        # Imposta il colore RGBW, se specificato
+        if "rgbw_color" in kwargs:
+            rgbw = kwargs["rgbw_color"]
+            self._attr_rgbw_color = rgbw
+            hsv = self._convert_rgbw_to_hsv(rgbw)
+            h, s, v = hsv
+
+        else:
+            # Usa i valori HSV esistenti per mantenere il colore corrente
+            hsv = self._convert_rgbw_to_hsv(self._attr_rgbw_color)
+            h, s, v = hsv
+
+        username = self.hass.data[DOMAIN].get("username")
+        password = self.hass.data[DOMAIN].get("password")
+
+        token = await self.hass.async_add_executor_job(
+            login_with_srp, username, password
+        )
+        envID = self.hass.data[DOMAIN].get("envID")
+
+        if not token or not envID:
+            _LOGGER.error("Token or envID not found in hass.data")
+            return
+
+        # Function to handle token regeneration and payload retrieval
+        async def retrieve_payload(token, envID):
+            "Attempt to retrieve the payload, regenerate the token if it fails"
+            payload = await self.get_current_payload(token, envID)
+            if payload is None:
+                # Regenerate token and retry
+                token = await self.hass.async_add_executor_job(
+                    login_with_srp, username, password
+                )
+                if not token:
+                    _LOGGER.error("Failed to regenerate token")
+                    return None, None
+                # Try to retrieve payload again
+                payload = await self.get_current_payload(token, envID)
+            return token, payload
+
+        # Retrieve the payload and handle token regeneration if necessary
+        token, payload = await retrieve_payload(token, envID)
+
+        if payload is None:
+            _LOGGER.error(
+                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
+            )
+            return
+
+        # Genera il payload con la funzione generate_device_payload
+        updated_payload = await self.generate_device_payload(
+            payload=payload,
+            device_name=self._attr_name.replace("LED", "").strip(),
+            light_state=False,  # Stato della luce (accensione)
+            color=(h, s, v),  # Passa i valori HSV
+            brightness=0,  # Passa la luminosità in scala 0-100
+        )
+
+        # print(f"Payload updated: {updated_payload}")
+        # _LOGGER.info(f"Payload updated  {updated_payload}")
+
+        # Invia il nuovo payload aggiornato alle API
+        success = await self._send_light_status_to_api(token, envID, updated_payload)
+        if success:
+            # Aggiorna lo stato interno
+            self._attr_is_on = True
+            self.async_write_ha_state()
+        else:
+            _LOGGER.error(
+                f"Failed to update color and status as ON for {self._attr_name}"
+            )
+
+    def _extract_light_info(self, desired_payload, device_name):
+        """Estrae informazioni sulla luce dal payload."""
+        for key, value in desired_payload.items():
+            if key.endswith("_NAM") and value == device_name:
+                base_key = key[:-4]
+                msp_key = f"{base_key}_X_LED_MSP"
+                enb_key = f"{base_key}_X_LED_ENB"
+
+                msp_value = desired_payload.get(msp_key)
+                enb_value = desired_payload.get(enb_key)
+
+                if msp_value and "p" in msp_value and "v" in msp_value["p"]:
+                    hsv = msp_value["p"]["v"]
+                    h, s, v = hsv.get("h", 0), hsv.get("s", 0), hsv.get("v", 0)
+                    h = h / 360.0
+                    s = s / 100.0
+                    v = v / 100.0
+
+                    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+
+                    w = min(r, g, b)
+
+                    r = int((r - w) * 255)
+                    g = int((g - w) * 255)
+                    b = int((b - w) * 255)
+                    w = int(w * 255)
+                    self._attr_rgbw_color = (r, g, b, w)
+                    self._attr_brightness = (hsv.get("v", 255) / 100) * 255
+                    self._attr_is_on = enb_value == 1
+                    return True
+        return False
+
+    async def _notify_issue(self):
+        """Crea una notifica persistente per segnalare un problema."""
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": f"Device {self._attr_name} Issue",
+                "message": "Light infos are set to previous state due to an invalid value received (None). Please check the device and try to reset it.",
+                "notification_id": f"radiator_{self._attr_name}_brightness_warning",
+            },
+        )
+
+    async def _dismiss_issue(self):
+        """Rimuove la notifica persistente se il problema è risolto."""
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "dismiss",
+            {"notification_id": f"radiator_{self._attr_name}_brightness_warning"},
+        )
 
     async def generate_device_payload(
         self, payload, device_name, light_state=None, color=None, brightness=None
@@ -494,19 +608,19 @@ class RadiatorLight(LightEntity):
                 # Aggiorna la temperatura se fornita
                 if light_state is not None:
                     # Aggiorna _MSP
-                    led_enb_key = f"{base_key}_LED_ENB"
+                    led_enb_key = f"{base_key}_X_LED_ENB"
                     desired_payload[led_enb_key] = 1 if light_state else 0
 
-                    led_msp_key = f"{base_key}_LED_MSP"
+                    led_msp_key = f"{base_key}_X_LED_MSP"
                     if led_msp_key in desired_payload:
                         desired_payload[led_msp_key] = {
                             "p": {
                                 # "k": "MANUAL",
                                 # "m": 4,
-                                "u": 0,
+                                "u": 1,
                                 "v": {"h": color[0], "s": color[1], "v": brightness},
-                            },
-                            "m": "4",
+                                "m": 4,
+                            }
                         }
 
         # Rimuovi 'sk' se esistente
