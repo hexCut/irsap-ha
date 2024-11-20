@@ -129,40 +129,54 @@ def extract_device_info(
     payload,
     nam_suffix="_NAM",
     led_suffix="_X_LED_MSP",  # Suffisso per luce
+    led_existance="_X_LED_CSP",  # Suffisso per verificare se c'è il led
     led_enable_suffix="_X_LED_ENB",
     exclude_suffix="E_NAM",
 ):
     devices_info = []
+    temp_devices = {}  # Memorizza temporaneamente i dispositivi in attesa di verifica del LED
 
     def find_device_keys(obj):
         if isinstance(obj, dict):
             for key, value in obj.items():
-                # Verifica se il dispositivo ha un suffisso "_X_LED_ENB" (abilitazione della luce)
-                # if key.endswith(led_enable_suffix):
-                # Raccogli chiavi _NAM e aggiungi dettagli iniziali
+                # Memorizza le chiavi _NAM per dispositivi potenziali
                 if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
-                    device_info = {
+                    temp_devices[key] = {
                         "serial": value,
                         "state": False,  # Default a OFF
                         "color": {"h": 0, "s": 0, "v": 0},  # Default colore
+                        "has_led": False,  # Flag per la verifica del LED
                     }
-                    devices_info.append((key, device_info))
 
-                # Gestisci chiave _X_LED_ENB per accensione e colore
-                if key.endswith(led_enable_suffix):
-                    # Stato accensione
-                    device_info["state"] = True if value == 1 else False
+                # Verifica la presenza del LED
+                if (
+                    key.endswith(led_existance)
+                    and key.replace(led_existance, nam_suffix) in temp_devices
+                ):
+                    temp_devices[key.replace(led_existance, nam_suffix)]["has_led"] = (
+                        value is not None
+                    )
 
-                # Gestisci chiave _X_LED_MSP per accensione e colore
+                # Gestisci stato accensione LED
+                if (
+                    key.endswith(led_enable_suffix)
+                    and key.replace(led_enable_suffix, nam_suffix) in temp_devices
+                ):
+                    temp_devices[key.replace(led_enable_suffix, nam_suffix)][
+                        "state"
+                    ] = value == 1
+
+                # Gestisci colore LED
                 if key.endswith(led_suffix) and isinstance(value, dict):
-                    led_data = value.get("p", {})
-                    # Colore HSV
-                    color_data = led_data.get("v", {})
-                    device_info["color"] = {
-                        "h": color_data.get("h", 0),
-                        "s": color_data.get("s", 0),
-                        "v": color_data.get("v", 0),
-                    }
+                    nam_key = key.replace(led_suffix, nam_suffix)
+                    if nam_key in temp_devices:
+                        led_data = value.get("p", {})
+                        color_data = led_data.get("v", {})
+                        temp_devices[nam_key]["color"] = {
+                            "h": color_data.get("h", 0),
+                            "s": color_data.get("s", 0),
+                            "v": color_data.get("v", 0),
+                        }
 
                 # Ricorsione per chiavi annidate
                 find_device_keys(value)
@@ -172,6 +186,12 @@ def extract_device_info(
 
     # Esegui la ricerca nel payload
     find_device_keys(payload)
+
+    # Filtra i dispositivi che hanno il LED
+    devices_info = [
+        (key, device) for key, device in temp_devices.items() if device["has_led"]
+    ]
+
     return devices_info
 
 
