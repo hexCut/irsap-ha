@@ -376,16 +376,6 @@ class RadiatorLight(LightEntity):
                 )
                 await asyncio.sleep(1)
 
-        if not self._attr_brightness:
-            _LOGGER.warning(
-                f"Light info for {self._attr_name} remains incomplete after {retry_count} retries."
-            )
-            self._attr_hs_color = last_valid_hs_color
-            self._attr_brightness = last_valid_brightness
-            await self._notify_issue()
-        else:
-            await self._dismiss_issue()
-
     async def async_turn_on(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
@@ -579,26 +569,6 @@ class RadiatorLight(LightEntity):
                     self._attr_is_on = enb_value == 1
                     return True
         return False
-
-    async def _notify_issue(self):
-        "Crea una notifica persistente per segnalare un problema."
-        await self.hass.services.async_call(
-            "persistent_notification",
-            "create",
-            {
-                "title": f"Device {self._attr_name} Issue",
-                "message": "Light infos are set to previous state due to an invalid value received (None). Please check the device and try to reset it.",
-                "notification_id": f"radiator_{self._attr_name}_brightness_warning",
-            },
-        )
-
-    async def _dismiss_issue(self):
-        "Rimuove la notifica persistente se il problema è risolto."
-        await self.hass.services.async_call(
-            "persistent_notification",
-            "dismiss",
-            {"notification_id": f"radiator_{self._attr_name}_brightness_warning"},
-        )
 
     async def generate_device_payload(
         self, payload, device_name, light_state=None, color=None, brightness=None
