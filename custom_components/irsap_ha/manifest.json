@@ -1,8 +1,8 @@
 {
   "domain": "irsap_ha",
   "name": "IRSAP NOW Integration",
-  "config_flow": true,
   "codeowners": ["@hexCut", "@valerix85", "@Sim0cYz"],
+  "config_flow": true,  
   "dependencies": [],
   "documentation": "https://github.com/hexCut/irsap-ha/wiki",
   "iot_class": "cloud_polling",
