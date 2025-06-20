@@ -107,6 +107,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 sensor_entities.append(
                     LockSensor(r, device, unique_id=f"{r['serial']}_lock")
                 )  # Child lock sensor
+                sensor_entities.append(
+                    AIQSensor(r, device, unique_id=f"{r['serial']}_aiq")
+                )
             else:
                 _LOGGER.debug(f"No matching device found for sensor {r['serial']}")
 
@@ -195,6 +198,7 @@ def extract_device_info(
         "_X_vocValue",
         "_X_co2Value",
         "_X_lock",
+        "_AIQ",
     ]
 
     # Liste per raccogliere le chiavi
@@ -216,6 +220,7 @@ def extract_device_info(
     voc_keys = []
     co2_keys = []
     lock_keys = []
+    aiq_keys = []
 
     def find_device_keys(obj):
         if isinstance(obj, dict):
@@ -266,6 +271,8 @@ def extract_device_info(
                         co2_keys.append((key, value))
                     elif key.endswith("_X_lock"):
                         lock_keys.append((key, value))
+                    elif key.endswith("_AIQ"):
+                        aiq_keys.append((key, value))
 
                 # Ricorsione per esplorare eventuali chiavi annidate
                 find_device_keys(value)
@@ -329,6 +336,8 @@ def extract_device_info(
             device_info["co2"] = co2_keys[i][1]
         if i < len(lock_keys):
             device_info["lock"] = lock_keys[i][1]
+        if i < len(aiq_keys):
+            device_info["aiq"] = aiq_keys[i][1]
 
         devices_info.append(device_info)
 
@@ -643,3 +652,10 @@ class LockSensor(BaseRadiatorSensor):
         elif lock_status == 0:
             return "Unlocked"
         return "Unknown"  # Default value if lock status is not available
+
+
+class AIQSensor(BaseRadiatorSensor):
+    def __init__(self, radiator, device, unique_id):
+        super().__init__(
+            radiator, device, unique_id, "Air Quality", "mdi:air-purifier", "aiq"
+        )
