@@ -100,7 +100,8 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry):
         "Initialize the options flow."
-        self.config_entry = config_entry
+        super().__init__()
+        self._initial_config_entry_data = config_entry.data
 
     async def async_step_init(self, user_input=None):
         "Manage the options."
@@ -112,10 +113,10 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
         options_schema = vol.Schema(
             {
                 vol.Required(
-                    "username", default=self.config_entry.data.get("username")
+                    "username", default=self._initial_config_entry_data.get("username")
                 ): str,
                 vol.Required(
-                    "password", default=self.config_entry.data.get("password")
+                    "password", default=self._initial_config_entry_data.get("password")
                 ): str,
             }
         )
