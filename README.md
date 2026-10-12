@@ -74,6 +74,15 @@ Now the integration is added to HACS and available in the normal HA integration 
    1. **Username**: Your username to login via IRSAP Now App
    2. **Password**: Your password to login via IRSAP Now App
 
+### Options
+
+Open the integration and click `Configure` to change:
+
+- **Username / Password**: the IRSAP Now credentials (they are checked before being saved).
+- **Update interval**: how often radiators and LEDs are read from the IRSAP cloud, in seconds (default `60`, range `30`-`3600`). A longer interval means fewer cloud calls; changes sent from Home Assistant are applied immediately regardless of this value.
+
+If you prefer to drive updates yourself (e.g. from an automation calling `homeassistant.update_entity`), turn off *Enable polling for changes* in the integration's *System options*: the integration then stops its own timer.
+
 ## Contributions are welcome
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/rsplab)
