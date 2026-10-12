@@ -14,6 +14,10 @@ class DeviceManager:
     def get_devices(self):
         return self.devices
 
+    def clear(self):
+        """Forget all devices (called when the config entry is unloaded)."""
+        self.devices.clear()
+
 
 # Singleton
 device_manager = DeviceManager()

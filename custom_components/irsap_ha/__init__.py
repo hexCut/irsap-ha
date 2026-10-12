@@ -4,9 +4,14 @@ from .const import DOMAIN
 import logging
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
+from .auth import AUTH_DATA_KEYS, store_credentials
+from .coordinator import IrsapCoordinator
+from .device_manager import device_manager
 from .setup import async_setup as setup_component
 
 _LOGGER = logging.getLogger(__name__)
+
+PLATFORMS = ["climate", "sensor", "light"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -16,9 +21,19 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass, config_entry):
     """Imposta il custom component"""
     hass.data.setdefault(DOMAIN, {})
+    store_credentials(
+        hass, config_entry.data["username"], config_entry.data["password"]
+    )
+    # I dispositivi vengono registrati di nuovo dalla piattaforma climate
+    device_manager.clear()
+
+    # Un solo GetShadow per intervallo, condiviso da tutte le entità
+    coordinator = IrsapCoordinator(hass, config_entry)
+    await coordinator.async_config_entry_first_refresh()
+
     hass.data[DOMAIN][config_entry.entry_id] = {
-        "token": config_entry.data["token"],
         "envID": config_entry.data["envID"],
+        "coordinator": coordinator,
     }
 
     # Carica prima 'climate' e poi 'sensor'
@@ -40,10 +55,18 @@ async def _async_reload_entry(hass: HomeAssistant, config_entry) -> None:
 async def async_unload_entry(hass, config_entry):
     """Scarica le entità del custom component"""
     unload_ok = await hass.config_entries.async_unload_platforms(
-        config_entry, ["climate", "sensor", "light"]
+        config_entry, PLATFORMS
     )
     if unload_ok:
-        hass.data[DOMAIN].pop(config_entry.entry_id)
+        data = hass.data[DOMAIN]
+        data.pop(config_entry.entry_id, None)
+        # Credenziali e token in cache: al prossimo setup si riparte da zero
+        for key in AUTH_DATA_KEYS:
+            data.pop(key, None)
+        if not data:
+            hass.data.pop(DOMAIN)
+        # Evita che un reload accumuli RadiatorDevice duplicati con token vecchi
+        device_manager.clear()
     return unload_ok
 
 

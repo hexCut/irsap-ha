@@ -1,50 +1,71 @@
-"""Shared Cognito access-token cache for the IRSAP integration."""
+"""Cognito login and shared access-token cache for the IRSAP integration."""
 
+import asyncio
 import logging
 import time
 
-from .const import DOMAIN, TOKEN_MAX_AGE
+from warrant import Cognito
+
+from .const import CLIENT_ID, DOMAIN, REGION, TOKEN_MAX_AGE, USER_POOL_ID
 
 _LOGGER = logging.getLogger(__name__)
 
+# Keys this module keeps in hass.data[DOMAIN]; async_unload_entry removes them.
+AUTH_DATA_KEYS = ("username", "password", "token", "token_obtained_at", "token_lock")
 
-async def async_get_token(hass, login_func, force_refresh=False):
-    """Return a valid access token, logging in again only when needed.
 
-    ``login_func`` is the blocking ``login_with_srp(username, password)`` helper;
-    it runs in the executor. The token is cached in ``hass.data[DOMAIN]`` together
-    with the time it was obtained, and is reused until it is older than
-    ``TOKEN_MAX_AGE`` or ``force_refresh`` is set (e.g. after an API error).
-    """
-    data = hass.data.setdefault(DOMAIN, {})
-    token = data.get("token")
-    obtained_at = data.get("token_obtained_at", 0)
-
-    if (
-        not force_refresh
-        and token
-        and time.monotonic() - obtained_at < TOKEN_MAX_AGE
-    ):
-        return token
-
-    username = data.get("username")
-    password = data.get("password")
-    if not username or not password:
-        _LOGGER.error("IRSAP credentials not found in hass.data")
+def login_with_srp(username, password):
+    "Log in and obtain the access token using Warrant (blocking)."
+    try:
+        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
+        u.authenticate(password=password)
+        _LOGGER.debug("Cognito SRP login succeeded")
+        return u.access_token
+    except Exception as e:
+        _LOGGER.error(f"Error during login: {e}")
         return None
 
-    _LOGGER.debug("Obtaining a new IRSAP access token (forced: %s)", force_refresh)
-    token = await hass.async_add_executor_job(login_func, username, password)
-    if token:
-        data["token"] = token
-        data["token_obtained_at"] = time.monotonic()
-    return token
 
-
-def store_token(hass, token):
-    """Store a token obtained elsewhere (e.g. during platform setup)."""
-    if not token:
-        return
+def store_credentials(hass, username, password):
+    """Remember the credentials used to obtain new tokens."""
     data = hass.data.setdefault(DOMAIN, {})
-    data["token"] = token
-    data["token_obtained_at"] = time.monotonic()
+    data["username"] = username
+    data["password"] = password
+
+
+async def async_get_token(hass, failed_token=None):
+    """Return a valid access token, logging in again only when needed.
+
+    The token is cached in ``hass.data[DOMAIN]`` and reused until it is older
+    than ``TOKEN_MAX_AGE``. Pass ``failed_token`` when an API call made with
+    that token failed: a new login happens only if the cached token is still
+    that one, so when several callers fail at the same time just one of them
+    logs in and the others get the new token. A lock makes sure only one SRP
+    login runs at a time.
+    """
+    data = hass.data.setdefault(DOMAIN, {})
+    lock = data.setdefault("token_lock", asyncio.Lock())
+
+    async with lock:
+        token = data.get("token")
+        age = time.monotonic() - data.get("token_obtained_at", 0)
+        if token and age < TOKEN_MAX_AGE and (
+            failed_token is None or token != failed_token
+        ):
+            return token
+
+        username = data.get("username")
+        password = data.get("password")
+        if not username or not password:
+            _LOGGER.error("IRSAP credentials not found in hass.data")
+            return None
+
+        _LOGGER.debug(
+            "Obtaining a new IRSAP access token (%s)",
+            "previous token rejected" if failed_token else "no valid cached token",
+        )
+        token = await hass.async_add_executor_job(login_with_srp, username, password)
+        if token:
+            data["token"] = token
+            data["token_obtained_at"] = time.monotonic()
+        return token

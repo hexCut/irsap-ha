@@ -8,16 +8,12 @@ import voluptuous as vol
 from homeassistant.helpers import selector
 from .const import (
     DOMAIN,
-    USER_POOL_ID,
-    CLIENT_ID,
-    REGION,
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
     MAX_SCAN_INTERVAL,
 )
-from warrant import Cognito
-import asyncio
+from .auth import login_with_srp as _sync_login_with_srp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,18 +194,6 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
 async def login_with_srp(hass, username, password):
     "Log in and obtain the access token using Warrant."
     return await hass.async_add_executor_job(_sync_login_with_srp, username, password)
-
-
-def _sync_login_with_srp(username, password):
-    """Synchronous function to log in using Warrant."""
-    try:
-        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
-        u.authenticate(password=password)
-        _LOGGER.debug(f"Access Token: {u.access_token}")
-        return u.access_token
-    except Exception as e:
-        _LOGGER.error(f"Error during login: {e}")
-        return None
 
 
 async def envid_with_srp(username, password, token):
