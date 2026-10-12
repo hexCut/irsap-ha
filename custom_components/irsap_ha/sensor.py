@@ -1,4 +1,5 @@
 from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
+from .auth import store_token
 import logging
 from homeassistant.components.sensor import SensorEntity, datetime
 import aiohttp
@@ -29,6 +30,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hass.data[DOMAIN]["envID"] = envID
         hass.data[DOMAIN]["username"] = username
         hass.data[DOMAIN]["password"] = password
+        store_token(hass, token)
 
         devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
         _LOGGER.debug(

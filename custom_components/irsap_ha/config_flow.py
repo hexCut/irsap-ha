@@ -5,7 +5,17 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
+from homeassistant.helpers import selector
+from .const import (
+    DOMAIN,
+    USER_POOL_ID,
+    CLIENT_ID,
+    REGION,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    MAX_SCAN_INTERVAL,
+)
 from warrant import Cognito
 import asyncio
 
@@ -88,7 +98,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return RadiatorsIntegrationOptionsFlow(config_entry)
+        return RadiatorsIntegrationOptionsFlow()
 
     async def async_get_envID(self, username, password, token):
         """Asynchronous method to get envID."""
@@ -98,30 +108,74 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
     "Handle the options flow for the integration."
 
-    def __init__(self, config_entry):
-        "Initialize the options flow."
-        super().__init__()
-        self._initial_config_entry_data = config_entry.data
+    # NB: self.config_entry is provided by Home Assistant (2024.11+); assigning
+    # it in __init__ is deprecated and no longer works on recent versions.
 
     async def async_step_init(self, user_input=None):
         "Manage the options."
-        if user_input is not None:
-            # Update the config entry options with new values
-            return self.async_create_entry(title="", data=user_input)
+        errors = {}
+        entry = self.config_entry
 
-        # Define the schema for the options form
+        if user_input is not None:
+            username = user_input["username"]
+            password = user_input["password"]
+
+            # Credenziali modificate: verificale e salvale in entry.data, che è
+            # dove le leggono le piattaforme
+            if username != entry.data.get("username") or password != entry.data.get(
+                "password"
+            ):
+                token = await login_with_srp(self.hass, username, password)
+                if token is None:
+                    errors["base"] = "invalid_credentials"
+                else:
+                    # Dati e opzioni in un solo aggiornamento, così l'integrazione
+                    # si ricarica una volta sola
+                    self.hass.config_entries.async_update_entry(
+                        entry,
+                        data={
+                            **entry.data,
+                            "username": username,
+                            "password": password,
+                            "token": token,
+                        },
+                        options={
+                            CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])
+                        },
+                    )
+
+            if not errors:
+                # Nelle opzioni resta solo l'intervallo di aggiornamento;
+                # il listener in __init__ ricarica l'integrazione
+                return self.async_create_entry(
+                    title="",
+                    data={CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])},
+                )
+
         options_schema = vol.Schema(
             {
+                vol.Required("username", default=entry.data.get("username")): str,
+                vol.Required("password", default=entry.data.get("password")): str,
                 vol.Required(
-                    "username", default=self._initial_config_entry_data.get("username")
-                ): str,
-                vol.Required(
-                    "password", default=self._initial_config_entry_data.get("password")
-                ): str,
+                    CONF_SCAN_INTERVAL,
+                    default=entry.options.get(
+                        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL,
+                        max=MAX_SCAN_INTERVAL,
+                        step=1,
+                        unit_of_measurement="s",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=options_schema)
+        return self.async_show_form(
+            step_id="init", data_schema=options_schema, errors=errors
+        )
 
     async def _update_options(self, user_input):
         "Update config entry options and reload entities."

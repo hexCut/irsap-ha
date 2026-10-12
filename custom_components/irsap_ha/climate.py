@@ -11,7 +11,9 @@ from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
 )
 from homeassistant.util import datetime, timedelta  # Importa UnitOfTemperature
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
+from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION, API_TIMEOUT
+from .auth import async_get_token, store_token
+from .polling import ConfigurablePollingMixin
 import aiohttp
 import json
 from warrant import Cognito
@@ -43,6 +45,7 @@ async def async_setup_entry(
         hass.data[DOMAIN]["envID"] = envID
         hass.data[DOMAIN]["username"] = username
         hass.data[DOMAIN]["password"] = password
+        store_token(hass, token)
 
         radiators = await get_radiators(token, envID)
         _LOGGER.debug(
@@ -210,7 +213,7 @@ def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
     return None
 
 
-class RadiatorClimate(ClimateEntity):
+class RadiatorClimate(ConfigurablePollingMixin, ClimateEntity):
     "Representation of a radiator climate entity."
 
     def __init__(self, radiator, token, envID, unique_id):
@@ -569,7 +572,9 @@ class RadiatorClimate(ClimateEntity):
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=API_TIMEOUT)
+            ) as session:
                 async with session.post(
                     url, json=graphql_query, headers=headers
                 ) as response:
@@ -736,12 +741,12 @@ class RadiatorClimate(ClimateEntity):
         # Rimuove "Radiator" dal nome dell'entità, se presente, per facilitare il matching
         device_name = self._attr_name.replace("Radiator", "").strip()
 
-        # Recupera token e envID
-        username = self.hass.data[DOMAIN]["username"]
-        password = self.hass.data[DOMAIN]["password"]
+        # Recupera envID (il token arriva da async_get_token)
         envID = self.hass.data[DOMAIN].get("envID")
 
         retry_count = 0
+        desired_payload = {}
+        enb_key = None
         max_retries = 3
         tmp_value = None
         last_valid_temperature = (
@@ -754,9 +759,9 @@ class RadiatorClimate(ClimateEntity):
                 f"Attempt {retry_count}: Retrieving payload for {self._attr_name}"
             )
 
-            # Ottieni un nuovo token e payload ad ogni retry
-            token = await self.hass.async_add_executor_job(
-                login_with_srp, username, password
+            # Riusa il token in cache al primo tentativo; ai retry ne chiede uno nuovo
+            token = await async_get_token(
+                self.hass, login_with_srp, force_refresh=retry_count > 1
             )
             if not token or not envID:
                 _LOGGER.error("Token or envID not found in hass.data")
@@ -822,7 +827,7 @@ class RadiatorClimate(ClimateEntity):
             )
 
         # Controlla e aggiorna modalità di funzionamento (es. HEAT, OFF)
-        if enb_key in desired_payload:
+        if enb_key is not None and enb_key in desired_payload:
             enb_value = desired_payload.get(enb_key, 0)
             self._attr_hvac_mode = HVACMode.HEAT if enb_value == 1 else HVACMode.OFF
 

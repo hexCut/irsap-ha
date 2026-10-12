@@ -1,5 +1,7 @@
 import time
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
+from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION, API_TIMEOUT
+from .auth import async_get_token, store_token
+from .polling import ConfigurablePollingMixin
 import logging
 from homeassistant.components.light import LightEntity, ColorMode
 import aiohttp
@@ -29,6 +31,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         hass.data[DOMAIN]["envID"] = envID
         hass.data[DOMAIN]["username"] = username
         hass.data[DOMAIN]["password"] = password
+        store_token(hass, token)
 
         devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
         _LOGGER.debug(
@@ -195,7 +198,7 @@ def extract_device_info(
     return devices_info
 
 
-class RadiatorLight(LightEntity):
+class RadiatorLight(ConfigurablePollingMixin, LightEntity):
     "Representation of a radiator light entity."
 
     def __init__(self, radiator, device, unique_id):
@@ -330,10 +333,8 @@ class RadiatorLight(LightEntity):
 
         # Configurazione iniziale
         device_name = self._attr_name.replace("LED", "").strip()
-        username = self.hass.data[DOMAIN]["username"]
-        password = self.hass.data[DOMAIN]["password"]
         envID = self.hass.data[DOMAIN].get("envID")
-        token = self.hass.data[DOMAIN].get("token")
+        token = await async_get_token(self.hass, login_with_srp)
 
         retry_count = 0
         max_retries = 1
@@ -347,24 +348,24 @@ class RadiatorLight(LightEntity):
             )
 
             if not token or not envID:
-                # Recupera un nuovo token e il payload
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
                 _LOGGER.error("Token or envID not found in hass.data")
                 return
 
             payload = await self.get_current_payload(token, envID)
             if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
+                # Il token potrebbe essere scaduto: ne chiede uno nuovo e riprova
+                token = await async_get_token(
+                    self.hass, login_with_srp, force_refresh=True
                 )
                 if not token:
                     _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
+                    return
                 payload = await self.get_current_payload(token, envID)
+                if payload is None:
+                    _LOGGER.warning(
+                        f"Failed to retrieve payload for {self._attr_name}"
+                    )
+                    return
 
             # Ottieni informazioni dal payload
             desired_payload = payload.get("state", {}).get("desired", {})
@@ -679,7 +680,9 @@ class RadiatorLight(LightEntity):
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=API_TIMEOUT)
+            ) as session:
                 async with session.post(
                     url, json=graphql_query, headers=headers
                 ) as response:

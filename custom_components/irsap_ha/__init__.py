@@ -26,7 +26,15 @@ async def async_setup_entry(hass, config_entry):
     await hass.config_entries.async_forward_entry_setups(config_entry, ["sensor"])
     await hass.config_entries.async_forward_entry_setups(config_entry, ["light"])
 
+    # Ricarica l'integrazione quando cambiano le opzioni (es. intervallo di aggiornamento)
+    config_entry.async_on_unload(config_entry.add_update_listener(_async_reload_entry))
+
     return True
+
+
+async def _async_reload_entry(hass: HomeAssistant, config_entry) -> None:
+    """Reload the integration after its options change."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
 
 async def async_unload_entry(hass, config_entry):
