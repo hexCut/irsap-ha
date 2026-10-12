@@ -3,6 +3,7 @@ import logging
 import time
 from homeassistant.components.climate import (
     ClimateEntity,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.components.climate.const import ClimateEntityFeature
@@ -18,6 +19,7 @@ from warrant import Cognito
 import re
 from .device import RadiatorDevice
 from .device_manager import device_manager
+from .hvac_action import compute_hvac_action
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -242,6 +244,11 @@ class RadiatorClimate(ClimateEntity):
             self._attr_hvac_mode = (
                 HVACMode.OFF
             )  # Fallback in caso di valori non riconosciuti
+
+        # Azione reale (riscalda / inattivo): calcolata a ogni aggiornamento
+        self._attr_hvac_action = (
+            HVACAction.OFF if self._attr_hvac_mode == HVACMode.OFF else None
+        )
 
         # Funzionalità supportate (es. temperatura target e accensione/spegnimento)
         self._attr_supported_features = (
@@ -643,6 +650,13 @@ class RadiatorClimate(ClimateEntity):
             self._target_temperature = temperature
             # Cambia lo stato in HEAT
             self._attr_hvac_mode = HVACMode.HEAT
+            # Stima immediata, confermata dal prossimo aggiornamento
+            if self._current_temperature is not None:
+                self._attr_hvac_action = (
+                    HVACAction.HEATING
+                    if self._current_temperature < temperature
+                    else HVACAction.IDLE
+                )
         else:
             _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
 
@@ -722,6 +736,14 @@ class RadiatorClimate(ClimateEntity):
         if success:
             # Aggiorna la modalità HVAC attuale
             self._attr_hvac_mode = hvac_mode
+            if hvac_mode == HVACMode.OFF:
+                self._attr_hvac_action = HVACAction.OFF
+            elif self._current_temperature is not None and self._target_temperature:
+                self._attr_hvac_action = (
+                    HVACAction.HEATING
+                    if self._current_temperature < self._target_temperature
+                    else HVACAction.IDLE
+                )
             self.async_write_ha_state()
         else:
             _LOGGER.error(f"Failed to update HVAC mode for {self._attr_name}")
@@ -792,6 +814,11 @@ class RadiatorClimate(ClimateEntity):
                         msp_value["p"]["v"] is not None
                     ):  # Se il valore è valido, esci dal ciclo di retry
                         self._target_temperature = msp_value["p"]["v"] / 10
+
+                    # Sta scaldando davvero o ha raggiunto la temperatura? (#20)
+                    self._attr_hvac_action = compute_hvac_action(
+                        desired_payload, base_key
+                    )
 
             if tmp_value is None:
                 _LOGGER.debug(
