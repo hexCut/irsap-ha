@@ -1,113 +1,50 @@
 import asyncio
 import logging
 import time
+from homeassistant.components import persistent_notification
 from homeassistant.components.climate import (
     ClimateEntity,
     HVACMode,
 )
 from homeassistant.components.climate.const import ClimateEntityFeature
 from homeassistant.const import UnitOfTemperature
+from homeassistant.core import callback
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
 )
-from homeassistant.util import datetime, timedelta  # Importa UnitOfTemperature
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
-import aiohttp
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from .const import DOMAIN, WRITE_SETTLE_TIME
+from .api import async_fetch_shadow, async_update_shadow
 import json
-from warrant import Cognito
 import re
 from .device import RadiatorDevice
 from .device_manager import device_manager
 
 _LOGGER = logging.getLogger(__name__)
 
+# Aggiornamenti consecutivi senza temperatura prima di avvisare l'utente
+MISSING_TEMPERATURE_NOTIFY_AFTER = 3
+
 
 async def async_setup_entry(
     hass, config_entry, async_add_entities: AddEntitiesCallback
 ):
-    from .sensor import RadiatorSensor
-
     """Set up climate platform."""
-    envID = config_entry.data["envID"]
-    username = config_entry.data["username"]
-    password = config_entry.data["password"]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+    envID = coordinator.envID
 
-    token = await hass.async_add_executor_job(login_with_srp, username, password)
+    # I radiatori arrivano dal GetShadow già fatto dal coordinator
+    radiators = extract_device_info(coordinator.desired)
+    _LOGGER.debug(f"Retrieved radiators: {[r['serial'] for r in radiators]}")
 
-    if token and envID:
-        _LOGGER.debug("Token and envID successfully obtained. Retrieving radiators.")
-
-        # Salviamo token ed envID nel contesto di Home Assistant
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN]["token"] = token
-        hass.data[DOMAIN]["envID"] = envID
-        hass.data[DOMAIN]["username"] = username
-        hass.data[DOMAIN]["password"] = password
-
-        radiators = await get_radiators(token, envID)
-        _LOGGER.debug(
-            f"Retrieved radiators: {radiators}"
-        )  # Log per verificare i radiatori
-
-        for r in radiators:
-            device = RadiatorDevice(r, token, envID)
-            device_manager.add_device(device)  # Aggiungi il dispositivo al manager
-            climate_entity = RadiatorClimate(
-                r, token, envID, unique_id=f"{r['serial']}_climate"
-            )
-            async_add_entities([climate_entity], True)
-
-    else:
-        _LOGGER.error("Unable to obtain the token or envID. Check configuration.")
-
-
-def login_with_srp(username, password):
-    "Log in and obtain the access token using Warrant."
-    try:
-        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
-        u.authenticate(password=password)
-        _LOGGER.debug(f"Access Token: {u.access_token}")
-        return u.access_token
-    except Exception as e:
-        _LOGGER.error(f"Error during login: {e}")
-        return None
-
-
-async def get_radiators(token, envID):
-    "Fetch radiator data from the API."
-    url = (
-        "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-    )
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    graphql_query = {
-        "operationName": "GetShadow",
-        "variables": {"envId": envID},
-        "query": "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n",
-    }
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url, json=graphql_query, headers=headers
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    payload = json.loads(data["data"]["getShadow"]["payload"])
-                    _LOGGER.debug(f"Payload retrieved from API: {payload}")
-
-                    return extract_device_info(payload["state"]["desired"])
-                else:
-                    _LOGGER.error(f"API request error: {response.status}")
-                    return []
-    except ValueError as e:
-        _LOGGER.error(f"Error converting temperature: {e}")
-        return []
-    except Exception as e:
-        _LOGGER.error(f"Error during API call: {e}")
-        return []
+    entities = []
+    for r in radiators:
+        device = RadiatorDevice(r, envID)
+        device_manager.add_device(device)  # Aggiungi il dispositivo al manager
+        entities.append(
+            RadiatorClimate(coordinator, r, envID, unique_id=f"{r['serial']}_climate")
+        )
+    async_add_entities(entities)
 
 
 def extract_device_info(
@@ -210,19 +147,23 @@ def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
     return None
 
 
-class RadiatorClimate(ClimateEntity):
+class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     "Representation of a radiator climate entity."
 
-    def __init__(self, radiator, token, envID, unique_id):
+    def __init__(self, coordinator, radiator, envID, unique_id):
+        super().__init__(coordinator)
         self._radiator = radiator
-        self._device = RadiatorDevice(radiator, token, envID)
+        self._device = RadiatorDevice(radiator, envID)
         self._attr_name = f"{radiator['serial']} Radiator"
         self._attr_unique_id = unique_id
         self._current_temperature = radiator.get("temperature", 0)
         self._target_temperature = 18.0  # Imposta una temperatura target predefinita
         self._state = radiator["state"]  # Usa il valore di _ENB per lo stato
-        self._token = token
         self._envID = envID
+        # Dopo un comando lo shadow nel cloud può essere ancora quello vecchio:
+        # fino a questo istante gli aggiornamenti del coordinator vengono ignorati
+        self._ignore_updates_until = 0.0
+        self._missing_temperature_count = 0
         self._serial_number = radiator.get("mac")
         self._sw_version = radiator.get("firmware")
         self._model = radiator.get("model")
@@ -323,37 +264,7 @@ class RadiatorClimate(ClimateEntity):
     # Funzione per inviare il payload aggiornato alle API
     async def _send_target_temperature_to_api(self, token, envID, updated_payload):
         "Invia il payload aggiornato alle API."
-        url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-
-        json_payload = json.dumps(updated_payload)
-
-        graphql_query = {
-            "operationName": "UpdateShadow",
-            "variables": {"envId": envID, "payload": json_payload},
-            "query": (
-                "mutation UpdateShadow($envId: ID!, $payload: AWSJSON!) {\n asyncUpdateShadow(envId: $envId, payload: $payload) {\n status\n code\n message\n payload\n __typename\n }\n}\n"
-            ),
-        }
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, json=graphql_query, headers=headers
-                ) as response:
-                    if response.status == 200:
-                        return True
-                    else:
-                        _LOGGER.error(
-                            f"API request error: {response.status} - {await response.text()}"
-                        )
-                        return False
-        except Exception as e:
-            _LOGGER.error(f"Error sending payload to API: {e}")
-            return False
+        return await async_update_shadow(self.hass, token, envID, updated_payload)
 
     async def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
         "Trova la chiave del dispositivo in base al nome."
@@ -554,73 +465,14 @@ class RadiatorClimate(ClimateEntity):
 
         return final_payload
 
-    async def get_current_payload(self, token, envID):
-        "Fetch the current device payload from the API."
-        url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-
-        graphql_query = {
-            "operationName": "GetShadow",
-            "variables": {"envId": envID},
-            "query": "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n",
-        }
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, json=graphql_query, headers=headers
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        payload = json.loads(data["data"]["getShadow"]["payload"])
-                        return payload
-                    else:
-                        return None
-        except Exception as e:
-            _LOGGER.error(f"Exception during payload retrieval: {e}")
-            return None
-
-    # Modifica la funzione per accettare altri argomenti tramite kwargs
     async def async_set_temperature(self, **kwargs):
         await asyncio.sleep(1)
-        self._pending_update = True  # Imposta il flag per evitare l'update
 
         "Imposta la temperatura target del radiatore."
         temperature = kwargs.get("temperature")  # Estrae la temperatura dai kwargs
 
-        username = self.hass.data[DOMAIN].get("username")
-        password = self.hass.data[DOMAIN].get("password")
-
-        token = await self.hass.async_add_executor_job(
-            login_with_srp, username, password
-        )
-        envID = self.hass.data[DOMAIN].get("envID")
-
-        if not token or not envID:
-            _LOGGER.error("Token or envID not found in hass.data")
-            return
-
-        # Function to handle token regeneration and payload retrieval
-        async def retrieve_payload(token, envID):
-            "Attempt to retrieve the payload, regenerate the token if it fails"
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                if not token:
-                    _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
-                payload = await self.get_current_payload(token, envID)
-            return token, payload
-
-        # Retrieve the payload and handle token regeneration if necessary
-        token, payload = await retrieve_payload(token, envID)
+        # Token in cache; se il GetShadow fallisce ne viene chiesto uno nuovo
+        token, payload = await async_fetch_shadow(self.hass, self._envID)
 
         if payload is None:
             _LOGGER.error(
@@ -629,7 +481,7 @@ class RadiatorClimate(ClimateEntity):
             return
 
         # Aggiorna il payload con la nuova temperatura
-        updated_payload = await self.generate_device_payload(  # Add 'await' here if this method is async
+        updated_payload = await self.generate_device_payload(
             payload=payload,
             device_name=self._attr_name.replace("Radiator", "").strip(),
             temperature=temperature,  # Passa la temperatura come keyword argument
@@ -637,12 +489,14 @@ class RadiatorClimate(ClimateEntity):
 
         # Invia il nuovo payload aggiornato alle API
         success = await self._send_target_temperature_to_api(
-            token, envID, updated_payload
+            token, self._envID, updated_payload
         )
         if success:
             self._target_temperature = temperature
             # Cambia lo stato in HEAT
             self._attr_hvac_mode = HVACMode.HEAT
+            self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
+            self.async_write_ha_state()
         else:
             _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
 
@@ -652,177 +506,106 @@ class RadiatorClimate(ClimateEntity):
                 f"HVAC mode for {self._attr_name} is already {hvac_mode}, skipping update"
             )
             return
-        await asyncio.sleep(1)
-        self._pending_update = True  # Imposta il flag per evitare l'update
-        "Set new target HVAC mode."
-        username = self.hass.data[DOMAIN].get("username")
-        password = self.hass.data[DOMAIN].get("password")
-
-        token = await self.hass.async_add_executor_job(
-            login_with_srp, username, password
-        )
-        envID = self.hass.data[DOMAIN].get("envID")
-
-        if not token or not envID:
-            _LOGGER.error("Token or envID not found in hass.data")
-            return
-
-        if hvac_mode == HVACMode.OFF:
-            _LOGGER.debug(f"Setting {self._radiator['serial']} to OFF")
-
-            # Ottieni il payload attuale del dispositivo dalle API
-            payload = await self.get_current_payload(token, envID)
-
-            if payload is None:
-                _LOGGER.error(
-                    f"Failed to retrieve current payload for {self._attr_name}"
-                )
-                return
-
-            # Aggiorna il payload con la nuova temperatura
-            updated_payload = await self.generate_device_payload_for_hvac(  # Add 'await' here if this method is async
-                payload=payload,
-                device_name=self._attr_name.replace("Radiator", "").strip(),
-                hvac_mode=0,
-            )
-
-            # Invia il nuovo payload aggiornato alle API
-            success = await self._send_target_temperature_to_api(
-                token, envID, updated_payload
-            )
-
-        elif hvac_mode == HVACMode.HEAT:
-            _LOGGER.debug(f"Setting {self._radiator['serial']} to HEAT")
-
-            # Ottieni il payload attuale del dispositivo dalle API
-            payload = await self.get_current_payload(token, envID)
-
-            if payload is None:
-                _LOGGER.error(
-                    f"Failed to retrieve current payload for {self._attr_name}"
-                )
-                return
-
-            # Aggiorna il payload con la nuova temperatura
-            updated_payload = await self.generate_device_payload_for_hvac(  # Add 'await' here if this method is async
-                payload=payload,
-                device_name=self._attr_name.replace("Radiator", "").strip(),
-                hvac_mode=1,
-            )
-
-            # Invia il nuovo payload aggiornato alle API
-            success = await self._send_target_temperature_to_api(
-                token, envID, updated_payload
-            )
-
-        else:
+        if hvac_mode not in (HVACMode.OFF, HVACMode.HEAT):
             _LOGGER.error(f"Unsupported HVAC mode: {hvac_mode}")
             return
+        await asyncio.sleep(1)
+        "Set new target HVAC mode."
+        _LOGGER.debug(f"Setting {self._radiator['serial']} to {hvac_mode}")
+
+        # Ottieni il payload attuale del dispositivo dalle API (token in cache)
+        token, payload = await async_fetch_shadow(self.hass, self._envID)
+
+        if payload is None:
+            _LOGGER.error(f"Failed to retrieve current payload for {self._attr_name}")
+            return
+
+        # Aggiorna il payload con la nuova modalità
+        updated_payload = await self.generate_device_payload_for_hvac(
+            payload=payload,
+            device_name=self._attr_name.replace("Radiator", "").strip(),
+            hvac_mode=1 if hvac_mode == HVACMode.HEAT else 0,
+        )
+
+        # Invia il nuovo payload aggiornato alle API
+        success = await self._send_target_temperature_to_api(
+            token, self._envID, updated_payload
+        )
 
         if success:
             # Aggiorna la modalità HVAC attuale
             self._attr_hvac_mode = hvac_mode
+            self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
             _LOGGER.error(f"Failed to update HVAC mode for {self._attr_name}")
 
-    async def async_update(self):
-        if getattr(self, "_pending_update", False):
-            # Evita l'aggiornamento se è in corso un'impostazione temperatura
-            self._pending_update = False
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        # Stato iniziale dai dati già scaricati dal coordinator
+        self._update_from_payload(self.coordinator.desired)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        if time.monotonic() < self._ignore_updates_until:
+            # Evita di sovrascrivere il valore appena impostato con uno shadow vecchio
+            _LOGGER.debug(f"Ignoring update for {self._attr_name} right after a command")
             return
+        self._update_from_payload(self.coordinator.desired)
+        self.async_write_ha_state()
+
+    def _update_from_payload(self, desired_payload):
+        "Aggiorna temperatura e modalità dal payload del coordinator."
         _LOGGER.debug(f"Updating radiator climate {self._attr_name}")
 
         # Rimuove "Radiator" dal nome dell'entità, se presente, per facilitare il matching
         device_name = self._attr_name.replace("Radiator", "").strip()
 
-        # Recupera token e envID
-        username = self.hass.data[DOMAIN]["username"]
-        password = self.hass.data[DOMAIN]["password"]
-        envID = self.hass.data[DOMAIN].get("envID")
-
-        retry_count = 0
-        max_retries = 3
+        enb_key = None
         tmp_value = None
-        last_valid_temperature = (
-            self._current_temperature
-        )  # Memorizza l'ultima temperatura valida
 
-        while tmp_value is None and retry_count < max_retries:
-            retry_count += 1
-            _LOGGER.debug(
-                f"Attempt {retry_count}: Retrieving payload for {self._attr_name}"
-            )
+        for key, value in desired_payload.items():
+            if key.endswith("_NAM") and value == device_name:
+                base_key = key[:-4]  # Ottieni la chiave base
+                tmp_key = f"{base_key}_TMP"
+                msp_key = f"{base_key}_MSP"
+                enb_key = f"{base_key}_ENB"
 
-            # Ottieni un nuovo token e payload ad ogni retry
-            token = await self.hass.async_add_executor_job(
-                login_with_srp, username, password
-            )
-            if not token or not envID:
-                _LOGGER.error("Token or envID not found in hass.data")
-                return
+                # Ottieni la temperatura
+                tmp_value = desired_payload.get(tmp_key, None)
+                if tmp_value is not None:
+                    self._current_temperature = tmp_value / 10
 
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                _LOGGER.debug(
-                    f"Failed to retrieve payload for {self._attr_name} on attempt {retry_count}"
-                )
-                await asyncio.sleep(1)  # Attende prima di riprovare
-                continue
+                # Ottieni la temperatura target
+                msp_value = desired_payload.get(msp_key)
+                if isinstance(msp_value, dict):
+                    target = msp_value.get("p", {}).get("v")
+                    if target is not None:
+                        self._target_temperature = target / 10
 
-            # Accesso al desired_payload
-            desired_payload = payload.get("state", {}).get("desired", {})
-            for key, value in desired_payload.items():
-                if key.endswith("_NAM") and value == device_name:
-                    base_key = key[:-4]  # Ottieni la chiave base
-                    tmp_key = f"{base_key}_TMP"
-                    msp_key = f"{base_key}_MSP"
-                    enb_key = f"{base_key}_ENB"
-
-                    # Ottieni la temperatura
-                    tmp_value = desired_payload.get(tmp_key, None)
-                    if (
-                        tmp_value is not None
-                    ):  # Se il valore è valido, esci dal ciclo di retry
-                        self._current_temperature = tmp_value / 10
-
-                    # Ottieni la temperatura
-                    msp_value = desired_payload.get(msp_key, None)
-                    if (
-                        msp_value["p"]["v"] is not None
-                    ):  # Se il valore è valido, esci dal ciclo di retry
-                        self._target_temperature = msp_value["p"]["v"] / 10
-
-            if tmp_value is None:
-                _LOGGER.debug(
-                    f"Temperature is None for {self._attr_name}. Retrying..."
-                )
-                await asyncio.sleep(1)  # Attende prima di riprovare
-
-        # Se la temperatura è None dopo i tentativi, registra un avviso e imposta a 0
+        # Se la temperatura manca per più aggiornamenti di fila, avvisa l'utente
+        # (resta l'ultima temperatura valida)
+        notification_id = f"radiator_{self._attr_name}_temperature_warning"
         if tmp_value is None:
+            self._missing_temperature_count += 1
             _LOGGER.debug(
-                f"Temperature for {self._attr_name} remains None after {retry_count} retries;"
+                f"Temperature is None for {self._attr_name} "
+                f"({self._missing_temperature_count} updates in a row)"
             )
-            self._current_temperature = last_valid_temperature
-            await self.hass.services.async_call(
-                "persistent_notification",
-                "create",
-                {
-                    "title": f"Device {self._attr_name} Issue",
-                    "message": "Temperature is set to previous state due to an invalid value received (None). Please check the device and try to reset it.",
-                    "notification_id": f"radiator_{self._attr_name}_temperature_warning",
-                },
-            )
+            if self._missing_temperature_count >= MISSING_TEMPERATURE_NOTIFY_AFTER:
+                persistent_notification.async_create(
+                    self.hass,
+                    "Temperature is set to previous state due to an invalid value received (None). Please check the device and try to reset it.",
+                    title=f"Device {self._attr_name} Issue",
+                    notification_id=notification_id,
+                )
         else:
-            await self.hass.services.async_call(
-                "persistent_notification",
-                "dismiss",
-                {"notification_id": f"radiator_{self._attr_name}_temperature_warning"},
-            )
+            if self._missing_temperature_count >= MISSING_TEMPERATURE_NOTIFY_AFTER:
+                persistent_notification.async_dismiss(self.hass, notification_id)
+            self._missing_temperature_count = 0
 
         # Controlla e aggiorna modalità di funzionamento (es. HEAT, OFF)
-        if enb_key in desired_payload:
+        if enb_key is not None and enb_key in desired_payload:
             enb_value = desired_payload.get(enb_key, 0)
             self._attr_hvac_mode = HVACMode.HEAT if enb_value == 1 else HVACMode.OFF
 
