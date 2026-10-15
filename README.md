@@ -85,6 +85,15 @@ If you prefer to drive updates yourself (e.g. from an automation calling `homeas
 
 Requires Home Assistant 2024.11.0 or newer.
 
+### Heating activity (`hvac_action`)
+
+Besides the mode (heat / off), each radiator reports what it is actually doing: *heating*, *idle* (setpoint reached) or *off*.
+
+- **One radiator in the home:** the value comes from the radiator's own heat call (`E_CLL`), read only when the radiator itself wrote the cloud state last. Right after a command from Home Assistant or the app, the action is estimated until the radiator reports again.
+- **Several radiators:** the cloud has no per-radiator heat call, so the action is *estimated* from the measured temperature and the setpoint, with a 0.3 °C hysteresis. It can differ from what the radiator is really doing.
+
+The radiator sends a new temperature reading only every few minutes (20 on firmware 3.22), so the action can lag behind the real heating by that much.
+
 ## Development
 
 ```
