@@ -1,0 +1,4 @@
+pytest-homeassistant-custom-component==0.13.372
+warrant==0.6.1
+# warrant pins an old python-jose that no longer imports on Python 3.10+
+python-jose==3.5.0

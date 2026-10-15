@@ -1,9 +1,6 @@
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
+from .const import DOMAIN
 import logging
 from homeassistant.components.sensor import SensorEntity, datetime
-import aiohttp
-import json
-from warrant import Cognito
 import re
 from .device_manager import device_manager
 import pytz
@@ -13,161 +10,93 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    from .climate import RadiatorClimate  # Importa RadiatorClimate qui
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
 
-    envID = config_entry.data["envID"]
-    username = config_entry.data["username"]
-    password = config_entry.data["password"]
+    devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
+    _LOGGER.debug(
+        f"Devices found: {[device.radiator['serial'] for device in devices]}"
+    )
 
-    token = await hass.async_add_executor_job(login_with_srp, username, password)
+    if not devices:
+        _LOGGER.error(
+            "No devices found. Please ensure that climate entities are set up correctly."
+        )
+        return
 
-    if token and envID:
-        _LOGGER.debug("Token and envID successfully obtained. Retrieving sensors.")
+    # Dati dei sensori dal GetShadow già fatto dal coordinator
+    sensors = extract_device_info(coordinator.desired)
+    sensor_entities = []
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN]["token"] = token
-        hass.data[DOMAIN]["envID"] = envID
-        hass.data[DOMAIN]["username"] = username
-        hass.data[DOMAIN]["password"] = password
-
-        devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
-        _LOGGER.debug(
-            f"Devices found: {[device.radiator['serial'] for device in devices]}"
+    for r in sensors:
+        # Trova il dispositivo associato al sensore
+        device = next(
+            (d for d in devices if d.radiator["serial"] == r["serial"]), None
         )
 
-        if not devices:
-            _LOGGER.error(
-                "No devices found. Please ensure that climate entities are set up correctly."
+        if device is not None:
+            sensor_entity = RadiatorSensor(
+                r, device, unique_id=f"{r['serial']}_ip_address"
             )
-            return
-
-        sensors = await get_sensor_data(token, envID)
-        sensor_entities = []
-
-        for r in sensors:
-            # Trova il dispositivo associato al sensore
-            device = next(
-                (d for d in devices if d.radiator["serial"] == r["serial"]), None
+            sensor_entities.append(sensor_entity)
+            # Aggiungi tutti i sensori necessari per ciascun dispositivo
+            sensor_entities.append(
+                LastUpdateSensor(r, device, unique_id=f"{r['serial']}_last_update")
             )
+            sensor_entities.append(
+                WifiSignalSensor(r, device, unique_id=f"{r['serial']}_wifi_signal")
+            )
+            sensor_entities.append(
+                PiloteEnableSensor(
+                    r, device, unique_id=f"{r['serial']}_pilote_enable"
+                )
+            )
+            sensor_entities.append(
+                PiloteStatusSensor(
+                    r, device, unique_id=f"{r['serial']}_pilote_status"
+                )
+            )
+            sensor_entities.append(
+                StandbySensor(r, device, unique_id=f"{r['serial']}_standby")
+            )
+            sensor_entities.append(
+                OpenWindowEnabledSensor(
+                    r, device, unique_id=f"{r['serial']}_openwindow_enabled"
+                )
+            )
+            sensor_entities.append(
+                OpenWindowOffsetSensor(
+                    r, device, unique_id=f"{r['serial']}_openwindow_offset"
+                )
+            )
+            sensor_entities.append(
+                TemperatureOffsetSensor(
+                    r, device, unique_id=f"{r['serial']}_temperature_offset"
+                )
+            )
+            sensor_entities.append(
+                HysteresisSensor(r, device, unique_id=f"{r['serial']}_hysteresis")
+            )
+            sensor_entities.append(
+                VocSensor(r, device, unique_id=f"{r['serial']}_voc")
+            )
+            sensor_entities.append(
+                Co2Sensor(r, device, unique_id=f"{r['serial']}_co2")
+            )
+            sensor_entities.append(
+                OpenWindowDetectedSensor(
+                    r, device, unique_id=f"{r['serial']}_openwindow_detected"
+                )
+            )
+            sensor_entities.append(
+                LockSensor(r, device, unique_id=f"{r['serial']}_lock")
+            )  # Child lock sensor
+            sensor_entities.append(
+                AIQSensor(r, device, unique_id=f"{r['serial']}_aiq")
+            )
+        else:
+            _LOGGER.debug(f"No matching device found for sensor {r['serial']}")
 
-            if device is not None:
-                sensor_entity = RadiatorSensor(
-                    r, device, unique_id=f"{r['serial']}_ip_address"
-                )
-                sensor_entities.append(sensor_entity)
-                # Aggiungi tutti i sensori necessari per ciascun dispositivo
-                sensor_entities.append(
-                    LastUpdateSensor(r, device, unique_id=f"{r['serial']}_last_update")
-                )
-                sensor_entities.append(
-                    WifiSignalSensor(r, device, unique_id=f"{r['serial']}_wifi_signal")
-                )
-                sensor_entities.append(
-                    PiloteEnableSensor(
-                        r, device, unique_id=f"{r['serial']}_pilote_enable"
-                    )
-                )
-                sensor_entities.append(
-                    PiloteStatusSensor(
-                        r, device, unique_id=f"{r['serial']}_pilote_status"
-                    )
-                )
-                sensor_entities.append(
-                    StandbySensor(r, device, unique_id=f"{r['serial']}_standby")
-                )
-                sensor_entities.append(
-                    OpenWindowEnabledSensor(
-                        r, device, unique_id=f"{r['serial']}_openwindow_enabled"
-                    )
-                )
-                sensor_entities.append(
-                    OpenWindowOffsetSensor(
-                        r, device, unique_id=f"{r['serial']}_openwindow_offset"
-                    )
-                )
-                sensor_entities.append(
-                    TemperatureOffsetSensor(
-                        r, device, unique_id=f"{r['serial']}_temperature_offset"
-                    )
-                )
-                sensor_entities.append(
-                    HysteresisSensor(r, device, unique_id=f"{r['serial']}_hysteresis")
-                )
-                sensor_entities.append(
-                    VocSensor(r, device, unique_id=f"{r['serial']}_voc")
-                )
-                sensor_entities.append(
-                    Co2Sensor(r, device, unique_id=f"{r['serial']}_co2")
-                )
-                sensor_entities.append(
-                    OpenWindowDetectedSensor(
-                        r, device, unique_id=f"{r['serial']}_openwindow_detected"
-                    )
-                )
-                sensor_entities.append(
-                    LockSensor(r, device, unique_id=f"{r['serial']}_lock")
-                )  # Child lock sensor
-                sensor_entities.append(
-                    AIQSensor(r, device, unique_id=f"{r['serial']}_aiq")
-                )
-            else:
-                _LOGGER.debug(f"No matching device found for sensor {r['serial']}")
-
-        async_add_entities(sensor_entities, True)
-    else:
-        _LOGGER.error("Unable to obtain the token or envID. Check configuration.")
-
-
-def login_with_srp(username, password):
-    "Log in and obtain the access token using Warrant."
-    try:
-        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
-        u.authenticate(password=password)
-        _LOGGER.debug(f"Access Token: {u.access_token}")
-        return u.access_token
-    except Exception as e:
-        _LOGGER.error(f"Error during login: {e}")
-        return None
-
-
-async def get_sensor_data(token, envID):
-    "Fetch radiator data from the API."
-    url = (
-        "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-    )
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    graphql_query = {
-        "operationName": "GetShadow",
-        "variables": {"envId": envID},
-        "query": "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n",
-    }
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url, json=graphql_query, headers=headers
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    payload = json.loads(data["data"]["getShadow"]["payload"])
-                    _LOGGER.debug(f"Payload retrieved from API: {payload}")
-
-                    return extract_device_info(payload["state"]["desired"])
-                else:
-                    _LOGGER.error(f"API request error: {response.status}")
-                    return []
-    except ValueError as e:
-        _LOGGER.error(f"Error converting temperature: {e}")
-        return []
-    except Exception as e:
-        _LOGGER.error(f"Error during API call: {e}")
-        return []
-
-
-import re
+    async_add_entities(sensor_entities, True)
 
 
 def extract_device_info(
