@@ -2,10 +2,11 @@
 
 from homeassistant.components.climate import HVACAction
 
-# When the action has to be inferred from the temperatures, an idle radiator is
-# reported as heating again only once the room is this far below the setpoint
-# (tenths of a degree), so the state doesn't flip at every reading around it.
-INFERRED_HYSTERESIS = 3  # 0.3 °C
+# When the action has to be inferred from the temperatures, mimic the radiator's
+# own hysteresis (tenths of a degree): observed on fw 3.22 (`X_hysteresis` = 2),
+# it keeps heating until the room is more than 0.2 °C above the setpoint and
+# starts again once it is more than 0.2 °C below.
+INFERRED_HYSTERESIS = 2  # 0.2 °C
 
 
 def count_zones(desired_payload):
@@ -53,8 +54,10 @@ def compute_hvac_action(desired_payload, base_key, from_device, previous=None):
         return None  # unknown: HA then shows only the HVAC mode
 
     if previous == HVACAction.HEATING:
-        return HVACAction.HEATING if current < setpoint else HVACAction.IDLE
-    if current <= setpoint - INFERRED_HYSTERESIS:
+        if current <= setpoint + INFERRED_HYSTERESIS:
+            return HVACAction.HEATING
+        return HVACAction.IDLE
+    if current < setpoint - INFERRED_HYSTERESIS:
         return HVACAction.HEATING
     return HVACAction.IDLE
 

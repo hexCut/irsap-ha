@@ -66,17 +66,19 @@ def test_off():
 
 
 def test_multi_zone_inferred_with_hysteresis():
-    """E_CLL can't be attributed to one radiator: infer with hysteresis."""
-    d = two_zones(E_CLL=1, PcC_CSP={"p": {"v": 250}})
-    # 0.1 °C below the setpoint: not enough to start heating from idle
-    assert compute_hvac_action({**d, "PcC_TMP": 249}, "PcC", True, HVACAction.IDLE) == HVACAction.IDLE
-    # 0.3 °C below: heating
-    assert compute_hvac_action({**d, "PcC_TMP": 247}, "PcC", True, HVACAction.IDLE) == HVACAction.HEATING
-    # once heating, keeps heating until the setpoint is reached
-    assert compute_hvac_action({**d, "PcC_TMP": 249}, "PcC", True, HVACAction.HEATING) == HVACAction.HEATING
-    assert compute_hvac_action({**d, "PcC_TMP": 250}, "PcC", True, HVACAction.HEATING) == HVACAction.IDLE
+    """E_CLL can't be attributed to one radiator: infer with the radiator's
+    own 0.2 °C hysteresis. Values from a real heat/idle/heat cycle with the
+    setpoint at 26.8 °C (fw 3.22)."""
+    d = two_zones(E_CLL=1, PcC_CSP={"p": {"v": 268}})
+    heating, idle = HVACAction.HEATING, HVACAction.IDLE
+    # heating: keeps going up to setpoint + 0.2 °C, stops above it
+    assert compute_hvac_action({**d, "PcC_TMP": 270}, "PcC", True, heating) == heating
+    assert compute_hvac_action({**d, "PcC_TMP": 271}, "PcC", True, heating) == idle
+    # idle: stays idle down to setpoint - 0.2 °C, starts again below it
+    assert compute_hvac_action({**d, "PcC_TMP": 266}, "PcC", True, idle) == idle
+    assert compute_hvac_action({**d, "PcC_TMP": 265}, "PcC", True, idle) == heating
     # no previous action (startup) inside the band: idle
-    assert compute_hvac_action({**d, "PcC_TMP": 249}, "PcC", True) == HVACAction.IDLE
+    assert compute_hvac_action({**d, "PcC_TMP": 267}, "PcC", True) == idle
 
 
 def test_multi_zone_falls_back_to_msp():
