@@ -493,8 +493,8 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         )
         if success:
             self._target_temperature = temperature
-            # Cambia lo stato in HEAT
-            self._attr_hvac_mode = HVACMode.HEAT
+            # La modalità HVAC non cambia: il payload non tocca _ENB e il cloud
+            # lascia spento un radiatore spento quando cambia solo il setpoint
             self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
