@@ -4,6 +4,7 @@ import time
 from homeassistant.components import persistent_notification
 from homeassistant.components.climate import (
     ClimateEntity,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.components.climate.const import ClimateEntityFeature
@@ -19,6 +20,7 @@ import json
 import re
 from .device import RadiatorDevice
 from .device_manager import device_manager
+from .hvac_action import compute_hvac_action, get_setpoint, written_by_device
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -183,6 +185,11 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             self._attr_hvac_mode = (
                 HVACMode.OFF
             )  # Fallback in caso di valori non riconosciuti
+
+        # Azione reale (riscalda / inattivo): calcolata a ogni aggiornamento
+        self._attr_hvac_action = (
+            HVACAction.OFF if self._attr_hvac_mode == HVACMode.OFF else None
+        )
 
         # Funzionalità supportate (es. temperatura target e accensione/spegnimento)
         self._attr_supported_features = (
@@ -496,6 +503,8 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             # Cambia lo stato in HEAT
             self._attr_hvac_mode = HVACMode.HEAT
             self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
+            # Stima immediata, confermata dal prossimo aggiornamento
+            self._attr_hvac_action = self._estimate_hvac_action()
             self.async_write_ha_state()
         else:
             _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
@@ -535,6 +544,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         if success:
             # Aggiorna la modalità HVAC attuale
             self._attr_hvac_mode = hvac_mode
+            self._attr_hvac_action = self._estimate_hvac_action()
             self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
@@ -544,6 +554,16 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         await super().async_added_to_hass()
         # Stato iniziale dai dati già scaricati dal coordinator
         self._update_from_payload(self.coordinator.desired)
+
+    def _estimate_hvac_action(self):
+        "Azione attesa subito dopo un comando, prima che il cloud la confermi."
+        if self._attr_hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+        if self._current_temperature is None or self._target_temperature is None:
+            return None
+        if self._current_temperature < self._target_temperature:
+            return HVACAction.HEATING
+        return HVACAction.IDLE
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -582,6 +602,21 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                     target = msp_value.get("p", {}).get("v")
                     if target is not None:
                         self._target_temperature = target / 10
+
+                # Sta scaldando davvero o ha raggiunto la temperatura? (#20)
+                from_device = written_by_device(self.coordinator.data)
+                self._attr_hvac_action = compute_hvac_action(
+                    desired_payload, base_key, from_device, self._attr_hvac_action
+                )
+                _LOGGER.debug(
+                    f"hvac_action for {self._attr_name}: "
+                    f"ENB={desired_payload.get(enb_key)} "
+                    f"E_CLL={desired_payload.get('E_CLL')} "
+                    f"written_by={'device' if from_device else 'app'} "
+                    f"TMP={tmp_value} "
+                    f"CSP={get_setpoint(desired_payload, base_key)} "
+                    f"-> {self._attr_hvac_action}"
+                )
 
         # Se la temperatura manca per più aggiornamenti di fila, avvisa l'utente
         # (resta l'ultima temperatura valida)
