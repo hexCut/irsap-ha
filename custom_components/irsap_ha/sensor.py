@@ -1,6 +1,20 @@
 from .const import DOMAIN
 import logging
-from homeassistant.components.sensor import SensorEntity, datetime
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+    datetime,
+)
+from homeassistant.const import (
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+    EntityCategory,
+    UnitOfTemperature,
+    UnitOfTime,
+)
+from homeassistant.core import callback
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import re
 from .device_manager import device_manager
 import pytz
@@ -26,6 +40,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     # Dati dei sensori dal GetShadow già fatto dal coordinator
     sensors = extract_device_info(coordinator.desired)
     sensor_entities = []
+    unsupported = {}  # unique_id -> (serial, sensor class)
 
     for r in sensors:
         # Trova il dispositivo associato al sensore
@@ -34,69 +49,63 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         )
 
         if device is not None:
-            sensor_entity = RadiatorSensor(
-                r, device, unique_id=f"{r['serial']}_ip_address"
-            )
-            sensor_entities.append(sensor_entity)
-            # Aggiungi tutti i sensori necessari per ciascun dispositivo
-            sensor_entities.append(
-                LastUpdateSensor(r, device, unique_id=f"{r['serial']}_last_update")
-            )
-            sensor_entities.append(
-                WifiSignalSensor(r, device, unique_id=f"{r['serial']}_wifi_signal")
-            )
-            sensor_entities.append(
-                PiloteEnableSensor(
-                    r, device, unique_id=f"{r['serial']}_pilote_enable"
-                )
-            )
-            sensor_entities.append(
-                PiloteStatusSensor(
-                    r, device, unique_id=f"{r['serial']}_pilote_status"
-                )
-            )
-            sensor_entities.append(
-                StandbySensor(r, device, unique_id=f"{r['serial']}_standby")
-            )
-            sensor_entities.append(
-                OpenWindowEnabledSensor(
-                    r, device, unique_id=f"{r['serial']}_openwindow_enabled"
-                )
-            )
-            sensor_entities.append(
-                OpenWindowOffsetSensor(
-                    r, device, unique_id=f"{r['serial']}_openwindow_offset"
-                )
-            )
-            sensor_entities.append(
-                TemperatureOffsetSensor(
-                    r, device, unique_id=f"{r['serial']}_temperature_offset"
-                )
-            )
-            sensor_entities.append(
-                HysteresisSensor(r, device, unique_id=f"{r['serial']}_hysteresis")
-            )
-            sensor_entities.append(
-                VocSensor(r, device, unique_id=f"{r['serial']}_voc")
-            )
-            sensor_entities.append(
-                Co2Sensor(r, device, unique_id=f"{r['serial']}_co2")
-            )
-            sensor_entities.append(
-                OpenWindowDetectedSensor(
-                    r, device, unique_id=f"{r['serial']}_openwindow_detected"
-                )
-            )
-            sensor_entities.append(
-                LockSensor(r, device, unique_id=f"{r['serial']}_lock")
-            )  # Child lock sensor
-            sensor_entities.append(
-                AIQSensor(r, device, unique_id=f"{r['serial']}_aiq")
-            )
+            for sensor_cls, suffix in SENSOR_TYPES:
+                unique_id = f"{r['serial']}_{suffix}"
+                supported = sensor_cls.is_supported(r)
+                # Una misura che il radiatore non ha viene disattivata, non
+                # cancellata: se in seguito arriva un valore vero si riattiva
+                _sync_disabled_state(hass, unique_id, supported)
+                if not supported:
+                    unsupported[unique_id] = (r["serial"], sensor_cls)
+                entity = sensor_cls(coordinator, r, device, unique_id)
+                entity._attr_entity_registry_enabled_default = supported
+                sensor_entities.append(entity)
         else:
             _LOGGER.debug(f"No matching device found for sensor {r['serial']}")
 
-    async_add_entities(sensor_entities, True)
+    # I valori arrivano già dal coordinator: niente aggiornamento prima dell'aggiunta
+    async_add_entities(sensor_entities)
+
+    @callback
+    def _re_enable_when_reported():
+        """A sensor disabled at setup (e.g. a CO2 sensor still warming up and
+        reporting 65535) is re-enabled as soon as a real value arrives; Home
+        Assistant then reloads the entry and adds it."""
+        if not unsupported:
+            return
+        radiators = {r["serial"]: r for r in extract_device_info(coordinator.desired)}
+        for unique_id, (serial, sensor_cls) in list(unsupported.items()):
+            radiator = radiators.get(serial)
+            if radiator is not None and sensor_cls.is_supported(radiator):
+                del unsupported[unique_id]
+                _sync_disabled_state(hass, unique_id, True)
+
+    config_entry.async_on_unload(
+        coordinator.async_add_listener(_re_enable_when_reported)
+    )
+
+
+# Value the firmware reports for a measurement the radiator doesn't have
+NOT_AVAILABLE = 65535
+
+
+def _sync_disabled_state(hass, unique_id, supported):
+    """Disable an existing sensor the radiator doesn't support, and re-enable it
+    once it does. Only entities disabled by the integration are re-enabled:
+    a sensor the user disabled stays disabled."""
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("sensor", DOMAIN, unique_id)
+    if entity_id is None:
+        return
+    entry = registry.async_get(entity_id)
+    if not supported and entry.disabled_by is None:
+        _LOGGER.info(f"Disabling {entity_id}: not supported by this radiator")
+        registry.async_update_entity(
+            entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+        )
+    elif supported and entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
+        _LOGGER.info(f"Re-enabling {entity_id}: the radiator now reports it")
+        registry.async_update_entity(entity_id, disabled_by=None)
 
 
 def extract_device_info(
@@ -273,8 +282,33 @@ def extract_device_info(
     return devices_info
 
 
-class RadiatorSensor(SensorEntity):
-    def __init__(self, radiator, device, unique_id):
+class RadiatorCoordinatorEntity(CoordinatorEntity):
+    """Diagnostic sensor that refreshes its radiator's data from the coordinator."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @classmethod
+    def is_supported(cls, radiator):
+        """False if the radiator doesn't have this measurement at all."""
+        return True
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        serial = self._radiator["serial"]
+        for radiator in extract_device_info(self.coordinator.desired):
+            if radiator["serial"] == serial:
+                self._radiator = radiator
+                break
+        else:
+            _LOGGER.debug(
+                f"Radiator {serial} not in the latest data, keeping last values"
+            )
+        super()._handle_coordinator_update()
+
+
+class RadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(coordinator)
         self._radiator = radiator
         self._device = device  # Store device reference
         self._attr_name = f"{radiator['serial']} IP Address"
@@ -282,12 +316,11 @@ class RadiatorSensor(SensorEntity):
         self._attr_icon = "mdi:ip"
         self._radiator_serial = radiator["serial"]
         self._model = radiator.get("model", "Modello Sconosciuto")
-        self._attr_native_value = radiator.get("ip_address", "IP non disponibile")
         self._sw_version = radiator.get("firmware")
 
     @property
     def native_value(self):
-        return self._attr_native_value
+        return self._radiator.get("ip_address", "IP non disponibile")
 
     @property
     def unique_id(self):
@@ -307,12 +340,21 @@ class RadiatorSensor(SensorEntity):
         }
 
 
-class BaseRadiatorSensor(SensorEntity):
+class BaseRadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
     """Base class for radiator sensors."""
 
     def __init__(
-        self, radiator, device, unique_id, attr_name, icon, data_key, formatter=None
+        self,
+        coordinator,
+        radiator,
+        device,
+        unique_id,
+        attr_name,
+        icon,
+        data_key,
+        formatter=None,
     ):
+        super().__init__(coordinator)
         self._radiator = radiator
         self._device = device
         self._attr_name = f"{radiator['serial']} {attr_name}"
@@ -346,15 +388,32 @@ class BaseRadiatorSensor(SensorEntity):
             "sw_version": self._radiator.get("firmware", "Unknown Firmware"),
         }
 
-    async def async_update(self):
-        """Update the sensor value periodically."""
-        self._attr_native_value = self.native_value
-        _LOGGER.debug(f"Updated {self._attr_name} to {self._attr_native_value}")
+
+class NumericRadiatorSensor(BaseRadiatorSensor):
+    """Sensor with a numeric value; None (unknown) when it isn't available."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _scale = 1  # raw value / _scale (e.g. tenths of a degree -> °C)
+
+    @property
+    def native_value(self):
+        raw = self._radiator.get(self._data_key)
+        if not _is_number(raw) or raw == NOT_AVAILABLE:
+            return None
+        return raw / self._scale if self._scale != 1 else raw
 
 
-class WifiSignalSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+def _is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+class WifiSignalSensor(NumericRadiatorSensor):
+    _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
+    _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
+            coordinator,
             radiator,
             device,
             unique_id,
@@ -363,16 +422,18 @@ class WifiSignalSensor(BaseRadiatorSensor):
             "wifi_signal",
         )
 
-    @property
-    def native_value(self):
-        """Return the WiFi signal strength in dBm."""
-        return self._radiator.get("wifi_signal", "N/A")
-
 
 class PiloteEnableSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            radiator, device, unique_id, "Pilote Enable", "mdi:power", "pilote_enable"
+            coordinator,
+            radiator,
+            device,
+            unique_id,
+            "Pilote Enable",
+            "mdi:power",
+            "pilote_enable",
         )
 
     @property
@@ -387,8 +448,10 @@ class PiloteEnableSensor(BaseRadiatorSensor):
 
 
 class PiloteStatusSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
+            coordinator,
             radiator,
             device,
             unique_id,
@@ -409,8 +472,11 @@ class PiloteStatusSensor(BaseRadiatorSensor):
 
 
 class StandbySensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
-        super().__init__(radiator, device, unique_id, "Standby", "mdi:sleep", "standby")
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator, radiator, device, unique_id, "Standby", "mdi:sleep", "standby"
+        )
 
     @property
     def native_value(self):
@@ -424,8 +490,10 @@ class StandbySensor(BaseRadiatorSensor):
 
 
 class OpenWindowEnabledSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
+            coordinator,
             radiator,
             device,
             unique_id,
@@ -445,9 +513,15 @@ class OpenWindowEnabledSensor(BaseRadiatorSensor):
         return "Unknown"  # Default if status is not available
 
 
-class OpenWindowOffsetSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+class OpenWindowOffsetSensor(NumericRadiatorSensor):
+    """How long the radiator stays off after detecting an open window."""
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
+            coordinator,
             radiator,
             device,
             unique_id,
@@ -457,9 +531,15 @@ class OpenWindowOffsetSensor(BaseRadiatorSensor):
         )
 
 
-class TemperatureOffsetSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+class TemperatureOffsetSensor(NumericRadiatorSensor):
+    # A temperature difference: no device class, so HA doesn't convert it
+    # as if it were an absolute temperature
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _scale = 10  # tenths of a degree
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
+            coordinator,
             radiator,
             device,
             unique_id,
@@ -468,35 +548,54 @@ class TemperatureOffsetSensor(BaseRadiatorSensor):
             "temperature_offset",
         )
 
-    @property
-    def native_value(self):
-        """Convert the temperature offset from two digits to a decimal format."""
-        offset = self._radiator.get("temperature_offset", None)
-        if offset is not None:
-            return offset / 10.0  # Convert two-digit value to decimal
-        return "Unknown"  # Default if offset is not available
 
+class HysteresisSensor(NumericRadiatorSensor):
+    # A temperature difference, see TemperatureOffsetSensor
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _scale = 10  # tenths of a degree
 
-class HysteresisSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            radiator, device, unique_id, "Hysteresis", "mdi:sine-wave", "hysteresis"
+            coordinator,
+            radiator,
+            device,
+            unique_id,
+            "Hysteresis",
+            "mdi:sine-wave",
+            "hysteresis",
         )
 
 
-class VocSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
-        super().__init__(radiator, device, unique_id, "VOC", "mdi:air-filter", "voc")
+class VocSensor(NumericRadiatorSensor):
+    @classmethod
+    def is_supported(cls, radiator):
+        return _is_number(radiator.get("voc")) and radiator["voc"] != NOT_AVAILABLE
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator, radiator, device, unique_id, "VOC", "mdi:air-filter", "voc"
+        )
 
 
-class Co2Sensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
-        super().__init__(radiator, device, unique_id, "CO2", "mdi:molecule-co2", "co2")
+class Co2Sensor(NumericRadiatorSensor):
+    _attr_device_class = SensorDeviceClass.CO2
+    _attr_native_unit_of_measurement = "ppm"
+
+    @classmethod
+    def is_supported(cls, radiator):
+        return _is_number(radiator.get("co2")) and radiator["co2"] != NOT_AVAILABLE
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator, radiator, device, unique_id, "CO2", "mdi:molecule-co2", "co2"
+        )
 
 
 class OpenWindowDetectedSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
+            coordinator,
             radiator,
             device,
             unique_id,
@@ -516,8 +615,9 @@ class OpenWindowDetectedSensor(BaseRadiatorSensor):
         return "Unknown"  # Default if status is not available
 
 
-class LastUpdateSensor(SensorEntity):
-    def __init__(self, radiator, device, unique_id):
+class LastUpdateSensor(RadiatorCoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(coordinator)
         self._radiator = radiator
         self._device = device  # Store device reference
         self._attr_name = f"{radiator['serial']} Last Update"
@@ -560,17 +660,13 @@ class LastUpdateSensor(SensorEntity):
             "sw_version": self._radiator.get("firmware", "Unknown Firmware"),
         }
 
-    async def async_update(self):
-        """Update the sensor value periodically."""
-        self._attr_native_value = (
-            self.native_value
-        )  # Trigger conversion in native_value
-        _LOGGER.debug(f"Updated {self._attr_name} to {self._attr_native_value}")
-
 
 class LockSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
-        super().__init__(radiator, device, unique_id, "Child Lock", "mdi:lock", "lock")
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator, radiator, device, unique_id, "Child Lock", "mdi:lock", "lock"
+        )
 
     @property
     def native_value(self):
@@ -584,7 +680,38 @@ class LockSensor(BaseRadiatorSensor):
 
 
 class AIQSensor(BaseRadiatorSensor):
-    def __init__(self, radiator, device, unique_id):
+
+    @classmethod
+    def is_supported(cls, radiator):
+        return radiator.get("aiq") is not None
+
+    def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            radiator, device, unique_id, "Air Quality", "mdi:air-purifier", "aiq"
+            coordinator,
+            radiator,
+            device,
+            unique_id,
+            "Air Quality",
+            "mdi:air-purifier",
+            "aiq",
         )
+
+
+# Every diagnostic sensor, with the suffix of its unique_id (serial_suffix)
+SENSOR_TYPES = [
+    (RadiatorSensor, "ip_address"),
+    (LastUpdateSensor, "last_update"),
+    (WifiSignalSensor, "wifi_signal"),
+    (PiloteEnableSensor, "pilote_enable"),
+    (PiloteStatusSensor, "pilote_status"),
+    (StandbySensor, "standby"),
+    (OpenWindowEnabledSensor, "openwindow_enabled"),
+    (OpenWindowOffsetSensor, "openwindow_offset"),
+    (TemperatureOffsetSensor, "temperature_offset"),
+    (HysteresisSensor, "hysteresis"),
+    (VocSensor, "voc"),
+    (Co2Sensor, "co2"),
+    (OpenWindowDetectedSensor, "openwindow_detected"),
+    (LockSensor, "lock"),
+    (AIQSensor, "aiq"),
+]
