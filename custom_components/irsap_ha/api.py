@@ -17,6 +17,8 @@ API_URL = (
 
 GET_SHADOW_QUERY = "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n"
 
+LIST_ENVIRONMENTS_QUERY = "query ListEnvironments {\n listEnvironments {\n environments {\n envId\n envName\n userRole\n __typename\n }\n __typename\n }\n}\n"
+
 UPDATE_SHADOW_MUTATION = "mutation UpdateShadow($envId: ID!, $payload: AWSJSON!) {\n asyncUpdateShadow(envId: $envId, payload: $payload) {\n status\n code\n message\n payload\n __typename\n }\n}\n"
 
 
@@ -95,3 +97,41 @@ async def async_fetch_shadow(hass, envID):
             return None, None
         payload = await async_get_shadow(hass, token, envID)
     return token, payload
+
+
+async def async_list_environments(hass, token):
+    """Return the account's environments (homes) as [{"envId", "envName"}].
+
+    Returns None if the call fails, an empty list if the account has none.
+    """
+    graphql_query = {
+        "operationName": "ListEnvironments",
+        "variables": {},
+        "query": LIST_ENVIRONMENTS_QUERY,
+    }
+    session = async_get_clientsession(hass)
+    try:
+        async with session.post(
+            API_URL,
+            json=graphql_query,
+            headers=_headers(token),
+            timeout=aiohttp.ClientTimeout(total=API_TIMEOUT),
+        ) as response:
+            if response.status != 200:
+                _LOGGER.error(
+                    f"API request error: {response.status} - {await response.text()}"
+                )
+                return None
+            data = await response.json()
+    except Exception as e:
+        _LOGGER.error(f"Error listing IRSAP environments: {e!r}")
+        return None
+
+    environments = (
+        (data.get("data") or {}).get("listEnvironments") or {}
+    ).get("environments") or []
+    return [
+        {"envId": env["envId"], "envName": env.get("envName") or env["envId"]}
+        for env in environments
+        if env.get("envId")
+    ]

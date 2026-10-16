@@ -7,6 +7,13 @@
           "username": "Username (e-mail)",
           "password": "Password"
         }
+      },
+      "environment": {
+        "title": "Choose your home",
+        "description": "This IRSAP NOW account has more than one home. Choose the one to add to Home Assistant.",
+        "data": {
+          "envID": "Home"
+        }
       }
     },
     "error": {
