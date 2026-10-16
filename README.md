@@ -79,9 +79,9 @@ Now the integration is added to HACS and available in the normal HA integration 
 Open the integration and click `Configure` to change:
 
 - **Username / Password**: the IRSAP Now credentials (they are checked before being saved).
-- **Update interval**: how often the IRSAP cloud is read, in seconds (default `60`, range `30`-`3600`). All radiators and LEDs share a single request per interval. Changes sent from Home Assistant are applied immediately regardless of this value.
+- **Update interval**: how often the IRSAP cloud is read, in seconds (default `60`, range `30`-`3600`). All radiators, LEDs and diagnostic sensors share a single request per interval. Changes sent from Home Assistant are applied immediately regardless of this value.
 
-If you prefer to drive updates yourself (e.g. from an automation calling `homeassistant.update_entity`), turn off *Enable polling for changes* in the integration's *System options*: the integration then stops its own timer, and `update_entity` on any IRSAP climate or light entity refreshes all of them.
+If you prefer to drive updates yourself (e.g. from an automation calling `homeassistant.update_entity`), turn off *Enable polling for changes* in the integration's *System options*: the integration then stops its own timer, and `update_entity` on any IRSAP entity refreshes all of them.
 
 Requires Home Assistant 2024.11.0 or newer.
 
