@@ -27,6 +27,12 @@ TOKEN_MAX_AGE = 50 * 60  # seconds
 # Timeout for a single call to the IRSAP cloud API
 API_TIMEOUT = 20  # seconds
 
+# Cognito SRP login: timeouts for each HTTP call made by boto3, and an upper
+# bound on the whole login so a hanging call can't stall the coordinator.
+COGNITO_CONNECT_TIMEOUT = 10  # seconds
+COGNITO_READ_TIMEOUT = 10  # seconds
+LOGIN_TIMEOUT = 30  # seconds
+
 # After a command, ignore cloud updates for this long so a shadow that does not
 # reflect the change yet cannot revert the new state in the UI.
 WRITE_SETTLE_TIME = 15  # seconds

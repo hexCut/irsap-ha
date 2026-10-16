@@ -66,3 +66,44 @@ async def test_missing_credentials(hass, mock_login):
     hass.data.pop(DOMAIN, None)
     assert await async_get_token(hass) is None
     assert mock_login.call_count == 0
+
+
+async def test_login_timeout_returns_none_and_releases_lock(hass):
+    """A hanging Cognito call can't stall the caller (or the next one)."""
+    store_credentials(hass, "u", "p")
+    calls = []
+
+    def hanging_login(username, password):
+        calls.append(1)
+        if len(calls) == 1:
+            import time
+
+            time.sleep(0.5)
+            return "late-token"
+        return "token-2"
+
+    with (
+        patch.object(auth, "LOGIN_TIMEOUT", 0.1),
+        # a plain function, not a Mock, so it really runs in the executor
+        patch.object(auth, "login_with_srp", new=hanging_login),
+    ):
+        assert await async_get_token(hass) is None
+        # the lock was released: the next caller can log in
+        assert await async_get_token(hass) == "token-2"
+    assert len(calls) == 2
+
+
+def test_login_uses_cognito_client_with_timeouts():
+    with (
+        patch.object(auth, "Cognito") as cognito,
+        patch.object(auth.boto3, "client") as client,
+    ):
+        cognito.return_value.access_token = "tok"
+        assert auth.login_with_srp("u", "p") == "tok"
+
+    _, kwargs = client.call_args
+    config = kwargs["config"]
+    assert config.connect_timeout == auth.COGNITO_CONNECT_TIMEOUT
+    assert config.read_timeout == auth.COGNITO_READ_TIMEOUT
+    assert cognito.return_value.client is client.return_value
+    cognito.return_value.authenticate.assert_called_once_with(password="p")

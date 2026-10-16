@@ -4,11 +4,29 @@ import asyncio
 import logging
 import time
 
+import boto3
+from botocore.config import Config
 from warrant import Cognito
 
-from .const import CLIENT_ID, DOMAIN, REGION, TOKEN_MAX_AGE, USER_POOL_ID
+from .const import (
+    CLIENT_ID,
+    COGNITO_CONNECT_TIMEOUT,
+    COGNITO_READ_TIMEOUT,
+    DOMAIN,
+    LOGIN_TIMEOUT,
+    REGION,
+    TOKEN_MAX_AGE,
+    USER_POOL_ID,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+# boto3 waits up to 60 s per call by default and retries; bound it instead
+COGNITO_CLIENT_CONFIG = Config(
+    connect_timeout=COGNITO_CONNECT_TIMEOUT,
+    read_timeout=COGNITO_READ_TIMEOUT,
+    retries={"max_attempts": 2},
+)
 
 # Keys this module keeps in hass.data[DOMAIN]; async_unload_entry removes them.
 AUTH_DATA_KEYS = ("username", "password", "token", "token_obtained_at", "token_lock")
@@ -18,6 +36,10 @@ def login_with_srp(username, password):
     "Log in and obtain the access token using Warrant (blocking)."
     try:
         u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
+        # warrant builds its boto3 client without timeouts; use one that has them
+        u.client = boto3.client(
+            "cognito-idp", region_name=REGION, config=COGNITO_CLIENT_CONFIG
+        )
         u.authenticate(password=password)
         _LOGGER.debug("Cognito SRP login succeeded")
         return u.access_token
@@ -64,7 +86,14 @@ async def async_get_token(hass, failed_token=None):
             "Obtaining a new IRSAP access token (%s)",
             "previous token rejected" if failed_token else "no valid cached token",
         )
-        token = await hass.async_add_executor_job(login_with_srp, username, password)
+        try:
+            token = await asyncio.wait_for(
+                hass.async_add_executor_job(login_with_srp, username, password),
+                LOGIN_TIMEOUT,
+            )
+        except TimeoutError:
+            _LOGGER.warning("IRSAP login timed out after %s seconds", LOGIN_TIMEOUT)
+            return None
         if token:
             data["token"] = token
             data["token_obtained_at"] = time.monotonic()
