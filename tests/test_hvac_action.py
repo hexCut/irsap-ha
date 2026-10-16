@@ -7,8 +7,10 @@ from homeassistant.components.climate import HVACAction
 import pytest
 
 from custom_components.irsap_ha.hvac_action import (
+    INFERRED_HYSTERESIS,
     compute_hvac_action,
     count_zones,
+    get_hysteresis,
     written_by_device,
 )
 
@@ -168,3 +170,62 @@ async def test_entity_action_after_commands(
             blocking=True,
         )
     assert hass.states.get(ENTITY).attributes["hvac_action"] == "off"
+
+
+# --- hysteresis from the shadow -----------------------------------------
+
+
+# Device/group/zone links as in a real shadow (fw 3.22)
+LINKS = {
+    "DRk_MID": "DRk",
+    "DRk_X_hysteresis": 2,
+    "GkV_MID": "DRk",
+    "GkV_PLD": "PcC",
+    "W8p_DID": "DRk",
+    "W8p_GID": "GkV",
+}
+
+
+def test_hysteresis_follows_group_link():
+    assert get_hysteresis({**SINGLE, **LINKS, "DRk_X_hysteresis": 5}, "PcC") == 5
+
+
+def test_hysteresis_per_zone_with_two_radiators():
+    desired = {
+        **two_zones(),
+        **LINKS,
+        "Xyz_MID": "Xyz",
+        "Xyz_X_hysteresis": 4,
+        "Grp_MID": "Xyz",
+        "Grp_PLD": "ABC",
+    }
+    assert get_hysteresis(desired, "PcC") == 2
+    assert get_hysteresis(desired, "ABC") == 4
+
+
+def test_hysteresis_single_value_without_links():
+    assert get_hysteresis({**SINGLE, "DRk_X_hysteresis": 3}, "PcC") == 3
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},  # no hysteresis in the shadow
+        {"DRk_X_hysteresis": None},
+        {"DRk_X_hysteresis": True},
+        {"DRk_X_hysteresis": -1},
+        {"A_X_hysteresis": 3, "B_X_hysteresis": 4},  # ambiguous, no links
+    ],
+)
+def test_hysteresis_fallback(extra):
+    assert get_hysteresis({**SINGLE, **extra}, "PcC") == INFERRED_HYSTERESIS
+
+
+def test_inference_uses_hysteresis_from_shadow():
+    """With a 0.5 °C hysteresis the band around 26.8 °C is 26.3–27.3 °C."""
+    d = {**two_zones(E_CLL=1, PcC_CSP={"p": {"v": 268}}), **LINKS, "DRk_X_hysteresis": 5}
+    heating, idle = HVACAction.HEATING, HVACAction.IDLE
+    assert compute_hvac_action({**d, "PcC_TMP": 273}, "PcC", True, heating) == heating
+    assert compute_hvac_action({**d, "PcC_TMP": 274}, "PcC", True, heating) == idle
+    assert compute_hvac_action({**d, "PcC_TMP": 263}, "PcC", True, idle) == idle
+    assert compute_hvac_action({**d, "PcC_TMP": 262}, "PcC", True, idle) == heating

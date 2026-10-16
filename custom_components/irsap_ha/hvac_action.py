@@ -3,9 +3,10 @@
 from homeassistant.components.climate import HVACAction
 
 # When the action has to be inferred from the temperatures, mimic the radiator's
-# own hysteresis (tenths of a degree): observed on fw 3.22 (`X_hysteresis` = 2),
-# it keeps heating until the room is more than 0.2 °C above the setpoint and
-# starts again once it is more than 0.2 °C below.
+# own hysteresis (tenths of a degree): it keeps heating until the room is more
+# than that above the setpoint and starts again once it is more than that below.
+# Read from the shadow (`<device>_X_hysteresis`); this is the fallback, the
+# value observed on fw 3.22.
 INFERRED_HYSTERESIS = 2  # 0.2 °C
 
 
@@ -38,7 +39,8 @@ def compute_hvac_action(desired_payload, base_key, from_device, previous=None):
       and the environment has a single radiator.
     - Otherwise the action is inferred from ``<zone>_CSP`` (the setpoint the
       radiator is applying, ``_MSP`` as fallback) and ``<zone>_TMP``, both in
-      tenths of a degree, with ``INFERRED_HYSTERESIS``. ``previous`` is the
+      tenths of a degree, with the radiator's hysteresis (see
+      ``get_hysteresis``). ``previous`` is the
       action reported before.
     """
     if desired_payload.get(f"{base_key}_ENB") != 1:
@@ -53,11 +55,12 @@ def compute_hvac_action(desired_payload, base_key, from_device, previous=None):
     if not isinstance(current, (int, float)) or not isinstance(setpoint, (int, float)):
         return None  # unknown: HA then shows only the HVAC mode
 
+    hysteresis = get_hysteresis(desired_payload, base_key)
     if previous == HVACAction.HEATING:
-        if current <= setpoint + INFERRED_HYSTERESIS:
+        if current <= setpoint + hysteresis:
             return HVACAction.HEATING
         return HVACAction.IDLE
-    if current < setpoint - INFERRED_HYSTERESIS:
+    if current < setpoint - hysteresis:
         return HVACAction.HEATING
     return HVACAction.IDLE
 
@@ -70,3 +73,31 @@ def get_setpoint(desired_payload, base_key):
         except (KeyError, TypeError):
             continue
     return None
+
+
+def get_hysteresis(desired_payload, base_key):
+    """Hysteresis of the radiator serving a zone, in tenths of a degree.
+
+    The value lives under the device's key, not the zone's: the shadow links
+    them through a group, whose ``_PLD`` is the zone and ``_MID`` the device
+    (e.g. ``GkV_PLD = "PcC"``, ``GkV_MID = "DRk"`` -> ``DRk_X_hysteresis``).
+    With a single ``_X_hysteresis`` in the shadow that one is used; without
+    any, ``INFERRED_HYSTERESIS``.
+    """
+    for key, value in desired_payload.items():
+        if key.endswith("_PLD") and value == base_key:
+            device = desired_payload.get(f"{key[: -len('_PLD')]}_MID")
+            hysteresis = desired_payload.get(f"{device}_X_hysteresis")
+            if _is_valid_hysteresis(hysteresis):
+                return hysteresis
+
+    values = [
+        value for key, value in desired_payload.items() if key.endswith("_X_hysteresis")
+    ]
+    if len(values) == 1 and _is_valid_hysteresis(values[0]):
+        return values[0]
+    return INFERRED_HYSTERESIS
+
+
+def _is_valid_hysteresis(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0

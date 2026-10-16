@@ -20,7 +20,12 @@ import json
 import re
 from .device import RadiatorDevice
 from .device_manager import device_manager
-from .hvac_action import compute_hvac_action, get_setpoint, written_by_device
+from .hvac_action import (
+    compute_hvac_action,
+    get_hysteresis,
+    get_setpoint,
+    written_by_device,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -615,6 +620,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                     f"written_by={'device' if from_device else 'app'} "
                     f"TMP={tmp_value} "
                     f"CSP={get_setpoint(desired_payload, base_key)} "
+                    f"HYST={get_hysteresis(desired_payload, base_key)} "
                     f"-> {self._attr_hvac_action}"
                 )
 
