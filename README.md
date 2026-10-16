@@ -94,6 +94,13 @@ Besides the mode (heat / off), each radiator reports what it is actually doing: 
 
 The radiator sends a new temperature reading only every few minutes (20 on firmware 3.22), so the action can lag behind the real heating by that much.
 
+### Diagnostic sensors
+
+Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update, hysteresis, temperature offset, open window, pilot wire, child lock and, on the models that have them, CO2, VOC and air quality). They are listed under *Diagnostic* on the device page and are refreshed with the rest of the data.
+
+- Values have proper units: Wi-Fi in dBm, hysteresis and temperature offset in °C, open-window off time in minutes, CO2 in ppm.
+- A measurement the radiator doesn't have (the cloud reports `65535` or nothing) is created **disabled**, so it doesn't clutter the UI. If the radiator later reports a real value, the sensor is enabled again automatically. A sensor you disabled yourself is never re-enabled.
+
 ## Development
 
 ```
