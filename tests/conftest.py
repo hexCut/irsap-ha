@@ -1,7 +1,7 @@
 """Shared fixtures: a fake IRSAP cloud with one radiator."""
 
 import copy
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -34,6 +34,19 @@ SHADOW = {
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     yield
+
+
+@pytest.fixture(autouse=True)
+def no_jwks_download():
+    """Never download Cognito's public keys in tests; start with no cache."""
+    from custom_components.irsap_ha import auth
+
+    auth._jwks_cache = None
+    response = MagicMock()
+    response.json.return_value = {"keys": []}
+    with patch.object(auth.requests, "get", return_value=response):
+        yield
+    auth._jwks_cache = None
 
 
 @pytest.fixture(autouse=True)

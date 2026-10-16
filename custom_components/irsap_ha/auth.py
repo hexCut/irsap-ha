@@ -6,6 +6,7 @@ import time
 
 import boto3
 from botocore.config import Config
+import requests
 from warrant import Cognito
 
 from .const import (
@@ -28,6 +29,26 @@ COGNITO_CLIENT_CONFIG = Config(
     retries={"max_attempts": 2},
 )
 
+# Public keys warrant uses to verify the tokens. warrant downloads them with
+# requests.get and no timeout unless `pool_jwk` is already set, so fetch them
+# here with a timeout and cache them: they only change when AWS rotates them.
+JWKS_URL = (
+    f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
+)
+_jwks_cache = None
+
+
+def _get_jwks():
+    global _jwks_cache
+    if _jwks_cache is None:
+        response = requests.get(
+            JWKS_URL, timeout=(COGNITO_CONNECT_TIMEOUT, COGNITO_READ_TIMEOUT)
+        )
+        response.raise_for_status()
+        _jwks_cache = response.json()
+    return _jwks_cache
+
+
 # Keys this module keeps in hass.data[DOMAIN]; async_unload_entry removes them.
 AUTH_DATA_KEYS = ("username", "password", "token", "token_obtained_at", "token_lock")
 
@@ -40,11 +61,16 @@ def login_with_srp(username, password):
         u.client = boto3.client(
             "cognito-idp", region_name=REGION, config=COGNITO_CLIENT_CONFIG
         )
+        u.pool_jwk = _get_jwks()
         u.authenticate(password=password)
         _LOGGER.debug("Cognito SRP login succeeded")
         return u.access_token
     except Exception as e:
         _LOGGER.error(f"Error during login: {e}")
+        # Le chiavi potrebbero essere cambiate (rotazione AWS): al prossimo
+        # login vengono riscaricate
+        global _jwks_cache
+        _jwks_cache = None
         return None
 
 
