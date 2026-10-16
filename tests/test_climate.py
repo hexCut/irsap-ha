@@ -108,3 +108,26 @@ async def test_missing_temperature_keeps_last_value(
 
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert "radiator_Bagno Radiator_temperature_warning" in notifications
+
+
+async def test_set_temperature_keeps_hvac_mode_off(
+    hass, config_entry, mock_login, mock_get_shadow, mock_update_shadow, shadow
+):
+    """A setpoint change on a radiator that is off doesn't turn it on in HA."""
+    shadow["state"]["desired"]["PTO_ENB"] = 0
+    await _setup(hass, config_entry)
+    assert hass.states.get(ENTITY).state == "off"
+
+    with patch("custom_components.irsap_ha.climate.asyncio.sleep", _no_sleep):
+        await hass.services.async_call(
+            "climate",
+            "set_temperature",
+            {"entity_id": ENTITY, "temperature": 24},
+            blocking=True,
+        )
+
+    sent = mock_update_shadow.call_args.args[3]
+    assert sent["state"]["desired"]["PTO_ENB"] == 0  # the write leaves _ENB alone
+    state = hass.states.get(ENTITY)
+    assert state.state == "off"
+    assert state.attributes["temperature"] == 24
