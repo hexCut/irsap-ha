@@ -17,6 +17,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import re
 from .device_manager import device_manager
+from .shadow import device_values
 import pytz
 from homeassistant.util import dt as dt_util
 
@@ -106,6 +107,28 @@ def _sync_disabled_state(hass, unique_id, supported):
     elif supported and entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
         _LOGGER.info(f"Re-enabling {entity_id}: the radiator now reports it")
         registry.async_update_entity(entity_id, disabled_by=None)
+
+
+# Device fields read for each zone (name used here -> key suffix)
+SENSOR_DEVICE_FIELDS = {
+    "mac": "_CNT",
+    "firmware": "_FWV",
+    "model": "_TYP",
+    "wifi_signal": "_SLV",
+    "last_update": "_LUP",
+    "ip_address": "_X_ipAddress",
+    "pilote_enable": "_X_filPiloteEnabled",
+    "pilote_status": "_X_filPiloteStatus",
+    "standby": "_X_standby",
+    "open_window_enabled": "_X_OpenWindowSensorEnabled",
+    "openwindow_detected": "_X_OpenWindowDetected",
+    "openwindow_offset": "_X_OpenWindowSensorOffTime",
+    "temperature_offset": "_X_temperatureSensorOffset",
+    "hysteresis": "_X_hysteresis",
+    "voc": "_X_vocValue",
+    "co2": "_X_co2Value",
+    "lock": "_X_lock",
+}
 
 
 def extract_device_info(
@@ -276,6 +299,12 @@ def extract_device_info(
             device_info["lock"] = lock_keys[i][1]
         if i < len(aiq_keys):
             device_info["aiq"] = aiq_keys[i][1]
+
+        # Con più radiatori l'ordine delle chiavi non basta: la qualità dell'aria
+        # è un valore della zona, gli altri del dispositivo collegato alla zona
+        if base_key + "_AIQ" in payload:
+            device_info["aiq"] = payload[base_key + "_AIQ"]
+        device_info.update(device_values(payload, base_key, SENSOR_DEVICE_FIELDS))
 
         devices_info.append(device_info)
 
