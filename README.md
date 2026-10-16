@@ -101,6 +101,10 @@ Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update
 - Values have proper units: Wi-Fi in dBm, hysteresis and temperature offset in °C, open-window off time in minutes, CO2 in ppm.
 - A measurement the radiator doesn't have (the cloud reports `65535` or nothing) is created **disabled**, so it doesn't clutter the UI. If the radiator later reports a real value, the sensor is enabled again automatically. A sensor you disabled yourself is never re-enabled.
 
+### Diagnostics
+
+To report a problem, download the diagnostics file: *Settings → Devices & services → IRSAP NOW Integration → ⋮ → Download diagnostics*. It contains the integration's state and the data the IRSAP cloud reports for your radiators. Credentials, the token, your home's address and coordinates, MAC and IP addresses are removed.
+
 ## Development
 
 ```
