@@ -8,6 +8,7 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from homeassistant.exceptions import HomeAssistantError
+import requests
 from warrant import Cognito
 
 from .const import (
@@ -29,6 +30,26 @@ COGNITO_CLIENT_CONFIG = Config(
     read_timeout=COGNITO_READ_TIMEOUT,
     retries={"max_attempts": 2},
 )
+
+# Public keys warrant uses to verify the tokens. warrant downloads them with
+# requests.get and no timeout unless `pool_jwk` is already set, so fetch them
+# here with a timeout and cache them: they only change when AWS rotates them.
+JWKS_URL = (
+    f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
+)
+_jwks_cache = None
+
+
+def _get_jwks():
+    global _jwks_cache
+    if _jwks_cache is None:
+        response = requests.get(
+            JWKS_URL, timeout=(COGNITO_CONNECT_TIMEOUT, COGNITO_READ_TIMEOUT)
+        )
+        response.raise_for_status()
+        _jwks_cache = response.json()
+    return _jwks_cache
+
 
 # Cognito error codes that mean "these credentials are not valid" (as opposed
 # to network problems, timeouts or throttling, which are retried)
@@ -56,6 +77,7 @@ def login_with_srp(username, password):
         u.client = boto3.client(
             "cognito-idp", region_name=REGION, config=COGNITO_CLIENT_CONFIG
         )
+        u.pool_jwk = _get_jwks()
         u.authenticate(password=password)
         _LOGGER.debug("Cognito SRP login succeeded")
         return u.access_token
@@ -68,6 +90,10 @@ def login_with_srp(username, password):
         return None
     except Exception as e:
         _LOGGER.error(f"Error during login: {e}")
+        # Le chiavi potrebbero essere cambiate (rotazione AWS): al prossimo
+        # login vengono riscaricate
+        global _jwks_cache
+        _jwks_cache = None
         return None
 
 

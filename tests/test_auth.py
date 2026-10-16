@@ -1,7 +1,7 @@
 """Token cache and lock."""
 
 import asyncio
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from custom_components.irsap_ha import auth
 from custom_components.irsap_ha.auth import async_get_token, store_credentials
@@ -107,3 +107,56 @@ def test_login_uses_cognito_client_with_timeouts():
     assert config.read_timeout == auth.COGNITO_READ_TIMEOUT
     assert cognito.return_value.client is client.return_value
     cognito.return_value.authenticate.assert_called_once_with(password="p")
+
+
+def _jwks_response(keys):
+    response = MagicMock()
+    response.json.return_value = {"keys": keys}
+    return response
+
+
+def test_login_fetches_jwks_with_timeout_and_caches_it():
+    with (
+        patch.object(auth, "Cognito") as cognito,
+        patch.object(auth.boto3, "client"),
+        patch.object(auth.requests, "get", return_value=_jwks_response(["k1"])) as get,
+    ):
+        cognito.return_value.access_token = "tok"
+        assert auth.login_with_srp("u", "p") == "tok"
+        assert auth.login_with_srp("u", "p") == "tok"
+
+    get.assert_called_once()  # cached for the second login
+    assert get.call_args.args == (auth.JWKS_URL,)
+    assert get.call_args.kwargs["timeout"] == (
+        auth.COGNITO_CONNECT_TIMEOUT,
+        auth.COGNITO_READ_TIMEOUT,
+    )
+    # warrant uses the pre-fetched keys instead of its own requests.get
+    assert cognito.return_value.pool_jwk == {"keys": ["k1"]}
+
+
+def test_failed_login_refetches_jwks():
+    """After a failure (e.g. AWS rotated the keys) the next login refetches them."""
+    with (
+        patch.object(auth, "Cognito") as cognito,
+        patch.object(auth.boto3, "client"),
+        patch.object(auth.requests, "get", return_value=_jwks_response(["k"])) as get,
+    ):
+        cognito.return_value.authenticate.side_effect = IndexError("unknown kid")
+        assert auth.login_with_srp("u", "p") is None
+        cognito.return_value.authenticate.side_effect = None
+        cognito.return_value.access_token = "tok"
+        assert auth.login_with_srp("u", "p") == "tok"
+    assert get.call_count == 2
+
+
+def test_jwks_timeout_fails_login_cleanly():
+    with (
+        patch.object(auth, "Cognito"),
+        patch.object(auth.boto3, "client"),
+        patch.object(
+            auth.requests, "get", side_effect=auth.requests.Timeout("jwks timed out")
+        ),
+    ):
+        assert auth.login_with_srp("u", "p") is None
+    assert auth._jwks_cache is None
