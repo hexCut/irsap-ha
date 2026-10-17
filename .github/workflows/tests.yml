@@ -15,4 +15,4 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements_test.txt
       - name: Run tests
-        run: pytest
+        run: pytest --cov=custom_components/irsap_ha --cov-report=term-missing --cov-fail-under=85
