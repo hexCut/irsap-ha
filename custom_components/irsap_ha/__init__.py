@@ -12,7 +12,7 @@ from .setup import async_setup as setup_component
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["climate", "sensor", "light"]
+PLATFORMS = ["climate", "sensor", "light", "switch"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -41,6 +41,7 @@ async def async_setup_entry(hass, config_entry):
     await hass.config_entries.async_forward_entry_setups(config_entry, ["climate"])
     await hass.config_entries.async_forward_entry_setups(config_entry, ["sensor"])
     await hass.config_entries.async_forward_entry_setups(config_entry, ["light"])
+    await hass.config_entries.async_forward_entry_setups(config_entry, ["switch"])
 
     # Ricarica l'integrazione quando cambiano le opzioni (es. intervallo di aggiornamento)
     config_entry.async_on_unload(config_entry.add_update_listener(_async_reload_entry))

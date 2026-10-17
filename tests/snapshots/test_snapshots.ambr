@@ -625,6 +625,57 @@
       'state': '-61',
       'unique_id': 'Bagno_wifi_signal',
     }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child Lock',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.CONFIG: 'config'>,
+      'entity_id': 'switch.bagno_child_lock',
+      'state': 'off',
+      'unique_id': 'Bagno_child_lock_switch',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Detection',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open-variant',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.CONFIG: 'config'>,
+      'entity_id': 'switch.bagno_open_window_detection',
+      'state': 'on',
+      'unique_id': 'Bagno_open_window_switch',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:power-sleep',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.CONFIG: 'config'>,
+      'entity_id': 'switch.bagno_standby',
+      'state': 'off',
+      'unique_id': 'Bagno_standby_switch',
+    }),
   ])
 # ---
 # name: test_entities[two_radiators]
