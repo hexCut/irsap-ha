@@ -31,5 +31,19 @@
     "error": {
       "invalid_credentials": "Accesso non riuscito: controlla nome utente e password."
     }
+  },
+  "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manuale",
+              "schedule": "Programmata"
+            }
+          }
+        }
+      }
+    }
   }
 }
