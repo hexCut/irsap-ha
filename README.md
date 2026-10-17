@@ -111,6 +111,12 @@ Each radiator that reports them gets three switches, under *Configuration* on th
 
 They change the same settings as the IRSAP NOW app, and changes made in the app show up in Home Assistant at the next update.
 
+The read-only *Child Lock*, *Standby* and *Open Window Enabled* sensors show the same settings. They are kept in the 1.6 betas and will be removed in 1.7: if an automation or dashboard uses them, switch it to the new switches.
+
+### Diagnostics
+
+To report a problem, download the diagnostics file: *Settings → Devices & services → IRSAP NOW Integration → ⋮ → Download diagnostics*. It contains the integration's state and the data the IRSAP cloud reports for your radiators. Credentials, the token, your home's address and coordinates, MAC and IP addresses are removed.
+
 ## Development
 
 ```
