@@ -1,5 +1,4 @@
 import logging
-import aiohttp
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
@@ -13,6 +12,7 @@ from .const import (
     MIN_SCAN_INTERVAL,
     MAX_SCAN_INTERVAL,
 )
+from .api import async_list_environments
 from .auth import IrsapAuthError, login_with_srp as _sync_login_with_srp
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,6 +22,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     "Handle a config flow for radiators integration."
 
     VERSION = 1
+
+    def __init__(self):
+        # Credenziali e case dell'account tra il passo "user" e "environment"
+        self._login = None
+        self._environments = []
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         "Handle the initial step."
@@ -65,9 +70,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "invalid_credentials"},
             )
 
-        envID = await self.async_get_envID(username, password, token)
+        environments = await async_list_environments(self.hass, token)
 
-        if envID is None:
+        if not environments:
             _LOGGER.error("Failed to obtain envID.")
             return self.async_show_form(
                 step_id="user",
@@ -80,25 +85,48 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "envid_failed"},
             )
 
-        # Se tutto è andato bene, salviamo l'entry
+        self._login = {"username": username, "password": password, "token": token}
+        self._environments = environments
+        if len(environments) == 1:
+            return self._create_entry(environments[0])
+        # Più case nello stesso account: si sceglie quale integrare
+        return await self.async_step_environment()
+
+    async def async_step_environment(self, user_input=None):
+        "Sceglie la casa (environment IRSAP) da integrare."
+        if user_input is not None:
+            chosen = next(
+                env
+                for env in self._environments
+                if env["envId"] == user_input["envID"]
+            )
+            return self._create_entry(chosen)
+
+        return self.async_show_form(
+            step_id="environment",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("envID"): vol.In(
+                        {env["envId"]: env["envName"] for env in self._environments}
+                    )
+                }
+            ),
+        )
+
+    def _create_entry(self, environment):
+        username = self._login["username"]
+        title = username
+        if len(self._environments) > 1:
+            title = f"{username} ({environment['envName']})"
         return self.async_create_entry(
-            title=username,
-            data={
-                "username": username,
-                "password": password,
-                "token": token,
-                "envID": envID,
-            },
+            title=title,
+            data={**self._login, "envID": environment["envId"]},
         )
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
         return RadiatorsIntegrationOptionsFlow()
-
-    async def async_get_envID(self, username, password, token):
-        """Asynchronous method to get envID."""
-        return await envid_with_srp(username, password, token)
 
     async def async_step_reauth(self, entry_data):
         "Le credenziali salvate sono state rifiutate dal cloud IRSAP."
@@ -231,48 +259,3 @@ async def login_with_srp(hass, username, password):
     except IrsapAuthError:
         return None
 
-
-async def envid_with_srp(username, password, token):
-    """Login and obtain the envID using Warrant."""
-    async with aiohttp.ClientSession() as session:
-        url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-        graphql_query = {
-            "operationName": "ListEnvironments",
-            "variables": {},
-            "query": "query ListEnvironments {\n listEnvironments {\n environments {\n envId\n envName\n userRole\n __typename\n }\n __typename\n }\n}\n",
-        }
-
-        try:
-            async with session.post(
-                url, headers=headers, json=graphql_query
-            ) as response:
-                if response.status != 200:
-                    error_msg = await response.text()
-                    _LOGGER.error(f"API request error: {response.status} - {error_msg}")
-                    return None
-
-                data = await response.json()
-                environments = (
-                    data.get("data", {})
-                    .get("listEnvironments", {})
-                    .get("environments", [])
-                )
-                if not environments:
-                    _LOGGER.error("No environments found in the API response")
-                    return None
-
-                envId = environments[0].get("envId")
-                if envId:
-                    _LOGGER.debug(f"envId retrieved from API: {envId}")
-                    return envId
-                else:
-                    _LOGGER.error("envId missing in the API response")
-                    return None
-
-        except Exception as e:
-            _LOGGER.error(f"Error during API call: {e}")
-            return None

@@ -14,6 +14,13 @@
         "data": {
           "password": "Password"
         }
+      },
+      "environment": {
+        "title": "Scegli la casa",
+        "description": "Questo account IRSAP NOW ha più di una casa. Scegli quella da aggiungere a Home Assistant.",
+        "data": {
+          "envID": "Casa"
+        }
       }
     },
     "error": {
