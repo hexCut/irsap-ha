@@ -17,9 +17,13 @@ from homeassistant.helpers.entity_platform import (
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, WRITE_SETTLE_TIME
-from .api import async_fetch_shadow, async_update_shadow
+from .api import (
+    async_fetch_shadow,
+    async_update_shadow,
+    remember_write,
+    serialize_writes,
+)
 import json
-import re
 from .device import RadiatorDevice
 from .shadow import device_values
 from .device_manager import device_manager
@@ -161,16 +165,6 @@ def extract_device_info(
     return devices_info
 
 
-def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
-    "Trova la chiave del dispositivo in base al nome."
-    for key, value in payload.items():
-        if key.endswith(nam_suffix) and value == device_name:
-            return key[
-                : -len(nam_suffix)
-            ]  # Restituisce il prefisso del dispositivo (es. 'PCM', 'PTO')
-    return None
-
-
 class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     "Representation of a radiator climate entity."
 
@@ -303,16 +297,10 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     # Funzione per inviare il payload aggiornato alle API
     async def _send_target_temperature_to_api(self, token, envID, updated_payload):
         "Invia il payload aggiornato alle API."
-        return await async_update_shadow(self.hass, token, envID, updated_payload)
-
-    async def find_device_key_by_name(payload, device_name, nam_suffix="_NAM"):
-        "Trova la chiave del dispositivo in base al nome."
-        for key, value in payload.items():
-            if key.endswith(nam_suffix) and value == device_name:
-                return key[
-                    : -len(nam_suffix)
-                ]  # Restituisci il prefisso (es. 'PCM', 'PTO')
-        return None
+        ok = await async_update_shadow(self.hass, token, envID, updated_payload)
+        if ok:
+            remember_write(self.hass, updated_payload)
+        return ok
 
     async def generate_device_payload(
         self, payload, device_name, temperature=None, enable=None, preset=None
@@ -358,49 +346,6 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             "timestamp": payload.get("timestamp"),
             "version": payload.get("version"),
             "state": payload["state"],
-        }
-
-        return ordered_payload  # Restituisci il payload aggiornato
-
-    async def generate_state_payload(self, payload, device_name, enable):
-        "Aggiorna il payload del dispositivo solo per lo stato di accensione/spegnimento."
-        current_timestamp = int(time.time() * 1000)  # Tempo attuale in millisecondi
-        payload["timestamp"] = current_timestamp  # Aggiorna il timestamp nel payload
-
-        desired_payload = payload.get("state", {}).get(
-            "desired", {}
-        )  # Accedi a payload["state"]["desired"]
-
-        # Cerca il device nel payload basato sul nome
-        for key, value in desired_payload.items():
-            if key.endswith("_NAM") and value == device_name:
-                base_key = key[:-4]  # Ottieni la chiave di base senza il suffisso
-
-                # Aggiorna lo stato di accensione/spegnimento se fornito
-                enable_key = f"{base_key}_ENB"
-                if enable_key in desired_payload:
-                    desired_payload[enable_key] = enable  # Imposta a 1 (on) o 0 (off)
-
-                # Aggiorna _CLL se presente, impostandolo a 1
-                cll_key = f"{base_key}_CLL"
-                if cll_key in desired_payload:
-                    desired_payload[cll_key] = 1  # Imposta _CLL a 1
-
-                break
-
-        # Rimuovi 'sk' se esistente
-        desired_payload.pop("sk", None)
-
-        # Aggiorna il payload originale
-        payload["state"]["desired"] = desired_payload
-
-        # Riordina il payload secondo l'ordine richiesto
-        ordered_payload = {
-            "id": payload.get("id"),
-            "clientId": payload.get("clientId"),
-            "timestamp": payload.get("timestamp"),
-            "version": payload.get("version"),
-            "state": payload.get("state"),
         }
 
         return ordered_payload  # Restituisci il payload aggiornato
@@ -461,6 +406,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
 
         return final_payload
 
+    @serialize_writes
     async def async_set_temperature(self, **kwargs):
         await asyncio.sleep(1)
 
@@ -498,6 +444,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         else:
             _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
 
+    @serialize_writes
     async def async_set_hvac_mode(self, hvac_mode):
         if self._attr_hvac_mode == hvac_mode:
             _LOGGER.debug(
@@ -544,6 +491,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         # Stato iniziale dai dati già scaricati dal coordinator
         self._update_from_payload(self.coordinator.desired)
 
+    @serialize_writes
     async def async_set_preset_mode(self, preset_mode):
         "Passa a manuale o a programmata (annulla un eventuale temporaneo)."
         if preset_mode not in self._attr_preset_modes:

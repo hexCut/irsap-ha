@@ -1,6 +1,11 @@
 import time
 from .const import DOMAIN, WRITE_SETTLE_TIME
-from .api import async_fetch_shadow, async_update_shadow
+from .api import (
+    async_fetch_shadow,
+    async_update_shadow,
+    remember_write,
+    serialize_writes,
+)
 import logging
 from homeassistant.components.light import LightEntity, ColorMode
 from homeassistant.core import callback
@@ -49,7 +54,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(lights)
 
 
-import re
 
 
 def extract_device_info(
@@ -263,6 +267,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
             _LOGGER.warning(f"Light info is incomplete for {self._attr_name}")
         self.async_write_ha_state()
 
+    @serialize_writes
     async def async_turn_on(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
@@ -319,16 +324,15 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
                 f"Failed to update color and status as ON for {self._attr_name}"
             )
 
+    @serialize_writes
     async def async_turn_off(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
         _LOGGER.debug(f"Turning off {self._attr_name} with kwargs: {kwargs}")
 
-        # Imposta la luminosità, se specificata, o utilizza quella attuale
+        # Allo spegnimento la luminosità inviata è 0; si ricorda quella richiesta
         brightness = kwargs.get("brightness", self._attr_brightness)
         if brightness is not None:
-            # Converti la luminosità da Home Assistant (0-255) a IRSAP (0-100)
-            brightness_irsap = round((brightness / 255) * 100)
             self._attr_brightness = brightness
 
         # Imposta il colore RGBW, se specificato
@@ -423,11 +427,6 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
 
-        timestamp_24h_future = int(time.time()) + 24 * 3600
-        time_24h_future = time.strftime(
-            "%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(timestamp_24h_future)
-        )
-
         # Cerca il device nel payload basato sul nome
         for key, value in desired_payload.items():
             if key.endswith("_NAM") and value == device_name:
@@ -469,4 +468,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
     # Funzione per inviare il payload aggiornato alle API
     async def _send_light_status_to_api(self, token, envID, updated_payload):
         "Invia il payload aggiornato alle API."
-        return await async_update_shadow(self.hass, token, envID, updated_payload)
+        ok = await async_update_shadow(self.hass, token, envID, updated_payload)
+        if ok:
+            remember_write(self.hass, updated_payload)
+        return ok
