@@ -16,7 +16,12 @@ from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import async_fetch_shadow, async_update_shadow
+from .api import (
+    async_fetch_shadow,
+    async_update_shadow,
+    remember_write,
+    serialize_writes,
+)
 from .const import APP_CLIENT_ID, DOMAIN, WRITE_SETTLE_TIME
 from .hvac_action import written_by_device
 from .shadow import linked_device
@@ -116,6 +121,7 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._async_write(0)
 
+    @serialize_writes
     async def _async_write(self, value):
         envID = self.coordinator.envID
         token, payload = await async_fetch_shadow(self.hass, envID)
@@ -142,6 +148,7 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
         }
         if not await async_update_shadow(self.hass, token, envID, ordered):
             raise HomeAssistantError(f"{self._attr_name}: the IRSAP cloud refused it")
+        remember_write(self.hass, ordered)
         _LOGGER.debug(f"{self._attr_name}: UpdateShadow accepted {key}={value}")
 
         self._attr_is_on = value == 1

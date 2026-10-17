@@ -4,6 +4,7 @@ from .const import DOMAIN
 import logging
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
+from .api import WRITE_DATA_KEYS
 from .auth import AUTH_DATA_KEYS, store_credentials
 from .coordinator import IrsapCoordinator
 from .device_manager import device_manager
@@ -61,8 +62,8 @@ async def async_unload_entry(hass, config_entry):
     if unload_ok:
         data = hass.data[DOMAIN]
         data.pop(config_entry.entry_id, None)
-        # Credenziali e token in cache: al prossimo setup si riparte da zero
-        for key in AUTH_DATA_KEYS:
+        # Credenziali, token e ultima scrittura: al prossimo setup si riparte da zero
+        for key in AUTH_DATA_KEYS + WRITE_DATA_KEYS:
             data.pop(key, None)
         if not data:
             hass.data.pop(DOMAIN)

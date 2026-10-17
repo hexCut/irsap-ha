@@ -1,5 +1,7 @@
 """Child lock / standby / open window detection switches."""
 
+import asyncio
+import copy
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -112,3 +114,46 @@ async def test_write_failure_raises(
             "switch", "turn_on", {"entity_id": STANDBY}, blocking=True
         )
     assert hass.states.get(STANDBY).state == "off"
+
+
+async def test_concurrent_switches_dont_undo_each_other(
+    hass, config_entry, mock_login, mock_get_shadow, shadow
+):
+    """Seen on the real radiator: the cloud applies writes a few seconds later,
+    so two switches turned on together both started from the old shadow and
+    the second write turned the first setting back off."""
+    _with_device(shadow)
+    await _setup(hass, config_entry)
+
+    writes = []
+    active = 0
+    max_active = 0
+
+    async def slow_update(hass, token, envID, payload):
+        # records the write but, like the cloud, doesn't apply it right away
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+        writes.append(copy.deepcopy(payload))
+        return True
+
+    with patch(
+        "custom_components.irsap_ha.switch.async_update_shadow",
+        side_effect=slow_update,
+    ):
+        await asyncio.gather(
+            hass.services.async_call(
+                "switch", "turn_on", {"entity_id": LOCK}, blocking=True
+            ),
+            hass.services.async_call(
+                "switch", "turn_on", {"entity_id": STANDBY}, blocking=True
+            ),
+        )
+
+    assert len(writes) == 2
+    assert max_active == 1  # never two writes in flight
+    last = writes[-1]["state"]["desired"]
+    assert last["DRk_X_lock"] == 1
+    assert last["DRk_X_standby"] == 1

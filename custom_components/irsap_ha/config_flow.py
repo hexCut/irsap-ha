@@ -1,7 +1,7 @@
 import logging
 import aiohttp
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
