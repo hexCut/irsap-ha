@@ -548,8 +548,8 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         "Passa a manuale o a programmata (annulla un eventuale temporaneo)."
         if preset_mode not in self._attr_preset_modes:
             raise ServiceValidationError(
-                f"Preset {preset_mode} is not available: schedules are set up "
-                "in the IRSAP NOW app"
+                f"Preset {preset_mode} is not available: assign a schedule to "
+                "this room in the IRSAP NOW app"
             )
         token, payload = await async_fetch_shadow(self.hass, self._envID)
         if payload is None:
@@ -641,7 +641,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                 )
 
                 # Manuale / programmata, ed eventuale temporaneo
-                self._attr_preset_modes = modes.preset_modes(desired_payload)
+                self._attr_preset_modes = modes.preset_modes(desired_payload, base_key)
                 self._attr_preset_mode = modes.preset_for(desired_payload, base_key)
                 self._temporary_until = modes.temporary_until(
                     desired_payload, base_key, dt_util.utcnow()

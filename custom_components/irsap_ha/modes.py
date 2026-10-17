@@ -3,12 +3,17 @@
 Observed on a real radiator (fw 3.22):
 
 - ``<zone>_ENB``: 1 on, 0 off (antifreeze, ``CSP`` = 5 °C).
-- ``<zone>_MOD``: 1 manual, 2 schedule (only meaningful with a schedule in
-  ``E_SCH``).
+- ``<zone>_MOD``: 1 manual, 2 schedule.
+- ``E_SCH``: the home's schedules, each with an id ``k``; ``<zone>_WSC`` is the
+  id of the schedule assigned to the zone (the app's "Assign room"). Removing
+  the schedule removes ``_WSC`` and the radiator goes back to manual.
 - ``<zone>_MSP``: the manual setpoint; kept, but not applied, in schedule mode.
 - ``<zone>_TSP``: the temporary setpoint. In schedule mode, +/- on the radiator
   sets it until the next schedule change (``e``); ``e`` in 1970 means "none".
 - ``<zone>_CSP``: the setpoint the radiator is applying, whatever the mode.
+- ``E_CLL`` / ``E_CPC``: the heat call, managed by the radiator itself (1 while
+  it heats, 0 once the setpoint is reached). Written from outside it stays as
+  written until the relay switches, so it is never written here.
 
 All values are in tenths of a degree.
 """
@@ -48,9 +53,15 @@ def _format_time(moment):
     return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
-def has_schedule(desired):
-    """True if the home has at least one schedule."""
-    return bool(desired.get("E_SCH"))
+def zone_schedule(desired, zone):
+    """Id of the schedule assigned to the zone, if it exists in ``E_SCH``."""
+    schedule_id = desired.get(f"{zone}_WSC")
+    if not schedule_id:
+        return None
+    for schedule in desired.get("E_SCH") or []:
+        if isinstance(schedule, dict) and schedule.get("k") == schedule_id:
+            return schedule_id
+    return None
 
 
 def zone_mode(desired, zone):
@@ -59,14 +70,14 @@ def zone_mode(desired, zone):
 
 def preset_for(desired, zone):
     """Preset to show for the zone: schedule or manual."""
-    if zone_mode(desired, zone) == MODE_SCHEDULE and has_schedule(desired):
+    if zone_mode(desired, zone) == MODE_SCHEDULE and zone_schedule(desired, zone):
         return PRESET_SCHEDULE
     return PRESET_MANUAL
 
 
-def preset_modes(desired):
-    """Presets the zone can switch to."""
-    if has_schedule(desired):
+def preset_modes(desired, zone):
+    """Presets the zone can switch to: schedule only with a schedule assigned."""
+    if zone_schedule(desired, zone):
         return [PRESET_MANUAL, PRESET_SCHEDULE]
     return [PRESET_MANUAL]
 
@@ -122,8 +133,8 @@ def apply_setpoint(desired, zone, temperature, now):
 
     In schedule mode the new value is a temporary setpoint until the next
     schedule change (the manual setpoint is left alone); otherwise it becomes
-    the manual setpoint. The heat call (E_CLL/E_CPC) is raised only when the
-    radiator is on: with the radiator off nothing would ever clear it.
+    the manual setpoint. ``CSP`` is updated only while the radiator is on (off,
+    it holds the antifreeze value); the heat call is left to the radiator.
     """
     tenths = int(round(temperature * 10))
     if preset_for(desired, zone) == PRESET_SCHEDULE:
@@ -135,12 +146,8 @@ def apply_setpoint(desired, zone, temperature, now):
         _set_value(desired, f"{zone}_MSP", tenths)
         _cancel_temporary(desired, zone, tenths)
         desired[f"{zone}_MOD"] = MODE_MANUAL
-    _set_value(desired, f"{zone}_CSP", tenths)
-
     if desired.get(f"{zone}_ENB") == 1:
-        for key in ("E_CLL", "E_CPC"):
-            if key in desired:
-                desired[key] = 1
+        _set_value(desired, f"{zone}_CSP", tenths)
 
 
 def apply_preset(desired, zone, preset):
@@ -154,8 +161,8 @@ def apply_preset(desired, zone, preset):
         _cancel_temporary(desired, zone, msp if msp is not None else 0)
         desired[f"{zone}_MOD"] = MODE_MANUAL
     elif preset == PRESET_SCHEDULE:
-        if not has_schedule(desired):
-            raise ValueError("no schedule configured in the IRSAP NOW app")
+        if not zone_schedule(desired, zone):
+            raise ValueError("no schedule assigned to this room in the IRSAP NOW app")
         msp = _value(desired, f"{zone}_MSP")
         _cancel_temporary(desired, zone, msp if msp is not None else 0)
         desired[f"{zone}_MOD"] = MODE_SCHEDULE

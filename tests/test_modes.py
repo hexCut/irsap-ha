@@ -28,9 +28,19 @@ MANUAL_ON = {
     },
     "PcC_CSP": {"p": {"k": "CURRENT", "m": 3, "u": 0, "v": 270}, "e": NO_END},
 }
+# Schedule as created in the app: one slot from 00:00 with the ECO preset,
+# assigned to the room through <zone>_WSC
+SCHEDULE_ID = "3db92aa6-1116-4dd2-9f2f-0386ae8d1892"
+SCHEDULE_ENTRY = {
+    "w": [[{"t": 0, "s": "1#ECO"}] for _ in range(7)],
+    "n": "",
+    "m": 1,
+    "k": SCHEDULE_ID,
+}
 SCHEDULE = {
     **copy.deepcopy(MANUAL_ON),
-    "E_SCH": [{"id": "s1"}],
+    "E_SCH": [SCHEDULE_ENTRY],
+    "PcC_WSC": SCHEDULE_ID,
     "PcC_MOD": 2,
     "PcC_CSP": {"p": {"k": "CURRENT", "m": 3, "u": 0, "v": 180}, "e": MIDNIGHT},
 }
@@ -50,10 +60,29 @@ def test_reading_modes():
     assert modes.preset_for(MANUAL_ON, "PcC") == "manual"
     assert modes.preset_for(SCHEDULE, "PcC") == "schedule"
     assert modes.preset_for(TEMPORARY, "PcC") == "schedule"
-    assert modes.preset_modes(MANUAL_ON) == ["manual"]
-    assert modes.preset_modes(SCHEDULE) == ["manual", "schedule"]
+    assert modes.preset_modes(MANUAL_ON, "PcC") == ["manual"]
+    assert modes.preset_modes(SCHEDULE, "PcC") == ["manual", "schedule"]
     # MOD=2 left over without any schedule is shown as manual
     assert modes.preset_for({**MANUAL_ON, "PcC_MOD": 2}, "PcC") == "manual"
+
+
+def test_schedule_is_per_room():
+    """E_SCH lists the home's schedules; only a room whose _WSC points to one
+    of them gets the schedule preset."""
+    two_rooms = {
+        **copy.deepcopy(SCHEDULE),
+        "ABC_NAM": "Camera",
+        "ABC_MOD": 1,
+        "ABC_ENB": 1,
+    }
+    assert modes.preset_modes(two_rooms, "PcC") == ["manual", "schedule"]
+    assert modes.preset_modes(two_rooms, "ABC") == ["manual"]
+    with pytest.raises(ValueError):
+        modes.apply_preset(two_rooms, "ABC", "schedule")
+    # a _WSC pointing to a schedule that no longer exists
+    stale = {**copy.deepcopy(SCHEDULE), "E_SCH": []}
+    assert modes.preset_for(stale, "PcC") == "manual"
+    assert modes.preset_modes(stale, "PcC") == ["manual"]
 
 
 def test_applied_setpoint():
@@ -78,7 +107,8 @@ def test_setpoint_in_manual_mode():
     assert desired["PcC_MSP"]["p"]["v"] == 240
     assert desired["PcC_CSP"]["p"]["v"] == 240
     assert desired["PcC_TSP"]["e"] == modes.NO_EXPIRY
-    assert (desired["E_CLL"], desired["E_CPC"]) == (1, 1)
+    # the heat call is the radiator's: never written
+    assert (desired["E_CLL"], desired["E_CPC"]) == (0, 0)
 
 
 def test_setpoint_in_schedule_mode_is_temporary_until_next_change():
@@ -111,13 +141,15 @@ def test_temporary_without_known_schedule_change_lasts_24h():
     assert desired["PcC_TSP"]["e"] == "2026-10-18T09:05:00.000Z"
 
 
-def test_setpoint_while_off_does_not_raise_the_heat_call():
-    """E_CLL=1 written while off is never cleared by the radiator: the IRSAP
-    app then shows a heating flame for a radiator that is off."""
+def test_setpoint_while_off():
+    """E_CLL=1 written from outside stays until the relay switches: with the
+    radiator off the IRSAP app showed a heating flame. CSP keeps the
+    antifreeze value while off."""
     desired = copy.deepcopy(OFF)
     modes.apply_setpoint(desired, "PcC", 26, NOW)
     assert (desired["E_CLL"], desired["E_CPC"]) == (0, 0)
     assert desired["PcC_MSP"]["p"]["v"] == 260
+    assert desired["PcC_CSP"]["p"]["v"] == 50
 
 
 def test_preset_manual_keeps_the_applied_temperature():
@@ -160,7 +192,8 @@ def _schedule_shadow(shadow, temporary=False):
     desired = shadow["state"]["desired"]
     desired.update(
         {
-            "E_SCH": [{"id": "s1"}],
+            "E_SCH": [SCHEDULE_ENTRY],
+            "PTO_WSC": SCHEDULE_ID,
             "PTO_MOD": 2,
             "PTO_ENB": 1,
             "PTO_MSP": {"p": {"k": "MANUAL", "m": 3, "u": 0, "v": 270}},
