@@ -112,6 +112,8 @@ pip install -r requirements_test.txt
 pytest
 ```
 
+Pull requests go against the `dev` branch. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first: changes that write to the IRSAP cloud need debug logs from a real installation.
+
 ## Contributions are welcome
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/rsplab)
