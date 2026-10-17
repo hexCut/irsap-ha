@@ -2,6 +2,8 @@
 
 from homeassistant.components.climate import HVACAction
 
+from .shadow import linked_device
+
 # When the action has to be inferred from the temperatures, mimic the radiator's
 # own hysteresis (tenths of a degree): it keeps heating until the room is more
 # than that above the setpoint and starts again once it is more than that below.
@@ -84,12 +86,11 @@ def get_hysteresis(desired_payload, base_key):
     With a single ``_X_hysteresis`` in the shadow that one is used; without
     any, ``INFERRED_HYSTERESIS``.
     """
-    for key, value in desired_payload.items():
-        if key.endswith("_PLD") and value == base_key:
-            device = desired_payload.get(f"{key[: -len('_PLD')]}_MID")
-            hysteresis = desired_payload.get(f"{device}_X_hysteresis")
-            if _is_valid_hysteresis(hysteresis):
-                return hysteresis
+    device = linked_device(desired_payload, base_key)
+    if device is not None:
+        hysteresis = desired_payload.get(f"{device}_X_hysteresis")
+        if _is_valid_hysteresis(hysteresis):
+            return hysteresis
 
     values = [
         value for key, value in desired_payload.items() if key.endswith("_X_hysteresis")
