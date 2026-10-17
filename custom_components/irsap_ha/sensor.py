@@ -15,10 +15,8 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-import re
 from .device_manager import device_manager
 from .shadow import device_values
-import pytz
 from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
