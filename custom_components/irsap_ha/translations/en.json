@@ -41,5 +41,19 @@
     "error": {
       "invalid_credentials": "Login failed: check username and password."
     }
+  },
+  "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Manual",
+              "schedule": "Schedule"
+            }
+          }
+        }
+      }
+    }
   }
 }

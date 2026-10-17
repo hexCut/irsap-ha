@@ -10,6 +10,8 @@ from homeassistant.components.climate import (
 from homeassistant.components.climate.const import ClimateEntityFeature
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import callback
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
 )
@@ -25,6 +27,7 @@ import json
 from .device import RadiatorDevice
 from .shadow import device_values
 from .device_manager import device_manager
+from . import modes
 from .hvac_action import (
     compute_hvac_action,
     get_hysteresis,
@@ -209,7 +212,13 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             ClimateEntityFeature.TARGET_TEMPERATURE
             | ClimateEntityFeature.TURN_ON
             | ClimateEntityFeature.TURN_OFF
+            | ClimateEntityFeature.PRESET_MODE
         )
+        # Nomi dei preset (manuale / programmata) tradotti
+        self._attr_translation_key = "radiator"
+        self._attr_preset_mode = modes.PRESET_MANUAL
+        self._attr_preset_modes = [modes.PRESET_MANUAL]
+        self._temporary_until = None
 
         _LOGGER.debug(
             f"Initialized {self._attr_name} with state {self._attr_hvac_mode}"
@@ -266,6 +275,10 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         return {
             "min_temperature": self._radiator.get("min_temperature"),
             "max_temperature": self._radiator.get("max_temperature"),
+            # Fine del setpoint temporaneo (programmata modificata con +/-)
+            "temporary_until": (
+                self._temporary_until.isoformat() if self._temporary_until else None
+            ),
         }
 
     @property
@@ -290,7 +303,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         return ok
 
     async def generate_device_payload(
-        self, payload, device_name, temperature=None, enable=None
+        self, payload, device_name, temperature=None, enable=None, preset=None
     ):
         # Aggiorna il timestamp con il tempo attuale in millisecondi
         current_timestamp = int(time.time() * 1000)  # Tempo attuale in millisecondi
@@ -305,63 +318,20 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
 
-        timestamp_24h_future = int(time.time()) + 24 * 3600
-        time_24h_future = time.strftime(
-            "%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(timestamp_24h_future)
-        )
-
-        # Controlla la pianificazione `E_SCH` per ciascun radiatore
-        num_radiatori = sum(1 for key in desired_payload if key.endswith("_NAM"))
-        has_scheduling = len(desired_payload.get("E_SCH", [])) == num_radiatori
-
         # Cerca il device nel payload basato sul nome
         for key, value in desired_payload.items():
             if key.endswith("_NAM") and value == device_name:
                 base_key = key[:-4]  # Ottieni la chiave di base senza il suffisso
 
-                # Aggiorna la temperatura se fornita
+                # Aggiorna la temperatura se fornita, come i tasti +/- del
+                # radiatore: temporanea in programmata, manuale altrimenti
                 if temperature is not None:
-                    # Aggiorna _MSP
-                    msp_key = f"{base_key}_MSP"
-                    if msp_key in desired_payload:
-                        if "p" in desired_payload[msp_key]:
-                            desired_payload[msp_key]["p"]["v"] = int(temperature * 10)
-
-                    tsp_key = f"{base_key}_TSP"
-                    if tsp_key in desired_payload:
-                        desired_payload[tsp_key] = {
-                            "p": {
-                                "u": 0,
-                                "v": int(temperature * 10),
-                                "m": 3,
-                                "k": "TEMPORARY",
-                            },
-                            "e": time_24h_future
-                            if has_scheduling
-                            else "1970-01-01T00:00:00.000Z",
-                        }
-
-                    # Imposta _MOD in base alla logica definita sopra
-                    mod_key = f"{base_key}_MOD"
-                    desired_payload[mod_key] = 2 if has_scheduling else 1
-
-                    # Aggiorna _CSP
-                    csp_key = f"{base_key}_CSP"
-                    if csp_key in desired_payload:
-                        if "p" in desired_payload[csp_key]:
-                            desired_payload[csp_key]["p"]["v"] = int(temperature * 10)
-
-                    # Aggiorna E_CLL se presente, impostandolo a 1
-                    ecll_key = "E_CLL"
-                    if ecll_key in desired_payload:
-                        desired_payload[ecll_key] = 1  # Imposta E_CLL a 1
-
-                    # Aggiorna E_CPC se presente, impostandolo a 1
-                    ecpc_key = "E_CPC"
-                    if ecpc_key in desired_payload:
-                        desired_payload[ecpc_key] = 1  # Imposta E_CPC a 1
-
-                    break
+                    modes.apply_setpoint(
+                        desired_payload, base_key, temperature, dt_util.utcnow()
+                    )
+                if preset is not None:
+                    modes.apply_preset(desired_payload, base_key, preset)
+                break
 
         # Rimuovi 'sk' se esistente
         desired_payload.pop("sk", None)
@@ -521,6 +491,48 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         # Stato iniziale dai dati già scaricati dal coordinator
         self._update_from_payload(self.coordinator.desired)
 
+    @serialize_writes
+    async def async_set_preset_mode(self, preset_mode):
+        "Passa a manuale o a programmata (annulla un eventuale temporaneo)."
+        if preset_mode not in self._attr_preset_modes:
+            raise ServiceValidationError(
+                f"Preset {preset_mode} is not available: assign a schedule to "
+                "this room in the IRSAP NOW app"
+            )
+        token, payload = await async_fetch_shadow(self.hass, self._envID)
+        if payload is None:
+            _LOGGER.error(f"Failed to retrieve current payload for {self._attr_name}")
+            return
+
+        updated_payload = await self.generate_device_payload(
+            payload=payload,
+            device_name=self._attr_name.replace("Radiator", "").strip(),
+            preset=preset_mode,
+        )
+        if await self._send_target_temperature_to_api(
+            token, self._envID, updated_payload
+        ):
+            desired = updated_payload["state"]["desired"]
+            zone = self._zone_key(desired)
+            self._attr_preset_mode = preset_mode
+            self._temporary_until = None
+            if zone is not None and preset_mode == modes.PRESET_MANUAL:
+                target = modes.applied_setpoint(desired, zone)
+                if target is not None:
+                    self._target_temperature = target
+            self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
+            self.async_write_ha_state()
+        else:
+            _LOGGER.error(f"Failed to set preset {preset_mode} for {self._attr_name}")
+
+    def _zone_key(self, desired_payload):
+        "Prefisso della zona di questo radiatore (es. 'PcC')."
+        device_name = self._attr_name.replace("Radiator", "").strip()
+        for key, value in desired_payload.items():
+            if key.endswith("_NAM") and value == device_name:
+                return key[:-4]
+        return None
+
     def _estimate_hvac_action(self):
         "Azione attesa subito dopo un comando, prima che il cloud la confermi."
         if self._attr_hvac_mode == HVACMode.OFF:
@@ -554,7 +566,6 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             if key.endswith("_NAM") and value == device_name:
                 base_key = key[:-4]  # Ottieni la chiave base
                 tmp_key = f"{base_key}_TMP"
-                msp_key = f"{base_key}_MSP"
                 enb_key = f"{base_key}_ENB"
 
                 # Ottieni la temperatura
@@ -562,12 +573,27 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                 if tmp_value is not None:
                     self._current_temperature = tmp_value / 10
 
-                # Ottieni la temperatura target
-                msp_value = desired_payload.get(msp_key)
-                if isinstance(msp_value, dict):
-                    target = msp_value.get("p", {}).get("v")
-                    if target is not None:
-                        self._target_temperature = target / 10
+                # Temperatura target: quella applicata (CSP) se acceso, la
+                # manuale (MSP) se spento
+                target = modes.applied_setpoint(desired_payload, base_key)
+                if target is not None:
+                    self._target_temperature = target
+
+                _LOGGER.debug(
+                    f"modes for {self._attr_name}: "
+                    f"MOD={desired_payload.get(base_key + '_MOD')} "
+                    f"MSP={desired_payload.get(base_key + '_MSP')} "
+                    f"TSP={desired_payload.get(base_key + '_TSP')} "
+                    f"CSP={desired_payload.get(base_key + '_CSP')} "
+                    f"E_SCH={desired_payload.get('E_SCH')}"
+                )
+
+                # Manuale / programmata, ed eventuale temporaneo
+                self._attr_preset_modes = modes.preset_modes(desired_payload, base_key)
+                self._attr_preset_mode = modes.preset_for(desired_payload, base_key)
+                self._temporary_until = modes.temporary_until(
+                    desired_payload, base_key, dt_util.utcnow()
+                )
 
                 # Sta scaldando davvero o ha raggiunto la temperatura? (#20)
                 from_device = written_by_device(self.coordinator.data)
