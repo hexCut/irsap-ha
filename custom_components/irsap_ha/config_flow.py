@@ -1,13 +1,19 @@
 import logging
 import aiohttp
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
-from warrant import Cognito
-import asyncio
+from homeassistant.helpers import selector
+from .const import (
+    DOMAIN,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    MAX_SCAN_INTERVAL,
+)
+from .auth import IrsapAuthError, login_with_srp as _sync_login_with_srp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,39 +94,115 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return RadiatorsIntegrationOptionsFlow(config_entry)
+        return RadiatorsIntegrationOptionsFlow()
 
     async def async_get_envID(self, username, password, token):
         """Asynchronous method to get envID."""
         return await envid_with_srp(username, password, token)
 
+    async def async_step_reauth(self, entry_data):
+        "Le credenziali salvate sono state rifiutate dal cloud IRSAP."
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input=None):
+        "Chiede la nuova password per l'account già configurato."
+        entry = self._get_reauth_entry()
+        errors = {}
+        if user_input is not None:
+            token = await login_with_srp(
+                self.hass, entry.data["username"], user_input["password"]
+            )
+            if token is None:
+                errors["base"] = "invalid_credentials"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data={
+                        **entry.data,
+                        "password": user_input["password"],
+                        "token": token,
+                    },
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required("password"): str}),
+            description_placeholders={"username": entry.data["username"]},
+            errors=errors,
+        )
+
 
 class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
     "Handle the options flow for the integration."
 
-    def __init__(self, config_entry):
-        "Initialize the options flow."
-        self.config_entry = config_entry
+    # NB: self.config_entry is provided by Home Assistant (2024.11+); assigning
+    # it in __init__ is deprecated and no longer works on recent versions.
 
     async def async_step_init(self, user_input=None):
         "Manage the options."
-        if user_input is not None:
-            # Update the config entry options with new values
-            return self.async_create_entry(title="", data=user_input)
+        errors = {}
+        entry = self.config_entry
 
-        # Define the schema for the options form
+        if user_input is not None:
+            username = user_input["username"]
+            password = user_input["password"]
+
+            # Credenziali modificate: verificale e salvale in entry.data, che è
+            # dove le leggono le piattaforme
+            if username != entry.data.get("username") or password != entry.data.get(
+                "password"
+            ):
+                token = await login_with_srp(self.hass, username, password)
+                if token is None:
+                    errors["base"] = "invalid_credentials"
+                else:
+                    # Dati e opzioni in un solo aggiornamento, così l'integrazione
+                    # si ricarica una volta sola
+                    self.hass.config_entries.async_update_entry(
+                        entry,
+                        data={
+                            **entry.data,
+                            "username": username,
+                            "password": password,
+                            "token": token,
+                        },
+                        options={
+                            CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])
+                        },
+                    )
+
+            if not errors:
+                # Nelle opzioni resta solo l'intervallo di aggiornamento;
+                # il listener in __init__ ricarica l'integrazione
+                return self.async_create_entry(
+                    title="",
+                    data={CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL])},
+                )
+
         options_schema = vol.Schema(
             {
+                vol.Required("username", default=entry.data.get("username")): str,
+                vol.Required("password", default=entry.data.get("password")): str,
                 vol.Required(
-                    "username", default=self.config_entry.data.get("username")
-                ): str,
-                vol.Required(
-                    "password", default=self.config_entry.data.get("password")
-                ): str,
+                    CONF_SCAN_INTERVAL,
+                    default=entry.options.get(
+                        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                    ),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL,
+                        max=MAX_SCAN_INTERVAL,
+                        step=1,
+                        unit_of_measurement="s",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=options_schema)
+        return self.async_show_form(
+            step_id="init", data_schema=options_schema, errors=errors
+        )
 
     async def _update_options(self, user_input):
         "Update config entry options and reload entities."
@@ -141,19 +223,12 @@ class RadiatorsIntegrationOptionsFlow(config_entries.OptionsFlow):
 
 
 async def login_with_srp(hass, username, password):
-    "Log in and obtain the access token using Warrant."
-    return await hass.async_add_executor_job(_sync_login_with_srp, username, password)
-
-
-def _sync_login_with_srp(username, password):
-    """Synchronous function to log in using Warrant."""
+    "Log in and obtain the access token using Warrant (None if it fails)."
     try:
-        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
-        u.authenticate(password=password)
-        _LOGGER.debug(f"Access Token: {u.access_token}")
-        return u.access_token
-    except Exception as e:
-        _LOGGER.error(f"Error during login: {e}")
+        return await hass.async_add_executor_job(
+            _sync_login_with_srp, username, password
+        )
+    except IrsapAuthError:
         return None
 
 

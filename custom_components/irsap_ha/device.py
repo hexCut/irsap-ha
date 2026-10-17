@@ -1,5 +1,4 @@
 class RadiatorDevice:
-    def __init__(self, radiator, token, envID):
+    def __init__(self, radiator, envID):
         self.radiator = radiator
-        self.token = token
         self.envID = envID

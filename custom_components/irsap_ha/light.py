@@ -1,10 +1,10 @@
 import time
-from .const import DOMAIN, USER_POOL_ID, CLIENT_ID, REGION
+from .const import DOMAIN, WRITE_SETTLE_TIME
+from .api import async_fetch_shadow, async_update_shadow
 import logging
 from homeassistant.components.light import LightEntity, ColorMode
-import aiohttp
-import json
-from warrant import Cognito
+from homeassistant.core import callback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .device_manager import device_manager
 import asyncio
 import colorsys
@@ -13,116 +13,42 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    from .climate import RadiatorClimate  # Importa RadiatorClimate qui
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
 
-    envID = config_entry.data["envID"]
-    username = config_entry.data["username"]
-    password = config_entry.data["password"]
+    devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
+    _LOGGER.debug(f"Devices found: {[device.radiator['serial'] for device in devices]}")
 
-    token = await hass.async_add_executor_job(login_with_srp, username, password)
-
-    if token and envID:
-        _LOGGER.debug("Token and envID successfully obtained. Retrieving sensors.")
-
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN]["token"] = token
-        hass.data[DOMAIN]["envID"] = envID
-        hass.data[DOMAIN]["username"] = username
-        hass.data[DOMAIN]["password"] = password
-
-        devices = device_manager.get_devices()  # Ottieni i dispositivi dal manager
-        _LOGGER.debug(
-            f"Devices found: {[device.radiator['serial'] for device in devices]}"
+    if not devices:
+        _LOGGER.error(
+            "No devices found. Please ensure that climate entities are set up correctly."
         )
+        return
 
-        if not devices:
-            _LOGGER.error(
-                "No devices found. Please ensure that climate entities are set up correctly."
+    # Ottieni i dati delle luci dal GetShadow già fatto dal coordinator
+    radiators_lights = extract_device_info(coordinator.desired)
+    _LOGGER.info(f"Radiators lights data: {radiators_lights}")
+
+    # Crea entità light
+    lights = []
+    for key, radiator in radiators_lights:  # Itera sulle tuple (key, value)
+        if (
+            isinstance(radiator, dict) and "serial" in radiator
+        ):  # Verifica che il valore sia valido
+            unique_id = f"{radiator['serial']}"
+            lights.append(
+                RadiatorLight(
+                    coordinator,
+                    radiator,
+                    unique_id,
+                    unique_id=f"{radiator['serial']}_led",
+                )
             )
-            return
+        else:
+            _LOGGER.warning(f"Skipping invalid radiator data for key {key}: {radiator}")
 
-        # Ottieni i dati delle luci
-        radiators_lights = await get_light_data(token, envID)
-        _LOGGER.info(f"Radiators lights data: {radiators_lights}")
-
-        # Crea entità light
-        lights = []
-        for key, radiator in radiators_lights:  # Itera sulle tuple (key, value)
-            if (
-                isinstance(radiator, dict) and "serial" in radiator
-            ):  # Verifica che il valore sia valido
-                unique_id = f"{radiator['serial']}"
-                lights.append(
-                    RadiatorLight(
-                        radiator,
-                        unique_id,
-                        unique_id=f"{radiator['serial']}_led",
-                    )
-                )
-            else:
-                _LOGGER.warning(
-                    f"Skipping invalid radiator data for key {key}: {radiator}"
-                )
-
-        async_add_entities(lights)
-    else:
-        _LOGGER.error("Unable to obtain the token or envID. Check configuration.")
+    async_add_entities(lights)
 
 
-def login_with_srp(username, password):
-    "Log in and obtain the access token using Warrant."
-    try:
-        _LOGGER.debug(f"Starting login process with username: {username}")
-        u = Cognito(USER_POOL_ID, CLIENT_ID, username=username, user_pool_region=REGION)
-        _LOGGER.debug("Cognito object created successfully.")
-        u.authenticate(password=password)
-        _LOGGER.debug(f"Access Token: {u.access_token}")
-        return u.access_token
-    except TypeError as te:
-        _LOGGER.error(f"Type error during login: {te}")
-    except Exception as e:
-        _LOGGER.error(f"Unhandled error during login: {e}")
-    return None
-
-
-async def get_light_data(token, envID):
-    "Fetch radiator data from the API."
-    url = (
-        "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-    )
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-    graphql_query = {
-        "operationName": "GetShadow",
-        "variables": {"envId": envID},
-        "query": "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n",
-    }
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url, json=graphql_query, headers=headers
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    payload = json.loads(data["data"]["getShadow"]["payload"])
-                    _LOGGER.debug(f"Payload retrieved from API: {payload}")
-
-                    return extract_device_info(payload["state"]["desired"])
-                else:
-                    _LOGGER.error(f"API request error: {response.status}")
-                    return []
-    except ValueError as e:
-        _LOGGER.error(f"Error converting temperature: {e}")
-        return []
-    except Exception as e:
-        _LOGGER.error(f"Error during API call: {e}")
-        return []
-
-
-import re
 
 
 def extract_device_info(
@@ -195,10 +121,14 @@ def extract_device_info(
     return devices_info
 
 
-class RadiatorLight(LightEntity):
+class RadiatorLight(CoordinatorEntity, LightEntity):
     "Representation of a radiator light entity."
 
-    def __init__(self, radiator, device, unique_id):
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(coordinator)
+        self._envID = coordinator.envID
+        # Dopo un comando lo shadow nel cloud può essere ancora quello vecchio
+        self._ignore_updates_until = 0.0
         self._radiator = radiator
         self._device = device  # Store device reference
         self._attr_name = f"{radiator['serial']} LED"
@@ -320,61 +250,17 @@ class RadiatorLight(LightEntity):
         "Return the color mode of the light."
         return ColorMode.RGBW
 
-    async def async_update(self):
-        "Aggiorna lo stato della luce dal dispositivo."
-        if getattr(self, "_pending_update", False):
-            self._pending_update = False
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        "Aggiorna lo stato della luce dal payload del coordinator."
+        if time.monotonic() < self._ignore_updates_until:
+            _LOGGER.debug(f"Ignoring update for {self._attr_name} right after a command")
             return
-
         _LOGGER.debug(f"Updating radiator light {self._attr_name}")
-
-        # Configurazione iniziale
         device_name = self._attr_name.replace("LED", "").strip()
-        username = self.hass.data[DOMAIN]["username"]
-        password = self.hass.data[DOMAIN]["password"]
-        envID = self.hass.data[DOMAIN].get("envID")
-        token = self.hass.data[DOMAIN].get("token")
-
-        retry_count = 0
-        max_retries = 1
-        last_valid_brightness = self._attr_brightness
-        last_valid_hs_color = self._attr_hs_color
-
-        while retry_count < max_retries:
-            retry_count += 1
-            _LOGGER.debug(
-                f"Attempt {retry_count}: Retrieving payload for {self._attr_name}"
-            )
-
-            if not token or not envID:
-                # Recupera un nuovo token e il payload
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                _LOGGER.error("Token or envID not found in hass.data")
-                return
-
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                if not token:
-                    _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
-                payload = await self.get_current_payload(token, envID)
-
-            # Ottieni informazioni dal payload
-            desired_payload = payload.get("state", {}).get("desired", {})
-            if self._extract_light_info(desired_payload, device_name):
-                break
-            else:
-                _LOGGER.warning(
-                    f"Light info is incomplete for {self._attr_name}. Retrying..."
-                )
-                await asyncio.sleep(1)
+        if not self._extract_light_info(self.coordinator.desired, device_name):
+            _LOGGER.warning(f"Light info is incomplete for {self._attr_name}")
+        self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs):
         await asyncio.sleep(1)
@@ -400,36 +286,10 @@ class RadiatorLight(LightEntity):
             hsv = self._convert_rgbw_to_hsv(self._attr_rgbw_color)
             h, s, v = hsv
 
-        username = self.hass.data[DOMAIN].get("username")
-        password = self.hass.data[DOMAIN].get("password")
-        envID = self.hass.data[DOMAIN].get("envID")
-        token = self.hass.data[DOMAIN].get("token")
+        envID = self._envID
 
-        if not token or not envID:
-            token = await self.hass.async_add_executor_job(
-                login_with_srp, username, password
-            )
-            _LOGGER.error("Token or envID not found in hass.data")
-            return
-
-        # Function to handle token regeneration and payload retrieval
-        async def retrieve_payload(token, envID):
-            "Attempt to retrieve the payload, regenerate the token if it fails"
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                if not token:
-                    _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
-                payload = await self.get_current_payload(token, envID)
-            return token, payload
-
-        # Retrieve the payload and handle token regeneration if necessary
-        token, payload = await retrieve_payload(token, envID)
+        # Token in cache; se il GetShadow fallisce ne viene chiesto uno nuovo
+        token, payload = await async_fetch_shadow(self.hass, envID)
 
         if payload is None:
             _LOGGER.error(
@@ -451,6 +311,7 @@ class RadiatorLight(LightEntity):
         if success:
             # Aggiorna lo stato interno
             self._attr_is_on = True
+            self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
             _LOGGER.error(
@@ -462,11 +323,9 @@ class RadiatorLight(LightEntity):
         "Turn on the light with the specified settings."
         _LOGGER.debug(f"Turning off {self._attr_name} with kwargs: {kwargs}")
 
-        # Imposta la luminosità, se specificata, o utilizza quella attuale
+        # Allo spegnimento la luminosità inviata è 0; si ricorda quella richiesta
         brightness = kwargs.get("brightness", self._attr_brightness)
         if brightness is not None:
-            # Converti la luminosità da Home Assistant (0-255) a IRSAP (0-100)
-            brightness_irsap = round((brightness / 255) * 100)
             self._attr_brightness = brightness
 
         # Imposta il colore RGBW, se specificato
@@ -481,36 +340,10 @@ class RadiatorLight(LightEntity):
             hsv = self._convert_rgbw_to_hsv(self._attr_rgbw_color)
             h, s, v = hsv
 
-        username = self.hass.data[DOMAIN].get("username")
-        password = self.hass.data[DOMAIN].get("password")
-        envID = self.hass.data[DOMAIN].get("envID")
-        token = self.hass.data[DOMAIN].get("token")
+        envID = self._envID
 
-        if not token or not envID:
-            token = await self.hass.async_add_executor_job(
-                login_with_srp, username, password
-            )
-            _LOGGER.error("Token or envID not found in hass.data")
-            return
-
-        # Function to handle token regeneration and payload retrieval
-        async def retrieve_payload(token, envID):
-            "Attempt to retrieve the payload, regenerate the token if it fails"
-            payload = await self.get_current_payload(token, envID)
-            if payload is None:
-                # Regenerate token and retry
-                token = await self.hass.async_add_executor_job(
-                    login_with_srp, username, password
-                )
-                if not token:
-                    _LOGGER.error("Failed to regenerate token")
-                    return None, None
-                # Try to retrieve payload again
-                payload = await self.get_current_payload(token, envID)
-            return token, payload
-
-        # Retrieve the payload and handle token regeneration if necessary
-        token, payload = await retrieve_payload(token, envID)
+        # Token in cache; se il GetShadow fallisce ne viene chiesto uno nuovo
+        token, payload = await async_fetch_shadow(self.hass, envID)
 
         if payload is None:
             _LOGGER.error(
@@ -531,11 +364,12 @@ class RadiatorLight(LightEntity):
         success = await self._send_light_status_to_api(token, envID, updated_payload)
         if success:
             # Aggiorna lo stato interno
-            self._attr_is_on = True
+            self._attr_is_on = False
+            self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
             _LOGGER.error(
-                f"Failed to update color and status as ON for {self._attr_name}"
+                f"Failed to update color and status as OFF for {self._attr_name}"
             )
 
     def _extract_light_info(self, desired_payload, device_name):
@@ -586,11 +420,6 @@ class RadiatorLight(LightEntity):
             "desired", {}
         )  # Accedi a payload["state"]["desired"]
 
-        timestamp_24h_future = int(time.time()) + 24 * 3600
-        time_24h_future = time.strftime(
-            "%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(timestamp_24h_future)
-        )
-
         # Cerca il device nel payload basato sul nome
         for key, value in desired_payload.items():
             if key.endswith("_NAM") and value == device_name:
@@ -632,63 +461,4 @@ class RadiatorLight(LightEntity):
     # Funzione per inviare il payload aggiornato alle API
     async def _send_light_status_to_api(self, token, envID, updated_payload):
         "Invia il payload aggiornato alle API."
-        url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-
-        json_payload = json.dumps(updated_payload)
-
-        graphql_query = {
-            "operationName": "UpdateShadow",
-            "variables": {"envId": envID, "payload": json_payload},
-            "query": (
-                "mutation UpdateShadow($envId: ID!, $payload: AWSJSON!) {\n asyncUpdateShadow(envId: $envId, payload: $payload) {\n status\n code\n message\n payload\n __typename\n }\n}\n"
-            ),
-        }
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, json=graphql_query, headers=headers
-                ) as response:
-                    if response.status == 200:
-                        return True
-                    else:
-                        _LOGGER.error(
-                            f"API request error: {response.status} - {await response.text()}"
-                        )
-                        return False
-        except Exception as e:
-            _LOGGER.error(f"Error sending payload to API: {e}")
-            return False
-
-    async def get_current_payload(self, token, envID):
-        "Fetch the current device payload from the API."
-        url = "https://flqpp5xzjzacpfpgkloiiuqizq.appsync-api.eu-west-1.amazonaws.com/graphql"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-
-        graphql_query = {
-            "operationName": "GetShadow",
-            "variables": {"envId": envID},
-            "query": "query GetShadow($envId: ID!) {\n  getShadow(envId: $envId) {\n    envId\n    payload\n    __typename\n  }\n}\n",
-        }
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    url, json=graphql_query, headers=headers
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        payload = json.loads(data["data"]["getShadow"]["payload"])
-                        return payload
-                    else:
-                        return None
-        except Exception as e:
-            _LOGGER.error(f"Exception during payload retrieval: {e}")
-            return None
+        return await async_update_shadow(self.hass, token, envID, updated_payload)

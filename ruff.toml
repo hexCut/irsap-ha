@@ -1,0 +1,8 @@
+# Lint rules checked in CI (.github/workflows/lint.yml).
+# Kept to real problems: syntax errors (E9), pyflakes (F: unused imports and
+# variables, undefined names) and bugbear (B: likely bugs). Formatting is not
+# enforced.
+target-version = "py313"
+
+[lint]
+select = ["E9", "F", "B"]

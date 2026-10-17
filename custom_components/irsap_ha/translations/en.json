@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IRSAP NOW account",
+        "data": {
+          "username": "Username (e-mail)",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate IRSAP NOW",
+        "description": "The IRSAP cloud rejected the saved password for {username}. Enter the current password of your IRSAP NOW account.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_credentials": "Login failed: check username and password.",
+      "envid_failed": "Logged in, but no IRSAP environment was found for this account."
+    },
+    "abort": {
+      "reauth_successful": "The IRSAP NOW password was updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IRSAP NOW options",
+        "data": {
+          "username": "Username (e-mail)",
+          "password": "Password",
+          "scan_interval": "Update interval"
+        },
+        "data_description": {
+          "scan_interval": "How often the radiators and LEDs are read from the IRSAP cloud, in seconds (30-3600). Lower values react faster to changes made in the IRSAP app, higher values put less load on the cloud. Changes sent from Home Assistant are not affected."
+        }
+      }
+    },
+    "error": {
+      "invalid_credentials": "Login failed: check username and password."
+    }
+  }
+}
