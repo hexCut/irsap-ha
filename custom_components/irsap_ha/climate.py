@@ -631,6 +631,15 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                 if target is not None:
                     self._target_temperature = target
 
+                _LOGGER.debug(
+                    f"modes for {self._attr_name}: "
+                    f"MOD={desired_payload.get(base_key + '_MOD')} "
+                    f"MSP={desired_payload.get(base_key + '_MSP')} "
+                    f"TSP={desired_payload.get(base_key + '_TSP')} "
+                    f"CSP={desired_payload.get(base_key + '_CSP')} "
+                    f"E_SCH={desired_payload.get('E_SCH')}"
+                )
+
                 # Manuale / programmata, ed eventuale temporaneo
                 self._attr_preset_modes = modes.preset_modes(desired_payload)
                 self._attr_preset_mode = modes.preset_for(desired_payload, base_key)
