@@ -19,6 +19,7 @@ from .api import async_fetch_shadow, async_update_shadow
 import json
 import re
 from .device import RadiatorDevice
+from .shadow import device_values
 from .device_manager import device_manager
 from .hvac_action import (
     compute_hvac_action,
@@ -52,6 +53,15 @@ async def async_setup_entry(
             RadiatorClimate(coordinator, r, envID, unique_id=f"{r['serial']}_climate")
         )
     async_add_entities(entities)
+
+
+# Device fields read for each zone (name used here -> key suffix)
+CLIMATE_DEVICE_FIELDS = {
+    "mac": "_SRL",
+    "firmware": "_FWV",
+    "model": "_TYP",
+    "ip_address": "_X_ipAddress",
+}
 
 
 def extract_device_info(
@@ -138,6 +148,10 @@ def extract_device_info(
             device_info["model"] = typ_keys[i][1]
         if i < len(ip_keys):
             device_info["ip_address"] = ip_keys[i][1]
+
+        # Con più radiatori l'ordine delle chiavi non basta: se lo shadow
+        # collega la zona al suo dispositivo, si leggono i valori da lì
+        device_info.update(device_values(payload, base_key, CLIMATE_DEVICE_FIELDS))
 
         devices_info.append(device_info)
 

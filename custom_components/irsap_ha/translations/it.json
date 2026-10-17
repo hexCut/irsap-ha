@@ -8,6 +8,13 @@
           "password": "Password"
         }
       },
+      "reauth_confirm": {
+        "title": "Accedi di nuovo a IRSAP NOW",
+        "description": "Il cloud IRSAP ha rifiutato la password salvata per {username}. Inserisci la password attuale del tuo account IRSAP NOW.",
+        "data": {
+          "password": "Password"
+        }
+      },
       "environment": {
         "title": "Scegli la casa",
         "description": "Questo account IRSAP NOW ha più di una casa. Scegli quella da aggiungere a Home Assistant.",
@@ -19,6 +26,9 @@
     "error": {
       "invalid_credentials": "Accesso non riuscito: controlla nome utente e password.",
       "envid_failed": "Accesso riuscito, ma per questo account non è stato trovato nessun ambiente IRSAP."
+    },
+    "abort": {
+      "reauth_successful": "La password di IRSAP NOW è stata aggiornata."
     }
   },
   "options": {
