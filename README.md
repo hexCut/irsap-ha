@@ -101,6 +101,16 @@ Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update
 - Values have proper units: Wi-Fi in dBm, hysteresis and temperature offset in °C, open-window off time in minutes, CO2 in ppm.
 - A measurement the radiator doesn't have (the cloud reports `65535` or nothing) is created **disabled**, so it doesn't clutter the UI. If the radiator later reports a real value, the sensor is enabled again automatically. A sensor you disabled yourself is never re-enabled.
 
+### Radiator settings
+
+Each radiator that reports them gets three switches, under *Configuration* on the device page:
+
+- **Child Lock**: the radiator's +/− buttons stop working (they beep twice).
+- **Standby**: the radiator is switched off to save energy (purple LED) and ignores the app and its own buttons until standby is turned off again.
+- **Open Window Detection**: when the room temperature drops suddenly, the radiator switches off for 30 minutes.
+
+They change the same settings as the IRSAP NOW app, and changes made in the app show up in Home Assistant at the next update.
+
 ## Development
 
 ```
