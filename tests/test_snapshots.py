@@ -20,6 +20,7 @@ from unittest.mock import patch
 import pytest
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
 
 from custom_components.irsap_ha.const import DOMAIN
 
@@ -159,3 +160,9 @@ async def test_entities(hass, config_entry, mock_login, snapshot, name):
         assert _describe(hass, config_entry) == snapshot
 
     assert DOMAIN in hass.data
+
+
+def test_snapshots_use_home_assistant_extension(snapshot):
+    """Snapshots must be read from tests/snapshots/ with HA's serializer,
+    whatever order the pytest plugins were installed in (see conftest)."""
+    assert snapshot.extension_class is HomeAssistantSnapshotExtension
