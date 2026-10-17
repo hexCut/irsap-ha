@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import async_fetch_shadow, async_update_shadow
 from .const import APP_CLIENT_ID, DOMAIN, WRITE_SETTLE_TIME
+from .hvac_action import written_by_device
 from .shadow import linked_device
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,7 +100,14 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
     def _handle_coordinator_update(self) -> None:
         if time.monotonic() < self._ignore_updates_until:
             return
-        self._attr_is_on = self._read(self.coordinator.desired)
+        desired = self.coordinator.desired
+        self._attr_is_on = self._read(desired)
+        key = device_key(desired, self._zone, self._suffix)
+        _LOGGER.debug(
+            f"{self._attr_name}: {key}={desired.get(key) if key else None} "
+            f"written_by="
+            f"{'device' if written_by_device(self.coordinator.data) else 'app'}"
+        )
         self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs):
@@ -118,6 +126,9 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
         if key is None:
             raise HomeAssistantError(f"{self._attr_name}: setting not found")
 
+        _LOGGER.debug(
+            f"{self._attr_name}: writing {key}={value} (was {desired.get(key)})"
+        )
         desired[key] = value
         desired.pop("sk", None)
         payload["timestamp"] = int(time.time() * 1000)
@@ -131,6 +142,7 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
         }
         if not await async_update_shadow(self.hass, token, envID, ordered):
             raise HomeAssistantError(f"{self._attr_name}: the IRSAP cloud refused it")
+        _LOGGER.debug(f"{self._attr_name}: UpdateShadow accepted {key}={value}")
 
         self._attr_is_on = value == 1
         self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
