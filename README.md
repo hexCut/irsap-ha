@@ -74,6 +74,46 @@ Now the integration is added to HACS and available in the normal HA integration 
    1. **Username**: Your username to login via IRSAP Now App
    2. **Password**: Your password to login via IRSAP Now App
 
+### Options
+
+Open the integration and click `Configure` to change:
+
+- **Username / Password**: the IRSAP Now credentials (they are checked before being saved).
+- **Update interval**: how often the IRSAP cloud is read, in seconds (default `60`, range `30`-`3600`). All radiators, LEDs and diagnostic sensors share a single request per interval. Changes sent from Home Assistant are applied immediately regardless of this value.
+
+If you prefer to drive updates yourself (e.g. from an automation calling `homeassistant.update_entity`), turn off *Enable polling for changes* in the integration's *System options*: the integration then stops its own timer, and `update_entity` on any IRSAP entity refreshes all of them.
+
+Requires Home Assistant 2024.11.0 or newer.
+
+### Heating activity (`hvac_action`)
+
+Besides the mode (heat / off), each radiator reports what it is actually doing: *heating*, *idle* (setpoint reached) or *off*.
+
+- **One radiator in the home:** the value comes from the radiator's own heat call (`E_CLL`), read only when the radiator itself wrote the cloud state last. Right after a command from Home Assistant or the app, the action is estimated until the radiator reports again.
+- **Several radiators:** the cloud has no per-radiator heat call, so the action is *estimated* from the measured temperature and the setpoint, with the radiator's own hysteresis, read from the cloud (0.2 °C on firmware 3.22: it heats until the room is that much above the setpoint and starts again that much below it). It can differ from what the radiator is really doing.
+
+The radiator sends a new temperature reading only every few minutes (20 on firmware 3.22), so the action can lag behind the real heating by that much.
+
+### Diagnostic sensors
+
+Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update, hysteresis, temperature offset, open window, pilot wire, child lock and, on the models that have them, CO2, VOC and air quality). They are listed under *Diagnostic* on the device page and are refreshed with the rest of the data.
+
+- Values have proper units: Wi-Fi in dBm, hysteresis and temperature offset in °C, open-window off time in minutes, CO2 in ppm.
+- A measurement the radiator doesn't have (the cloud reports `65535` or nothing) is created **disabled**, so it doesn't clutter the UI. If the radiator later reports a real value, the sensor is enabled again automatically. A sensor you disabled yourself is never re-enabled.
+
+### Diagnostics
+
+To report a problem, download the diagnostics file: *Settings → Devices & services → IRSAP NOW Integration → ⋮ → Download diagnostics*. It contains the integration's state and the data the IRSAP cloud reports for your radiators. Credentials, the token, your home's address and coordinates, MAC and IP addresses are removed.
+
+## Development
+
+```
+pip install -r requirements_test.txt
+pytest
+```
+
+Pull requests go against the `dev` branch. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first: changes that write to the IRSAP cloud need debug logs from a real installation.
+
 ## Contributions are welcome
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/rsplab)
