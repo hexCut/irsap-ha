@@ -1,6 +1,11 @@
 import time
 from .const import DOMAIN, WRITE_SETTLE_TIME
-from .api import async_fetch_shadow, async_update_shadow
+from .api import (
+    async_fetch_shadow,
+    async_update_shadow,
+    remember_write,
+    serialize_writes,
+)
 import logging
 from homeassistant.components.light import LightEntity, ColorMode
 from homeassistant.core import callback
@@ -262,6 +267,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
             _LOGGER.warning(f"Light info is incomplete for {self._attr_name}")
         self.async_write_ha_state()
 
+    @serialize_writes
     async def async_turn_on(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
@@ -318,6 +324,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
                 f"Failed to update color and status as ON for {self._attr_name}"
             )
 
+    @serialize_writes
     async def async_turn_off(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
@@ -461,4 +468,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
     # Funzione per inviare il payload aggiornato alle API
     async def _send_light_status_to_api(self, token, envID, updated_payload):
         "Invia il payload aggiornato alle API."
-        return await async_update_shadow(self.hass, token, envID, updated_payload)
+        ok = await async_update_shadow(self.hass, token, envID, updated_payload)
+        if ok:
+            remember_write(self.hass, updated_payload)
+        return ok

@@ -15,7 +15,12 @@ from homeassistant.helpers.entity_platform import (
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, WRITE_SETTLE_TIME
-from .api import async_fetch_shadow, async_update_shadow
+from .api import (
+    async_fetch_shadow,
+    async_update_shadow,
+    remember_write,
+    serialize_writes,
+)
 import json
 from .device import RadiatorDevice
 from .shadow import device_values
@@ -279,7 +284,10 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     # Funzione per inviare il payload aggiornato alle API
     async def _send_target_temperature_to_api(self, token, envID, updated_payload):
         "Invia il payload aggiornato alle API."
-        return await async_update_shadow(self.hass, token, envID, updated_payload)
+        ok = await async_update_shadow(self.hass, token, envID, updated_payload)
+        if ok:
+            remember_write(self.hass, updated_payload)
+        return ok
 
     async def generate_device_payload(
         self, payload, device_name, temperature=None, enable=None
@@ -428,6 +436,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
 
         return final_payload
 
+    @serialize_writes
     async def async_set_temperature(self, **kwargs):
         await asyncio.sleep(1)
 
@@ -465,6 +474,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         else:
             _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
 
+    @serialize_writes
     async def async_set_hvac_mode(self, hvac_mode):
         if self._attr_hvac_mode == hvac_mode:
             _LOGGER.debug(
