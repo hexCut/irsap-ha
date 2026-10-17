@@ -3,9 +3,11 @@
 from datetime import timedelta
 import logging
 
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import async_fetch_shadow
+from .auth import IrsapAuthError
 from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,7 +40,11 @@ class IrsapCoordinator(DataUpdateCoordinator):
         self.envID = config_entry.data["envID"]
 
     async def _async_update_data(self):
-        _token, payload = await async_fetch_shadow(self.hass, self.envID)
+        try:
+            _token, payload = await async_fetch_shadow(self.hass, self.envID)
+        except IrsapAuthError as err:
+            # Home Assistant shows a "Re-authenticate" notification
+            raise ConfigEntryAuthFailed(str(err)) from err
         if payload is None:
             raise UpdateFailed("Unable to retrieve data from the IRSAP cloud")
         return payload

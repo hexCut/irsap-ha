@@ -6,6 +6,8 @@ import time
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
+from homeassistant.exceptions import HomeAssistantError
 import requests
 from warrant import Cognito
 
@@ -49,6 +51,20 @@ def _get_jwks():
     return _jwks_cache
 
 
+# Cognito error codes that mean "these credentials are not valid" (as opposed
+# to network problems, timeouts or throttling, which are retried)
+AUTH_ERROR_CODES = {
+    "NotAuthorizedException",
+    "UserNotFoundException",
+    "PasswordResetRequiredException",
+    "UserNotConfirmedException",
+}
+
+
+class IrsapAuthError(HomeAssistantError):
+    """The IRSAP cloud rejected the username or password."""
+
+
 # Keys this module keeps in hass.data[DOMAIN]; async_unload_entry removes them.
 AUTH_DATA_KEYS = ("username", "password", "token", "token_obtained_at", "token_lock")
 
@@ -65,6 +81,13 @@ def login_with_srp(username, password):
         u.authenticate(password=password)
         _LOGGER.debug("Cognito SRP login succeeded")
         return u.access_token
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code")
+        if code in AUTH_ERROR_CODES:
+            _LOGGER.warning(f"IRSAP rejected the credentials ({code})")
+            raise IrsapAuthError("IRSAP rejected the username or password") from e
+        _LOGGER.error(f"Error during login: {e}")
+        return None
     except Exception as e:
         _LOGGER.error(f"Error during login: {e}")
         # Le chiavi potrebbero essere cambiate (rotazione AWS): al prossimo
@@ -120,6 +143,11 @@ async def async_get_token(hass, failed_token=None):
         except TimeoutError:
             _LOGGER.warning("IRSAP login timed out after %s seconds", LOGIN_TIMEOUT)
             return None
+        except IrsapAuthError:
+            # Il token in cache non serve più: le credenziali vanno aggiornate
+            data.pop("token", None)
+            data.pop("token_obtained_at", None)
+            raise
         if token:
             data["token"] = token
             data["token_obtained_at"] = time.monotonic()
