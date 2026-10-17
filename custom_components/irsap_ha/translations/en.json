@@ -7,11 +7,21 @@
           "username": "Username (e-mail)",
           "password": "Password"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate IRSAP NOW",
+        "description": "The IRSAP cloud rejected the saved password for {username}. Enter the current password of your IRSAP NOW account.",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
       "invalid_credentials": "Login failed: check username and password.",
       "envid_failed": "Logged in, but no IRSAP environment was found for this account."
+    },
+    "abort": {
+      "reauth_successful": "The IRSAP NOW password was updated."
     }
   },
   "options": {
