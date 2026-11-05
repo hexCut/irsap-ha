@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.irsap_ha.const import DOMAIN
 
@@ -34,6 +36,19 @@ SHADOW = {
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     yield
+
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Snapshots in tests/snapshots/, with Home Assistant's serializer.
+
+    pytest-homeassistant-custom-component overrides syrupy's ``snapshot``
+    fixture to do this, but both are plugins and which one wins depends on the
+    order pip installed them: on GitHub Actions syrupy's own fixture won, so
+    the snapshots were looked for in tests/__snapshots__/ and "did not exist".
+    A conftest fixture always takes precedence over plugins.
+    """
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
 
 @pytest.fixture(autouse=True)

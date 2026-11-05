@@ -36,3 +36,6 @@ LOGIN_TIMEOUT = 30  # seconds
 # After a command, ignore cloud updates for this long so a shadow that does not
 # reflect the change yet cannot revert the new state in the UI.
 WRITE_SETTLE_TIME = 15  # seconds
+
+# clientId the integration writes the shadow with (the IRSAP app's format)
+APP_CLIENT_ID = "app-now2-1.9.38-2143-ios-bdd093f2-8e08-4541-8a7e-800c23274f21"

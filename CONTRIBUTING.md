@@ -24,6 +24,7 @@ The tests use [pytest-homeassistant-custom-component](https://github.com/Matthew
 - Every behaviour change needs a test, and the test should fail without your change. Say so in the PR description.
 - Never call the real IRSAP cloud from tests. Use the fixtures in `tests/conftest.py` (`mock_login`, `mock_get_shadow`, `mock_update_shadow`) or Home Assistant's `aioclient_mock`.
 - When a test needs a shadow, start from a real one captured on your install (with personal data removed, see below) rather than an invented one, and say which model and firmware it comes from.
+- `tests/test_snapshots.py` records every entity the integration creates (state, attributes, unit, category, enabled or not). If your change alters what users see, it fails on purpose: regenerate with `pytest tests/test_snapshots.py --snapshot-update`, commit the updated `tests/snapshots/*.ambr`, and list the difference under *Breaking / visible changes*. A shadow from a model we don't cover yet is a welcome addition there.
 
 ## Evidence from a real installation
 

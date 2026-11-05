@@ -4,6 +4,7 @@ from .const import DOMAIN
 import logging
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
+from .api import WRITE_DATA_KEYS
 from .auth import AUTH_DATA_KEYS, store_credentials
 from .coordinator import IrsapCoordinator
 from .device_manager import device_manager
@@ -11,7 +12,7 @@ from .setup import async_setup as setup_component
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["climate", "sensor", "light"]
+PLATFORMS = ["climate", "sensor", "light", "switch"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -40,6 +41,7 @@ async def async_setup_entry(hass, config_entry):
     await hass.config_entries.async_forward_entry_setups(config_entry, ["climate"])
     await hass.config_entries.async_forward_entry_setups(config_entry, ["sensor"])
     await hass.config_entries.async_forward_entry_setups(config_entry, ["light"])
+    await hass.config_entries.async_forward_entry_setups(config_entry, ["switch"])
 
     # Ricarica l'integrazione quando cambiano le opzioni (es. intervallo di aggiornamento)
     config_entry.async_on_unload(config_entry.add_update_listener(_async_reload_entry))
@@ -60,8 +62,8 @@ async def async_unload_entry(hass, config_entry):
     if unload_ok:
         data = hass.data[DOMAIN]
         data.pop(config_entry.entry_id, None)
-        # Credenziali e token in cache: al prossimo setup si riparte da zero
-        for key in AUTH_DATA_KEYS:
+        # Credenziali, token e ultima scrittura: al prossimo setup si riparte da zero
+        for key in AUTH_DATA_KEYS + WRITE_DATA_KEYS:
             data.pop(key, None)
         if not data:
             hass.data.pop(DOMAIN)
