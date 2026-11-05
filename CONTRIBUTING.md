@@ -68,3 +68,10 @@ Keep timestamps: they are what makes a log useful. The *Download diagnostics* fi
 ## Releases
 
 Maintainers merge into `dev` and publish betas (e.g. `v1.6b5`) from there; a release goes to `main` after the betas have been used for a while without problems. You don't need to change the version in `manifest.json`.
+
+For maintainers, in this order:
+
+1. update `"version"` in `manifest.json` **on the branch you release from** (`dev` for a beta, `main` for a stable release);
+2. publish the release with tag `v` + that version, target that branch, and *pre-release* ticked for a beta.
+
+The *Release check* workflow checks the three things together when the release is published. If anything doesn't match it turns the release back into a draft, so HACS users never get it, and explains what to fix in the run summary.
