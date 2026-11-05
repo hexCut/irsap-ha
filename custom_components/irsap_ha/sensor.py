@@ -1,10 +1,10 @@
+from datetime import datetime
 from .const import DOMAIN
 import logging
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
-    datetime,
 )
 from homeassistant.const import (
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
