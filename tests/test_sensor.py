@@ -23,7 +23,7 @@ async def test_sensors_refresh_from_coordinator(
     desired["PTO_X_hysteresis"] = 2
     await _setup(hass, config_entry)
 
-    assert hass.states.get("sensor.bagno_signal_strength").state == "-60"
+    assert hass.states.get("sensor.bagno_wifi_signal_strength").state == "-60"
     assert hass.states.get("sensor.bagno_ip_address").state == "192.168.0.50"
     assert hass.states.get("sensor.bagno_hysteresis").state == "0.2"
     # setup reads the coordinator's first refresh, no extra fetch for sensors
@@ -35,7 +35,7 @@ async def test_sensors_refresh_from_coordinator(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=61))
     await hass.async_block_till_done()
 
-    assert hass.states.get("sensor.bagno_signal_strength").state == "-71"
+    assert hass.states.get("sensor.bagno_wifi_signal_strength").state == "-71"
     assert hass.states.get("sensor.bagno_ip_address").state == "192.168.0.51"
     assert hass.states.get("sensor.bagno_hysteresis").state == "0.3"
     assert mock_get_shadow.call_count == 2  # still one fetch per tick for everything
@@ -74,16 +74,14 @@ async def test_sensor_keeps_values_if_radiator_missing(
     coordinator = hass.data["irsap_ha"][config_entry.entry_id]["coordinator"]
     await coordinator.async_refresh()
     await hass.async_block_till_done()
-    assert hass.states.get("sensor.bagno_signal_strength").state == "-60"
+    assert hass.states.get("sensor.bagno_wifi_signal_strength").state == "-60"
 
 
 # --- per-model sensors --------------------------------------------------
 
 VOC = "sensor.bagno_voc"
-CO2 = "sensor.bagno_carbon_dioxide"
+CO2 = "sensor.bagno_co2"
 AIQ = "sensor.bagno_air_quality"
-# entity_id a CO2 sensor got before entity names were translated
-OLD_CO2 = "sensor.bagno_co2"
 
 
 async def test_model_without_air_sensors(
@@ -143,12 +141,12 @@ async def test_existing_unsupported_sensor_is_disabled_then_re_enabled(
     shadow["state"]["desired"]["PTO_X_co2Value"] = 65535
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert registry.async_get(OLD_CO2).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert registry.async_get(CO2).disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
     shadow["state"]["desired"]["PTO_X_co2Value"] = 640
     assert await hass.config_entries.async_reload(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert registry.async_get(OLD_CO2).disabled_by is None
+    assert registry.async_get(CO2).disabled_by is None
 
 
 async def test_sensor_disabled_by_user_stays_disabled(
@@ -167,7 +165,7 @@ async def test_sensor_disabled_by_user_stays_disabled(
     shadow["state"]["desired"]["PTO_X_co2Value"] = 640
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert registry.async_get(OLD_CO2).disabled_by is er.RegistryEntryDisabler.USER
+    assert registry.async_get(CO2).disabled_by is er.RegistryEntryDisabler.USER
 
 
 async def test_units_and_categories(
@@ -184,7 +182,7 @@ async def test_units_and_categories(
     )
     await _setup(hass, config_entry)
 
-    wifi = hass.states.get("sensor.bagno_signal_strength")
+    wifi = hass.states.get("sensor.bagno_wifi_signal_strength")
     assert wifi.state == "-55"
     assert wifi.attributes["unit_of_measurement"] == "dBm"
     assert wifi.attributes["device_class"] == "signal_strength"
@@ -193,7 +191,7 @@ async def test_units_and_categories(
         == "°C"
     )
     assert hass.states.get("sensor.bagno_temperature_offset").state == "-0.5"
-    window = hass.states.get("sensor.bagno_open_window_off_time")
+    window = hass.states.get("sensor.bagno_open_window_offset")
     assert window.state == "30"
     assert window.attributes["unit_of_measurement"] == "min"
 
@@ -208,7 +206,7 @@ async def test_missing_numeric_values_are_unknown(
 ):
     """A model that doesn't report Wi-Fi or hysteresis at all doesn't crash."""
     await _setup(hass, config_entry)
-    assert hass.states.get("sensor.bagno_signal_strength").state == "unknown"
+    assert hass.states.get("sensor.bagno_wifi_signal_strength").state == "unknown"
     assert hass.states.get("sensor.bagno_hysteresis").state == "unknown"
 
 

@@ -54,63 +54,6 @@
           }
         }
       }
-    },
-    "light": {
-      "led": {
-        "name": "LED"
-      }
-    },
-    "switch": {
-      "child_lock": {
-        "name": "Blocco bambini"
-      },
-      "standby": {
-        "name": "Standby"
-      },
-      "open_window_detection": {
-        "name": "Rilevamento finestra aperta"
-      }
-    },
-    "sensor": {
-      "ip_address": {
-        "name": "Indirizzo IP"
-      },
-      "last_update": {
-        "name": "Ultimo aggiornamento"
-      },
-      "pilote_enable": {
-        "name": "Filo pilota abilitato"
-      },
-      "pilote_status": {
-        "name": "Stato filo pilota"
-      },
-      "standby": {
-        "name": "Standby"
-      },
-      "open_window_enabled": {
-        "name": "Rilevamento finestra aperta abilitato"
-      },
-      "open_window_off_time": {
-        "name": "Durata spegnimento finestra aperta"
-      },
-      "temperature_offset": {
-        "name": "Compensazione della temperatura"
-      },
-      "hysteresis": {
-        "name": "Isteresi"
-      },
-      "voc": {
-        "name": "VOC"
-      },
-      "open_window_detected": {
-        "name": "Finestra aperta rilevata"
-      },
-      "child_lock": {
-        "name": "Blocco bambini"
-      },
-      "air_quality": {
-        "name": "Qualità dell'aria"
-      }
     }
   }
 }

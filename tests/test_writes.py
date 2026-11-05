@@ -110,8 +110,8 @@ def _msp(payload, zone):
 async def test_concurrent_commands_dont_undo_each_other(hass, cloud):
     """'Set every radiator' from an automation: both changes must survive."""
     await asyncio.gather(
-        _set_temperature(hass, "climate.bagno", 25),
-        _set_temperature(hass, "climate.camera", 22),
+        _set_temperature(hass, "climate.bagno_radiator", 25),
+        _set_temperature(hass, "climate.camera_radiator", 22),
     )
 
     assert len(cloud.writes) == 2
@@ -125,13 +125,13 @@ async def test_builds_on_cloud_once_it_has_moved_on(hass, cloud):
     """When the cloud returns a newer version (our write applied, or a change
     made in the app), the next command starts from the cloud, not from our
     copy."""
-    await _set_temperature(hass, "climate.bagno", 25)
+    await _set_temperature(hass, "climate.bagno_radiator", 25)
 
     cloud.shadow["version"] = 8
     cloud.shadow["state"]["desired"]["AAA_MSP"]["p"]["v"] = 250
     cloud.shadow["state"]["desired"]["BBB_MSP"]["p"]["v"] = 180  # from the app
 
-    await _set_temperature(hass, "climate.bagno", 26)
+    await _set_temperature(hass, "climate.bagno_radiator", 26)
 
     last = cloud.writes[-1]
     assert last["version"] == 8
@@ -140,11 +140,11 @@ async def test_builds_on_cloud_once_it_has_moved_on(hass, cloud):
 
 
 async def test_own_write_forgotten_after_settle_time(hass, cloud):
-    await _set_temperature(hass, "climate.bagno", 25)
+    await _set_temperature(hass, "climate.bagno_radiator", 25)
 
     # as if WRITE_SETTLE_TIME had passed since the first write
     with patch.object(api, "WRITE_SETTLE_TIME", -1):
-        await _set_temperature(hass, "climate.camera", 22)
+        await _set_temperature(hass, "climate.camera_radiator", 22)
 
     # the cloud never applied the first write, and it's too old to reuse
     last = cloud.writes[-1]
@@ -154,10 +154,10 @@ async def test_own_write_forgotten_after_settle_time(hass, cloud):
 
 async def test_failed_write_is_not_reused(hass, cloud):
     cloud.fail = True
-    await _set_temperature(hass, "climate.bagno", 25)
+    await _set_temperature(hass, "climate.bagno_radiator", 25)
     cloud.fail = False
 
-    await _set_temperature(hass, "climate.camera", 22)
+    await _set_temperature(hass, "climate.camera_radiator", 22)
 
     assert len(cloud.writes) == 1
     assert _msp(cloud.writes[0], "AAA") == 200
@@ -167,7 +167,7 @@ async def test_failed_write_is_not_reused(hass, cloud):
 async def test_refreshes_still_read_the_cloud(hass, cloud, config_entry):
     """Only commands build on the last write: the coordinator shows what the
     cloud reports."""
-    await _set_temperature(hass, "climate.bagno", 25)
+    await _set_temperature(hass, "climate.bagno_radiator", 25)
 
     coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
     await coordinator.async_refresh()
@@ -175,7 +175,7 @@ async def test_refreshes_still_read_the_cloud(hass, cloud, config_entry):
 
 
 async def test_unload_forgets_lock_and_last_write(hass, cloud, config_entry):
-    await _set_temperature(hass, "climate.bagno", 25)
+    await _set_temperature(hass, "climate.bagno_radiator", 25)
     assert "last_write" in hass.data[DOMAIN]
 
     assert await hass.config_entries.async_unload(config_entry.entry_id)

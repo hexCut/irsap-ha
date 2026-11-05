@@ -4,7 +4,7 @@
     dict({
       'attributes': dict({
         <ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 'current_temperature'>: 21.5,
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Radiator',
         <ClimateEntityStateAttribute.HVAC_ACTION: 'hvac_action'>: <HVACAction.IDLE: 'idle'>,
         <ClimateEntityCapabilityAttribute.HVAC_MODES: 'hvac_modes'>: list([
           <HVACMode.HEAT: 'heat'>,
@@ -30,7 +30,7 @@
       }),
       'disabled_by': None,
       'entity_category': None,
-      'entity_id': 'climate.bagno',
+      'entity_id': 'climate.bagno_radiator',
       'state': 'heat',
       'unique_id': 'Bagno_climate',
     }),
@@ -91,22 +91,8 @@
       'unique_id': 'Bagno_aiq',
     }),
     dict({
-      'attributes': None,
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'Unknown Model',
-        'name': 'Bagno',
-        'sw_version': 'Unknown Firmware',
-      }),
-      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_carbon_dioxide',
-      'state': None,
-      'unique_id': 'Bagno_co2',
-    }),
-    dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child Lock',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -120,6 +106,20 @@
       'entity_id': 'sensor.bagno_child_lock',
       'state': 'Unknown',
       'unique_id': 'Bagno_lock',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_co2',
+      'state': None,
+      'unique_id': 'Bagno_co2',
     }),
     dict({
       'attributes': dict({
@@ -142,7 +142,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno IP address',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno IP Address',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:ip',
       }),
       'device': dict({
@@ -159,7 +159,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Last update',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Last Update',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:update',
       }),
       'device': dict({
@@ -176,7 +176,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window detected',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Detected',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -193,7 +193,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window enabled',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Enabled',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -211,7 +211,7 @@
     dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window off time',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-closed',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.MINUTES: 'min'>,
@@ -224,13 +224,13 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_open_window_off_time',
+      'entity_id': 'sensor.bagno_open_window_offset',
       'state': 'unknown',
       'unique_id': 'Bagno_openwindow_offset',
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote enable',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote Enable',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:power',
       }),
       'device': dict({
@@ -247,7 +247,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote status',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote Status',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:check-circle',
       }),
       'device': dict({
@@ -261,26 +261,6 @@
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_pilote_status',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Signal strength',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'Unknown Model',
-        'name': 'Bagno',
-        'sw_version': 'Unknown Firmware',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_signal_strength',
-      'state': 'unknown',
-      'unique_id': 'Bagno_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -301,7 +281,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Temperature offset',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Temperature Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:thermometer',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTemperature.CELSIUS: '°C'>,
@@ -332,6 +312,26 @@
       'state': None,
       'unique_id': 'Bagno_voc',
     }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno WiFi Signal Strength',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_wifi_signal_strength',
+      'state': 'unknown',
+      'unique_id': 'Bagno_wifi_signal',
+    }),
   ])
 # ---
 # name: test_entities[towel_warmer]
@@ -339,7 +339,7 @@
     dict({
       'attributes': dict({
         <ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 'current_temperature'>: 21.5,
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Radiator',
         <ClimateEntityStateAttribute.HVAC_ACTION: 'hvac_action'>: <HVACAction.IDLE: 'idle'>,
         <ClimateEntityCapabilityAttribute.HVAC_MODES: 'hvac_modes'>: list([
           <HVACMode.HEAT: 'heat'>,
@@ -365,7 +365,7 @@
       }),
       'disabled_by': None,
       'entity_category': None,
-      'entity_id': 'climate.bagno',
+      'entity_id': 'climate.bagno_radiator',
       'state': 'heat',
       'unique_id': 'Bagno_climate',
     }),
@@ -384,22 +384,8 @@
       'unique_id': 'Bagno_aiq',
     }),
     dict({
-      'attributes': None,
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'RE',
-        'name': 'Bagno',
-        'sw_version': '3.22',
-      }),
-      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_carbon_dioxide',
-      'state': None,
-      'unique_id': 'Bagno_co2',
-    }),
-    dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child Lock',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -413,6 +399,20 @@
       'entity_id': 'sensor.bagno_child_lock',
       'state': 'Unlocked',
       'unique_id': 'Bagno_lock',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_co2',
+      'state': None,
+      'unique_id': 'Bagno_co2',
     }),
     dict({
       'attributes': dict({
@@ -435,7 +435,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno IP address',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno IP Address',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:ip',
       }),
       'device': dict({
@@ -452,7 +452,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Last update',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Last Update',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:update',
       }),
       'device': dict({
@@ -469,7 +469,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window detected',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Detected',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -486,7 +486,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window enabled',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Enabled',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -504,7 +504,7 @@
     dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window off time',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-closed',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.MINUTES: 'min'>,
@@ -517,13 +517,13 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_open_window_off_time',
+      'entity_id': 'sensor.bagno_open_window_offset',
       'state': '30',
       'unique_id': 'Bagno_openwindow_offset',
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote enable',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote Enable',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:power',
       }),
       'device': dict({
@@ -540,7 +540,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote status',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote Status',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:check-circle',
       }),
       'device': dict({
@@ -554,26 +554,6 @@
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Inactive',
       'unique_id': 'Bagno_pilote_status',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Signal strength',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'RE',
-        'name': 'Bagno',
-        'sw_version': '3.22',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_signal_strength',
-      'state': '-61',
-      'unique_id': 'Bagno_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -594,7 +574,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Temperature offset',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Temperature Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:thermometer',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTemperature.CELSIUS: '°C'>,
@@ -627,7 +607,27 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno WiFi Signal Strength',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_wifi_signal_strength',
+      'state': '-61',
+      'unique_id': 'Bagno_wifi_signal',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child Lock',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -644,7 +644,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window detection',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Detection',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open-variant',
       }),
       'device': dict({
@@ -683,7 +683,7 @@
     dict({
       'attributes': dict({
         <ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 'current_temperature'>: 23.0,
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Radiator',
         <ClimateEntityStateAttribute.HVAC_ACTION: 'hvac_action'>: <HVACAction.HEATING: 'heating'>,
         <ClimateEntityCapabilityAttribute.HVAC_MODES: 'hvac_modes'>: list([
           <HVACMode.HEAT: 'heat'>,
@@ -709,14 +709,14 @@
       }),
       'disabled_by': None,
       'entity_category': None,
-      'entity_id': 'climate.bagno',
+      'entity_id': 'climate.bagno_radiator',
       'state': 'heat',
       'unique_id': 'Bagno_climate',
     }),
     dict({
       'attributes': dict({
         <ClimateEntityStateAttribute.CURRENT_TEMPERATURE: 'current_temperature'>: 19.0,
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Radiator',
         <ClimateEntityStateAttribute.HVAC_ACTION: 'hvac_action'>: <HVACAction.OFF: 'off'>,
         <ClimateEntityCapabilityAttribute.HVAC_MODES: 'hvac_modes'>: list([
           <HVACMode.HEAT: 'heat'>,
@@ -742,7 +742,7 @@
       }),
       'disabled_by': None,
       'entity_category': None,
-      'entity_id': 'climate.camera',
+      'entity_id': 'climate.camera_radiator',
       'state': 'off',
       'unique_id': 'Camera_climate',
     }),
@@ -761,22 +761,8 @@
       'unique_id': 'Bagno_aiq',
     }),
     dict({
-      'attributes': None,
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'RE',
-        'name': 'Bagno',
-        'sw_version': '1.0',
-      }),
-      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_carbon_dioxide',
-      'state': None,
-      'unique_id': 'Bagno_co2',
-    }),
-    dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child Lock',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -790,6 +776,20 @@
       'entity_id': 'sensor.bagno_child_lock',
       'state': 'Unknown',
       'unique_id': 'Bagno_lock',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '1.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_co2',
+      'state': None,
+      'unique_id': 'Bagno_co2',
     }),
     dict({
       'attributes': dict({
@@ -812,7 +812,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno IP address',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno IP Address',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:ip',
       }),
       'device': dict({
@@ -829,7 +829,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Last update',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Last Update',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:update',
       }),
       'device': dict({
@@ -846,7 +846,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window detected',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Detected',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -863,7 +863,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window enabled',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Enabled',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -881,7 +881,7 @@
     dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open window off time',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Open Window Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-closed',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.MINUTES: 'min'>,
@@ -894,13 +894,13 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_open_window_off_time',
+      'entity_id': 'sensor.bagno_open_window_offset',
       'state': 'unknown',
       'unique_id': 'Bagno_openwindow_offset',
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote enable',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote Enable',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:power',
       }),
       'device': dict({
@@ -917,7 +917,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote status',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Pilote Status',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:check-circle',
       }),
       'device': dict({
@@ -931,26 +931,6 @@
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_pilote_status',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Signal strength',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'RE',
-        'name': 'Bagno',
-        'sw_version': '1.0',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_signal_strength',
-      'state': '-50',
-      'unique_id': 'Bagno_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -971,7 +951,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Temperature offset',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Temperature Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:thermometer',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTemperature.CELSIUS: '°C'>,
@@ -1004,7 +984,27 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Air quality',
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno WiFi Signal Strength',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '1.0',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_wifi_signal_strength',
+      'state': '-50',
+      'unique_id': 'Bagno_wifi_signal',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Air Quality',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:air-purifier',
       }),
       'device': dict({
@@ -1021,27 +1021,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'carbon_dioxide',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Carbon dioxide',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:molecule-co2',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'ppm',
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'RE',
-        'name': 'Camera',
-        'sw_version': '2.0',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_carbon_dioxide',
-      'state': '650',
-      'unique_id': 'Camera_co2',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Child Lock',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -1055,6 +1035,26 @@
       'entity_id': 'sensor.camera_child_lock',
       'state': 'Unknown',
       'unique_id': 'Camera_lock',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'carbon_dioxide',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera CO2',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:molecule-co2',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'ppm',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Camera',
+        'sw_version': '2.0',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.camera_co2',
+      'state': '650',
+      'unique_id': 'Camera_co2',
     }),
     dict({
       'attributes': dict({
@@ -1077,7 +1077,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera IP address',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera IP Address',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:ip',
       }),
       'device': dict({
@@ -1094,7 +1094,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Last update',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Last Update',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:update',
       }),
       'device': dict({
@@ -1111,7 +1111,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Open window detected',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Open Window Detected',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -1128,7 +1128,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Open window enabled',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Open Window Enabled',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-open',
       }),
       'device': dict({
@@ -1146,7 +1146,7 @@
     dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Open window off time',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Open Window Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:window-closed',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.MINUTES: 'min'>,
@@ -1159,13 +1159,13 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_open_window_off_time',
+      'entity_id': 'sensor.camera_open_window_offset',
       'state': 'unknown',
       'unique_id': 'Camera_openwindow_offset',
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Pilote enable',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Pilote Enable',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:power',
       }),
       'device': dict({
@@ -1182,7 +1182,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Pilote status',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Pilote Status',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:check-circle',
       }),
       'device': dict({
@@ -1196,26 +1196,6 @@
       'entity_id': 'sensor.camera_pilote_status',
       'state': 'Unknown',
       'unique_id': 'Camera_pilote_status',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Signal strength',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'RE',
-        'name': 'Camera',
-        'sw_version': '2.0',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_signal_strength',
-      'state': '-70',
-      'unique_id': 'Camera_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -1236,7 +1216,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Temperature offset',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Temperature Offset',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:thermometer',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
         <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTemperature.CELSIUS: '°C'>,
@@ -1270,6 +1250,26 @@
       'entity_id': 'sensor.camera_voc',
       'state': '120',
       'unique_id': 'Camera_voc',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera WiFi Signal Strength',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:wifi',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'dBm',
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Camera',
+        'sw_version': '2.0',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.camera_wifi_signal_strength',
+      'state': '-70',
+      'unique_id': 'Camera_wifi_signal',
     }),
   ])
 # ---

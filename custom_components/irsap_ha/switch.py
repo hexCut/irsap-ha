@@ -28,13 +28,13 @@ from .shadow import linked_device
 
 _LOGGER = logging.getLogger(__name__)
 
-# (unique_id suffix, translation key, icon, device key suffix)
+# (unique_id suffix, name, icon, device key suffix)
 SWITCH_TYPES = [
-    ("child_lock_switch", "child_lock", "mdi:lock", "_X_lock"),
-    ("standby_switch", "standby", "mdi:power-sleep", "_X_standby"),
+    ("child_lock_switch", "Child Lock", "mdi:lock", "_X_lock"),
+    ("standby_switch", "Standby", "mdi:power-sleep", "_X_standby"),
     (
         "open_window_switch",
-        "open_window_detection",
+        "Open Window Detection",
         "mdi:window-open-variant",
         "_X_OpenWindowSensorEnabled",
     ),
@@ -63,19 +63,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if not key.endswith("_NAM") or key.startswith("E_"):
             continue
         zone = key[: -len("_NAM")]
-        for unique_suffix, translation_key, icon, suffix in SWITCH_TYPES:
+        for unique_suffix, label, icon, suffix in SWITCH_TYPES:
             # Only settings this radiator actually reports
             if device_key(desired, zone, suffix) is None:
                 continue
             entities.append(
                 RadiatorSettingSwitch(
-                    coordinator,
-                    name,
-                    zone,
-                    unique_suffix,
-                    translation_key,
-                    icon,
-                    suffix,
+                    coordinator, name, zone, unique_suffix, label, icon, suffix
                 )
             )
     async_add_entities(entities)
@@ -85,17 +79,13 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
     """A 0/1 radiator setting stored in the shadow."""
 
     _attr_entity_category = EntityCategory.CONFIG
-    _attr_has_entity_name = True
 
-    def __init__(
-        self, coordinator, serial, zone, unique_suffix, translation_key, icon, suffix
-    ):
+    def __init__(self, coordinator, serial, zone, unique_suffix, label, icon, suffix):
         super().__init__(coordinator)
         self._serial = serial
         self._zone = zone
         self._suffix = suffix
-        self._attr_translation_key = translation_key
-        self._log_name = f"{serial} {translation_key}"
+        self._attr_name = f"{serial} {label}"
         self._attr_unique_id = f"{serial}_{unique_suffix}"
         self._attr_icon = icon
         self._attr_is_on = self._read(coordinator.desired)
@@ -119,7 +109,7 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
         self._attr_is_on = self._read(desired)
         key = device_key(desired, self._zone, self._suffix)
         _LOGGER.debug(
-            f"{self._log_name}: {key}={desired.get(key) if key else None} "
+            f"{self._attr_name}: {key}={desired.get(key) if key else None} "
             f"written_by="
             f"{'device' if written_by_device(self.coordinator.data) else 'app'}"
         )
@@ -140,10 +130,10 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
         desired = payload["state"]["desired"]
         key = device_key(desired, self._zone, self._suffix)
         if key is None:
-            raise HomeAssistantError(f"{self._log_name}: setting not found")
+            raise HomeAssistantError(f"{self._attr_name}: setting not found")
 
         _LOGGER.debug(
-            f"{self._log_name}: writing {key}={value} (was {desired.get(key)})"
+            f"{self._attr_name}: writing {key}={value} (was {desired.get(key)})"
         )
         desired[key] = value
         desired.pop("sk", None)
@@ -157,9 +147,9 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
             "state": payload["state"],
         }
         if not await async_update_shadow(self.hass, token, envID, ordered):
-            raise HomeAssistantError(f"{self._log_name}: the IRSAP cloud refused it")
+            raise HomeAssistantError(f"{self._attr_name}: the IRSAP cloud refused it")
         remember_write(self.hass, ordered)
-        _LOGGER.debug(f"{self._log_name}: UpdateShadow accepted {key}={value}")
+        _LOGGER.debug(f"{self._attr_name}: UpdateShadow accepted {key}={value}")
 
         self._attr_is_on = value == 1
         self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME

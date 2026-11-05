@@ -313,7 +313,6 @@ class RadiatorCoordinatorEntity(CoordinatorEntity):
     """Diagnostic sensor that refreshes its radiator's data from the coordinator."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_has_entity_name = True
 
     @classmethod
     def is_supported(cls, radiator):
@@ -339,7 +338,7 @@ class RadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._radiator = radiator
         self._device = device  # Store device reference
-        self._attr_translation_key = "ip_address"
+        self._attr_name = f"{radiator['serial']} IP Address"
         self._attr_unique_id = unique_id
         self._attr_icon = "mdi:ip"
         self._radiator_serial = radiator["serial"]
@@ -377,7 +376,7 @@ class BaseRadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
         radiator,
         device,
         unique_id,
-        translation_key,
+        attr_name,
         icon,
         data_key,
         formatter=None,
@@ -385,9 +384,7 @@ class BaseRadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._radiator = radiator
         self._device = device
-        # None: a sensor with a device class takes its translated name
-        if translation_key is not None:
-            self._attr_translation_key = translation_key
+        self._attr_name = f"{radiator['serial']} {attr_name}"
         self._attr_unique_id = unique_id
         self._attr_icon = icon
         self._attr_native_value = None
@@ -447,7 +444,7 @@ class WifiSignalSensor(NumericRadiatorSensor):
             radiator,
             device,
             unique_id,
-            None,
+            "WiFi Signal Strength",
             "mdi:wifi",
             "wifi_signal",
         )
@@ -461,7 +458,7 @@ class PiloteEnableSensor(BaseRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "pilote_enable",
+            "Pilote Enable",
             "mdi:power",
             "pilote_enable",
         )
@@ -485,7 +482,7 @@ class PiloteStatusSensor(BaseRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "pilote_status",
+            "Pilote Status",
             "mdi:check-circle",
             "pilote_status",
         )
@@ -505,7 +502,7 @@ class StandbySensor(BaseRadiatorSensor):
 
     def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            coordinator, radiator, device, unique_id, "standby", "mdi:sleep", "standby"
+            coordinator, radiator, device, unique_id, "Standby", "mdi:sleep", "standby"
         )
 
     @property
@@ -527,7 +524,7 @@ class OpenWindowEnabledSensor(BaseRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "open_window_enabled",
+            "Open Window Enabled",
             "mdi:window-open",
             "open_window_enabled",
         )
@@ -555,7 +552,7 @@ class OpenWindowOffsetSensor(NumericRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "open_window_off_time",
+            "Open Window Offset",
             "mdi:window-closed",
             "openwindow_offset",
         )
@@ -573,7 +570,7 @@ class TemperatureOffsetSensor(NumericRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "temperature_offset",
+            "Temperature Offset",
             "mdi:thermometer",
             "temperature_offset",
         )
@@ -590,7 +587,7 @@ class HysteresisSensor(NumericRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "hysteresis",
+            "Hysteresis",
             "mdi:sine-wave",
             "hysteresis",
         )
@@ -603,7 +600,7 @@ class VocSensor(NumericRadiatorSensor):
 
     def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            coordinator, radiator, device, unique_id, "voc", "mdi:air-filter", "voc"
+            coordinator, radiator, device, unique_id, "VOC", "mdi:air-filter", "voc"
         )
 
 
@@ -617,7 +614,7 @@ class Co2Sensor(NumericRadiatorSensor):
 
     def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            coordinator, radiator, device, unique_id, None, "mdi:molecule-co2", "co2"
+            coordinator, radiator, device, unique_id, "CO2", "mdi:molecule-co2", "co2"
         )
 
 
@@ -629,7 +626,7 @@ class OpenWindowDetectedSensor(BaseRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "open_window_detected",
+            "Open Window Detected",
             "mdi:window-open",
             "openwindow_detected",
         )
@@ -650,7 +647,7 @@ class LastUpdateSensor(RadiatorCoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._radiator = radiator
         self._device = device  # Store device reference
-        self._attr_translation_key = "last_update"
+        self._attr_name = f"{radiator['serial']} Last Update"
         self._attr_unique_id = unique_id
         self._attr_icon = "mdi:update"
         self._attr_native_value = None  # Initialize the sensor value
@@ -695,7 +692,7 @@ class LockSensor(BaseRadiatorSensor):
 
     def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(
-            coordinator, radiator, device, unique_id, "child_lock", "mdi:lock", "lock"
+            coordinator, radiator, device, unique_id, "Child Lock", "mdi:lock", "lock"
         )
 
     @property
@@ -721,7 +718,7 @@ class AIQSensor(BaseRadiatorSensor):
             radiator,
             device,
             unique_id,
-            "air_quality",
+            "Air Quality",
             "mdi:air-purifier",
             "aiq",
         )
