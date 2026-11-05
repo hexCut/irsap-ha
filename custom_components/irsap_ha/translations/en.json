@@ -54,6 +54,63 @@
           }
         }
       }
+    },
+    "light": {
+      "led": {
+        "name": "LED"
+      }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Child lock"
+      },
+      "standby": {
+        "name": "Standby"
+      },
+      "open_window_detection": {
+        "name": "Open window detection"
+      }
+    },
+    "sensor": {
+      "ip_address": {
+        "name": "IP address"
+      },
+      "last_update": {
+        "name": "Last update"
+      },
+      "pilote_enable": {
+        "name": "Pilote enable"
+      },
+      "pilote_status": {
+        "name": "Pilote status"
+      },
+      "standby": {
+        "name": "Standby"
+      },
+      "open_window_enabled": {
+        "name": "Open window enabled"
+      },
+      "open_window_off_time": {
+        "name": "Open window off time"
+      },
+      "temperature_offset": {
+        "name": "Temperature offset"
+      },
+      "hysteresis": {
+        "name": "Hysteresis"
+      },
+      "voc": {
+        "name": "VOC"
+      },
+      "open_window_detected": {
+        "name": "Open window detected"
+      },
+      "child_lock": {
+        "name": "Child lock"
+      },
+      "air_quality": {
+        "name": "Air quality"
+      }
     }
   }
 }

@@ -11,7 +11,7 @@ from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from custom_components.irsap_ha.climate import RadiatorClimate
 from custom_components.irsap_ha.const import WRITE_SETTLE_TIME
 
-ENTITY = "climate.bagno_radiator"
+ENTITY = "climate.bagno"
 
 
 async def _setup(hass, entry):

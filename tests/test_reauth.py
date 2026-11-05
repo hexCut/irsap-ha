@@ -108,7 +108,7 @@ async def test_network_failure_does_not_start_reauth(
     await hass.async_block_till_done()
 
     assert _reauth_flows(hass) == []
-    assert hass.states.get("climate.bagno_radiator").state == "unavailable"
+    assert hass.states.get("climate.bagno").state == "unavailable"
 
 
 async def test_command_with_rejected_credentials_raises(
@@ -132,7 +132,7 @@ async def test_command_with_rejected_credentials_raises(
         await hass.services.async_call(
             "climate",
             "set_temperature",
-            {"entity_id": "climate.bagno_radiator", "temperature": 23},
+            {"entity_id": "climate.bagno", "temperature": 23},
             blocking=True,
         )
 

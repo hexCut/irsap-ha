@@ -106,7 +106,7 @@ def test_missing_values(changes):
 
 # --- entity -------------------------------------------------------------
 
-ENTITY = "climate.bagno_radiator"
+ENTITY = "climate.bagno"
 
 
 async def _no_sleep(*args):
