@@ -1,0 +1,32 @@
+name: Release check
+
+# When a release is published, check that its tag, the manifest version and
+# the branch match (see .github/scripts/check_release.py). If they don't, the
+# release is turned back into a draft so HACS users never get it.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+      - name: Check tag, manifest version and branch
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: python3 .github/scripts/check_release.py
+      - name: Turn the release back into a draft
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release edit "$TAG" --draft=true --repo "$GITHUB_REPOSITORY"
