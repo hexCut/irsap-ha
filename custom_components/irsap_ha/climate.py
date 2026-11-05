@@ -245,19 +245,27 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         return self._attr_unique_id
 
     @property
-    def temperature_unit(self):
+    def native_temperature_unit(self):
         "Return the unit of measurement."
         return UnitOfTemperature.CELSIUS  # Usa UnitOfTemperature
 
     @property
-    def current_temperature(self):
+    def native_current_temperature(self):
         "Return the current temperature."
         return self._current_temperature
 
     @property
-    def target_temperature(self):
+    def native_target_temperature(self):
         "Return the target temperature."
         return self._target_temperature
+
+    # Home Assistant prima della 2026.11 legge ancora i nomi senza native_.
+    # Dalla 2026.11 sono deprecati, ma se la classe definisce anche il nome
+    # native_ vince quello e non c'è nessun avviso. Si possono togliere quando
+    # il minimo in hacs.json sarà 2026.11.
+    temperature_unit = native_temperature_unit
+    current_temperature = native_current_temperature
+    target_temperature = native_target_temperature
 
     @property
     def hvac_mode(self):
