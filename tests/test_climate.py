@@ -3,9 +3,12 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from homeassistant.components.climate import DATA_COMPONENT
+from homeassistant.const import UnitOfTemperature
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
+from custom_components.irsap_ha.climate import RadiatorClimate
 from custom_components.irsap_ha.const import WRITE_SETTLE_TIME
 
 ENTITY = "climate.bagno_radiator"
@@ -131,3 +134,32 @@ async def test_set_temperature_keeps_hvac_mode_off(
     state = hass.states.get(ENTITY)
     assert state.state == "off"
     assert state.attributes["temperature"] == 24
+
+
+async def test_native_temperature_members(
+    hass, config_entry, mock_login, mock_get_shadow
+):
+    """The entity provides the native_ temperature members itself.
+
+    From Home Assistant 2026.11 an entity providing only temperature_unit,
+    current_temperature and target_temperature logs a deprecation warning
+    (they stop working in 2027.11) and Home Assistant serves the native_ names
+    through a fallback. Older versions still read the old names, so they stay
+    as aliases with the same values.
+    """
+    for name in (
+        "native_temperature_unit",
+        "native_current_temperature",
+        "native_target_temperature",
+    ):
+        # A property of the class, not Home Assistant's fallback
+        assert isinstance(vars(RadiatorClimate).get(name), property)
+
+    await _setup(hass, config_entry)
+    entity = hass.data[DATA_COMPONENT].get_entity(ENTITY)
+    assert entity.native_temperature_unit == UnitOfTemperature.CELSIUS
+    assert entity.native_current_temperature == 21.5
+    assert entity.native_target_temperature == 20.0
+    assert entity.temperature_unit == entity.native_temperature_unit
+    assert entity.current_temperature == entity.native_current_temperature
+    assert entity.target_temperature == entity.native_target_temperature
