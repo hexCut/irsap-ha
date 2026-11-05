@@ -172,7 +172,12 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         super().__init__(coordinator)
         self._radiator = radiator
         self._device = RadiatorDevice(radiator, envID)
-        self._attr_name = f"{radiator['serial']} Radiator"
+        # Main feature of the device: the entity takes the device name
+        self._attr_has_entity_name = True
+        self._attr_name = None
+        # Zone name used to find the zone in the shadow, and name for the logs
+        self._zone_name = radiator["serial"]
+        self._log_name = f"{radiator['serial']} Radiator"
         self._attr_unique_id = unique_id
         self._current_temperature = radiator.get("temperature", 0)
         self._target_temperature = 18.0  # Imposta una temperatura target predefinita
@@ -221,7 +226,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         self._temporary_until = None
 
         _LOGGER.debug(
-            f"Initialized {self._attr_name} with state {self._attr_hvac_mode}"
+            f"Initialized {self._log_name} with state {self._attr_hvac_mode}"
         )
 
     @property
@@ -233,11 +238,6 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     def max_temp(self):
         "Restituisce la temperatura massima raggiungibile."
         return 32  # Temperatura massima di 32 gradi
-
-    @property
-    def name(self):
-        "Return the name of the climate device."
-        return self._attr_name
 
     @property
     def unique_id(self):
@@ -426,14 +426,14 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
 
         if payload is None:
             _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
+                f"Failed to retrieve payload after token regeneration for {self._log_name}"
             )
             return
 
         # Aggiorna il payload con la nuova temperatura
         updated_payload = await self.generate_device_payload(
             payload=payload,
-            device_name=self._attr_name.replace("Radiator", "").strip(),
+            device_name=self._zone_name,
             temperature=temperature,  # Passa la temperatura come keyword argument
         )
 
@@ -450,13 +450,13 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             self._attr_hvac_action = self._estimate_hvac_action()
             self.async_write_ha_state()
         else:
-            _LOGGER.error(f"Failed to update temperature for {self._attr_name}")
+            _LOGGER.error(f"Failed to update temperature for {self._log_name}")
 
     @serialize_writes
     async def async_set_hvac_mode(self, hvac_mode):
         if self._attr_hvac_mode == hvac_mode:
             _LOGGER.debug(
-                f"HVAC mode for {self._attr_name} is already {hvac_mode}, skipping update"
+                f"HVAC mode for {self._log_name} is already {hvac_mode}, skipping update"
             )
             return
         if hvac_mode not in (HVACMode.OFF, HVACMode.HEAT):
@@ -470,13 +470,13 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
         token, payload = await async_fetch_shadow(self.hass, self._envID)
 
         if payload is None:
-            _LOGGER.error(f"Failed to retrieve current payload for {self._attr_name}")
+            _LOGGER.error(f"Failed to retrieve current payload for {self._log_name}")
             return
 
         # Aggiorna il payload con la nuova modalità
         updated_payload = await self.generate_device_payload_for_hvac(
             payload=payload,
-            device_name=self._attr_name.replace("Radiator", "").strip(),
+            device_name=self._zone_name,
             hvac_mode=1 if hvac_mode == HVACMode.HEAT else 0,
         )
 
@@ -492,7 +492,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
-            _LOGGER.error(f"Failed to update HVAC mode for {self._attr_name}")
+            _LOGGER.error(f"Failed to update HVAC mode for {self._log_name}")
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -509,12 +509,12 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             )
         token, payload = await async_fetch_shadow(self.hass, self._envID)
         if payload is None:
-            _LOGGER.error(f"Failed to retrieve current payload for {self._attr_name}")
+            _LOGGER.error(f"Failed to retrieve current payload for {self._log_name}")
             return
 
         updated_payload = await self.generate_device_payload(
             payload=payload,
-            device_name=self._attr_name.replace("Radiator", "").strip(),
+            device_name=self._zone_name,
             preset=preset_mode,
         )
         if await self._send_target_temperature_to_api(
@@ -531,11 +531,11 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
             self.async_write_ha_state()
         else:
-            _LOGGER.error(f"Failed to set preset {preset_mode} for {self._attr_name}")
+            _LOGGER.error(f"Failed to set preset {preset_mode} for {self._log_name}")
 
     def _zone_key(self, desired_payload):
         "Prefisso della zona di questo radiatore (es. 'PcC')."
-        device_name = self._attr_name.replace("Radiator", "").strip()
+        device_name = self._zone_name
         for key, value in desired_payload.items():
             if key.endswith("_NAM") and value == device_name:
                 return key[:-4]
@@ -555,17 +555,17 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     def _handle_coordinator_update(self) -> None:
         if time.monotonic() < self._ignore_updates_until:
             # Evita di sovrascrivere il valore appena impostato con uno shadow vecchio
-            _LOGGER.debug(f"Ignoring update for {self._attr_name} right after a command")
+            _LOGGER.debug(f"Ignoring update for {self._log_name} right after a command")
             return
         self._update_from_payload(self.coordinator.desired)
         self.async_write_ha_state()
 
     def _update_from_payload(self, desired_payload):
         "Aggiorna temperatura e modalità dal payload del coordinator."
-        _LOGGER.debug(f"Updating radiator climate {self._attr_name}")
+        _LOGGER.debug(f"Updating radiator climate {self._log_name}")
 
         # Rimuove "Radiator" dal nome dell'entità, se presente, per facilitare il matching
-        device_name = self._attr_name.replace("Radiator", "").strip()
+        device_name = self._zone_name
 
         enb_key = None
         tmp_value = None
@@ -588,7 +588,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                     self._target_temperature = target
 
                 _LOGGER.debug(
-                    f"modes for {self._attr_name}: "
+                    f"modes for {self._log_name}: "
                     f"MOD={desired_payload.get(base_key + '_MOD')} "
                     f"MSP={desired_payload.get(base_key + '_MSP')} "
                     f"TSP={desired_payload.get(base_key + '_TSP')} "
@@ -609,7 +609,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                     desired_payload, base_key, from_device, self._attr_hvac_action
                 )
                 _LOGGER.debug(
-                    f"hvac_action for {self._attr_name}: "
+                    f"hvac_action for {self._log_name}: "
                     f"ENB={desired_payload.get(enb_key)} "
                     f"E_CLL={desired_payload.get('E_CLL')} "
                     f"written_by={'device' if from_device else 'app'} "
@@ -621,18 +621,18 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
 
         # Se la temperatura manca per più aggiornamenti di fila, avvisa l'utente
         # (resta l'ultima temperatura valida)
-        notification_id = f"radiator_{self._attr_name}_temperature_warning"
+        notification_id = f"radiator_{self._log_name}_temperature_warning"
         if tmp_value is None:
             self._missing_temperature_count += 1
             _LOGGER.debug(
-                f"Temperature is None for {self._attr_name} "
+                f"Temperature is None for {self._log_name} "
                 f"({self._missing_temperature_count} updates in a row)"
             )
             if self._missing_temperature_count >= MISSING_TEMPERATURE_NOTIFY_AFTER:
                 persistent_notification.async_create(
                     self.hass,
                     "Temperature is set to previous state due to an invalid value received (None). Please check the device and try to reset it.",
-                    title=f"Device {self._attr_name} Issue",
+                    title=f"Device {self._log_name} Issue",
                     notification_id=notification_id,
                 )
         else:
@@ -646,5 +646,5 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             self._attr_hvac_mode = HVACMode.HEAT if enb_value == 1 else HVACMode.OFF
 
         _LOGGER.debug(
-            f"Final state for {self._attr_name}: Temperature={self._current_temperature}, HVAC mode={self._attr_hvac_mode}"
+            f"Final state for {self._log_name}: Temperature={self._current_temperature}, HVAC mode={self._attr_hvac_mode}"
         )

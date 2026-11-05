@@ -175,7 +175,7 @@ def test_preset_schedule_needs_a_schedule():
 
 # --- entity -------------------------------------------------------------
 
-ENTITY = "climate.bagno_radiator"
+ENTITY = "climate.bagno"
 
 
 async def _no_sleep(*args):

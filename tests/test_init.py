@@ -23,8 +23,8 @@ async def test_setup_single_login_and_fetch(
     await _setup(hass, config_entry)
 
     assert config_entry.state is ConfigEntryState.LOADED
-    assert hass.states.get("climate.bagno_radiator").state == "heat"
-    assert hass.states.get("climate.bagno_radiator").attributes["current_temperature"] == 21.5
+    assert hass.states.get("climate.bagno").state == "heat"
+    assert hass.states.get("climate.bagno").attributes["current_temperature"] == 21.5
     assert hass.states.get("light.bagno_led").state == "on"
     assert hass.states.get("sensor.bagno_ip_address").state == "192.168.0.50"
     # Setup of all three platforms: one login, one GetShadow
@@ -44,7 +44,7 @@ async def test_one_fetch_per_interval_for_all_entities(
     await hass.async_block_till_done()
 
     assert mock_get_shadow.call_count == 1  # shared by climate and light
-    assert hass.states.get("climate.bagno_radiator").attributes["current_temperature"] == 23.0
+    assert hass.states.get("climate.bagno").attributes["current_temperature"] == 23.0
     assert hass.states.get("light.bagno_led").state == "off"
     assert mock_login.call_count == 1  # token reused
 
@@ -77,7 +77,7 @@ async def test_polling_disabled_no_timer_but_update_entity_works(
     await hass.services.async_call(
         "homeassistant",
         "update_entity",
-        {"entity_id": "climate.bagno_radiator"},
+        {"entity_id": "climate.bagno"},
         blocking=True,
     )
     assert mock_get_shadow.call_count == 1
@@ -97,7 +97,7 @@ async def test_fetch_failure_relogs_once_then_unavailable(
     # cached token, then one forced re-login and retry
     assert mock_get_shadow.call_count == 2
     assert mock_login.call_count == 2
-    assert hass.states.get("climate.bagno_radiator").state == "unavailable"
+    assert hass.states.get("climate.bagno").state == "unavailable"
 
 
 async def test_reload_does_not_leak_devices(

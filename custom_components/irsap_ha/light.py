@@ -136,7 +136,11 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
         self._ignore_updates_until = 0.0
         self._radiator = radiator
         self._device = device  # Store device reference
-        self._attr_name = f"{radiator['serial']} LED"
+        self._attr_has_entity_name = True
+        self._attr_translation_key = "led"
+        # Zone name used to find the zone in the shadow, and name for the logs
+        self._zone_name = radiator["serial"]
+        self._log_name = f"{radiator['serial']} LED"
         self._attr_unique_id = unique_id
         self._attr_icon = "mdi:led-strip-variant"
         self._radiator_serial = radiator["serial"]
@@ -259,19 +263,19 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
     def _handle_coordinator_update(self) -> None:
         "Aggiorna lo stato della luce dal payload del coordinator."
         if time.monotonic() < self._ignore_updates_until:
-            _LOGGER.debug(f"Ignoring update for {self._attr_name} right after a command")
+            _LOGGER.debug(f"Ignoring update for {self._log_name} right after a command")
             return
-        _LOGGER.debug(f"Updating radiator light {self._attr_name}")
-        device_name = self._attr_name.replace("LED", "").strip()
+        _LOGGER.debug(f"Updating radiator light {self._log_name}")
+        device_name = self._zone_name
         if not self._extract_light_info(self.coordinator.desired, device_name):
-            _LOGGER.warning(f"Light info is incomplete for {self._attr_name}")
+            _LOGGER.warning(f"Light info is incomplete for {self._log_name}")
         self.async_write_ha_state()
 
     @serialize_writes
     async def async_turn_on(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
-        _LOGGER.debug(f"Turning on {self._attr_name} with kwargs: {kwargs}")
+        _LOGGER.debug(f"Turning on {self._log_name} with kwargs: {kwargs}")
 
         # Imposta la luminosità, se specificata, o utilizza quella attuale
         brightness = kwargs.get("brightness", self._attr_brightness)
@@ -299,14 +303,14 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
 
         if payload is None:
             _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
+                f"Failed to retrieve payload after token regeneration for {self._log_name}"
             )
             return
 
         # Genera il payload con la funzione generate_device_payload
         updated_payload = await self.generate_device_payload(
             payload=payload,
-            device_name=self._attr_name.replace("LED", "").strip(),
+            device_name=self._zone_name,
             light_state=True,  # Stato della luce (accensione)
             color=(h, s, v),  # Passa i valori HSV
             brightness=brightness_irsap,  # Passa la luminosità in scala 0-100
@@ -321,14 +325,14 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
             self.async_write_ha_state()
         else:
             _LOGGER.error(
-                f"Failed to update color and status as ON for {self._attr_name}"
+                f"Failed to update color and status as ON for {self._log_name}"
             )
 
     @serialize_writes
     async def async_turn_off(self, **kwargs):
         await asyncio.sleep(1)
         "Turn on the light with the specified settings."
-        _LOGGER.debug(f"Turning off {self._attr_name} with kwargs: {kwargs}")
+        _LOGGER.debug(f"Turning off {self._log_name} with kwargs: {kwargs}")
 
         # Allo spegnimento la luminosità inviata è 0; si ricorda quella richiesta
         brightness = kwargs.get("brightness", self._attr_brightness)
@@ -354,14 +358,14 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
 
         if payload is None:
             _LOGGER.error(
-                f"Failed to retrieve payload after token regeneration for {self._attr_name}"
+                f"Failed to retrieve payload after token regeneration for {self._log_name}"
             )
             return
 
         # Genera il payload con la funzione generate_device_payload
         updated_payload = await self.generate_device_payload(
             payload=payload,
-            device_name=self._attr_name.replace("LED", "").strip(),
+            device_name=self._zone_name,
             light_state=False,  # Stato della luce (accensione)
             color=(h, s, v),  # Passa i valori HSV
             brightness=0,  # Passa la luminosità in scala 0-100
@@ -376,7 +380,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
             self.async_write_ha_state()
         else:
             _LOGGER.error(
-                f"Failed to update color and status as OFF for {self._attr_name}"
+                f"Failed to update color and status as OFF for {self._log_name}"
             )
 
     def _extract_light_info(self, desired_payload, device_name):
