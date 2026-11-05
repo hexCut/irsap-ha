@@ -85,7 +85,7 @@
         "name": "Stato filo pilota"
       },
       "standby": {
-        "name": "Standby"
+        "name": "Standby (stato)"
       },
       "open_window_enabled": {
         "name": "Rilevamento finestra aperta abilitato"
@@ -106,7 +106,7 @@
         "name": "Finestra aperta rilevata"
       },
       "child_lock": {
-        "name": "Blocco bambini"
+        "name": "Blocco bambini (stato)"
       },
       "air_quality": {
         "name": "Qualità dell'aria"
