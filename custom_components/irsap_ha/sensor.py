@@ -9,6 +9,8 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
+    UnitOfEnergy,
+    UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
 )
@@ -126,6 +128,13 @@ SENSOR_DEVICE_FIELDS = {
     "voc": "_X_vocValue",
     "co2": "_X_co2Value",
     "lock": "_X_lock",
+    # Lifetime counters and rated power; on a towel warmer (fw 3.22)
+    # _LEC == _X_LCA * _X_CPW / 3600, i.e. Wh from heating seconds at rated W
+    "energy": "_LEC",
+    "heating_time": "_X_LCA",
+    "rated_power": "_X_CPW",
+    # Nominal electrical power: used only when _X_CPW is missing
+    "nominal_power": "_NEP",
 }
 
 
@@ -303,6 +312,12 @@ def extract_device_info(
         if base_key + "_AIQ" in payload:
             device_info["aiq"] = payload[base_key + "_AIQ"]
         device_info.update(device_values(payload, base_key, SENSOR_DEVICE_FIELDS))
+        # _X_CPW is the power _LEC is computed from; fall back to _NEP
+        if not _is_number(device_info.get("rated_power")):
+            device_info["rated_power"] = device_info.get("nominal_power")
+        # Zone values: the zone's own heat call (1 while the relay is on)
+        device_info["heat_call"] = payload.get(base_key + "_CLL")
+        device_info["enabled"] = payload.get(base_key + enb_suffix)
 
         devices_info.append(device_info)
 
@@ -727,6 +742,97 @@ class AIQSensor(BaseRadiatorSensor):
         )
 
 
+class EnergySensor(NumericRadiatorSensor):
+    """Energy used by the radiator since it was made (lifetime counter)."""
+
+    _attr_entity_category = None
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = UnitOfEnergy.WATT_HOUR
+    _attr_suggested_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 2
+
+    @classmethod
+    def is_supported(cls, radiator):
+        return _is_number(radiator.get("energy"))
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator,
+            radiator,
+            device,
+            unique_id,
+            None,  # device class name, translated by Home Assistant
+            "mdi:lightning-bolt",
+            "energy",
+        )
+
+
+class HeatingTimeSensor(NumericRadiatorSensor):
+    """Time the heating element has been on since the radiator was made."""
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_suggested_unit_of_measurement = UnitOfTime.HOURS
+    _attr_suggested_display_precision = 1
+
+    @classmethod
+    def is_supported(cls, radiator):
+        return _is_number(radiator.get("heating_time"))
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator,
+            radiator,
+            device,
+            unique_id,
+            "heating_time",
+            "mdi:timer-outline",
+            "heating_time",
+        )
+
+
+class PowerSensor(NumericRadiatorSensor):
+    """Power drawn now: the rated power while the zone calls for heat, else 0.
+
+    The radiator only switches its element fully on or off, so this is exact
+    at refresh time; the Energy sensor is the reference for consumption."""
+
+    _attr_entity_category = None
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+
+    @classmethod
+    def is_supported(cls, radiator):
+        return _is_number(radiator.get("rated_power"))
+
+    def __init__(self, coordinator, radiator, device, unique_id):
+        super().__init__(
+            coordinator,
+            radiator,
+            device,
+            unique_id,
+            None,  # device class name, translated by Home Assistant
+            "mdi:flash",
+            "rated_power",
+        )
+
+    @property
+    def native_value(self):
+        rated = super().native_value
+        if rated is None:
+            return None
+        heating = (
+            self._radiator.get("enabled") == 1 and self._radiator.get("heat_call") == 1
+        )
+        return rated if heating else 0
+
+    @property
+    def extra_state_attributes(self):
+        return {"rated_power": super().native_value}
+
+
 # Every diagnostic sensor, with the suffix of its unique_id (serial_suffix)
 SENSOR_TYPES = [
     (RadiatorSensor, "ip_address"),
@@ -744,4 +850,7 @@ SENSOR_TYPES = [
     (OpenWindowDetectedSensor, "openwindow_detected"),
     (LockSensor, "lock"),
     (AIQSensor, "aiq"),
+    (EnergySensor, "energy"),
+    (HeatingTimeSensor, "heating_time"),
+    (PowerSensor, "power"),
 ]

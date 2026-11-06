@@ -57,6 +57,10 @@ def _towel_warmer():
             "DRk_X_vocValue": 65535,
             "DRk_X_co2Value": 65535,
             "DRk_X_lock": 0,
+            "DRk_LEC": 13859,
+            "DRk_X_LCA": 124739,
+            "DRk_X_CPW": 400,
+            "PTO_CLL": 0,
             "PTO_AIQ": None,
         }
     )

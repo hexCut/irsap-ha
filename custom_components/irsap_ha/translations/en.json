@@ -110,6 +110,9 @@
       },
       "air_quality": {
         "name": "Air quality"
+      },
+      "heating_time": {
+        "name": "Heating time"
       }
     }
   }

@@ -110,6 +110,9 @@
       },
       "air_quality": {
         "name": "Qualità dell'aria"
+      },
+      "heating_time": {
+        "name": "Tempo di riscaldamento"
       }
     }
   }
