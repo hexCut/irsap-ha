@@ -7,16 +7,20 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
+    UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from . import topology
 from .device_manager import device_manager
 from .ids import device_identifier, unique_id as make_unique_id
 from .shadow import device_values
@@ -64,6 +68,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 sensor_entities.append(entity)
         else:
             _LOGGER.debug(f"No matching device found for sensor {r['serial']}")
+
+    # Smart Valve installations: valves and their ambient sensors (Termostato),
+    # a separate axis from the per-zone radiator sensors above. A plain Wi-Fi
+    # radiator zone has no linked devices, so this adds nothing for it.
+    sensor_entities.extend(
+        _build_linked_device_entities(hass, config_entry, coordinator)
+    )
 
     # I valori arrivano già dal coordinator: niente aggiornamento prima dell'aggiunta
     async_add_entities(sensor_entities)
@@ -838,6 +849,501 @@ class PowerSensor(NumericRadiatorSensor):
     @property
     def extra_state_attributes(self):
         return {"rated_power": super().native_value}
+
+
+def _format_errors(errors):
+    """Short text for a device's `_ERR` list; always empty in the data seen
+    so far, but shown instead of hidden in case it ever isn't."""
+    if not errors:
+        return "No errors"
+    return ", ".join(str(error) for error in errors)
+
+
+# --- Smart Valve devices: valves and their ambient sensors (Termostato) ---
+#
+# A separate axis from the radiator sensors above: a zone can have several
+# physical devices (a valve, an ambient sensor), each gets its own Home
+# Assistant device here, named as in the IRSAP app ("Valvola", "Termostato"),
+# linked via `via_device` to the gateway ("Unità di Connessione").
+
+# Display name used in the IRSAP app for each device kind
+LINKED_DEVICE_ROLE = {"valve": "Valvola", "ambient_sensor": "Termostato"}
+
+
+class LinkedDeviceEntity(CoordinatorEntity):
+    """Diagnostic entity for one physical valve or ambient sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, zone, device, zone_name, gateway_device_id):
+        super().__init__(coordinator)
+        self._zone = zone
+        self._device_id = device["device_id"]
+        self._device = device
+        self._zone_name = zone_name
+        # The gateway's device registry id (DeviceEntry.id), not the shadow
+        # prefix: device_info needs via_device_id, not the deprecated
+        # via_device identifiers tuple.
+        self._gateway_device_id = gateway_device_id
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        for device in topology.linked_devices(self.coordinator.desired, self._zone):
+            if device["device_id"] == self._device_id:
+                self._device = device
+                break
+        else:
+            _LOGGER.debug(
+                f"Device {self._device_id} not in the latest data, keeping last values"
+            )
+        super()._handle_coordinator_update()
+
+    @property
+    def device_info(self):
+        role = LINKED_DEVICE_ROLE[self._device["kind"]]
+        info = {
+            "identifiers": {(DOMAIN, self._device_id)},
+            "name": f"{self._zone_name} {role}",
+            "manufacturer": "IRSAP",
+            "model": role,
+            "sw_version": self._device.get("firmware", "Unknown Firmware"),
+        }
+        if self._gateway_device_id is not None:
+            info["via_device_id"] = self._gateway_device_id
+        return info
+
+
+class LinkedDeviceSensor(LinkedDeviceEntity, SensorEntity):
+    """A single numeric reading of a valve or ambient sensor; None (unknown)
+    when the device doesn't report it, or reports the firmware's
+    not-available sentinel."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(
+        self,
+        coordinator,
+        zone,
+        device,
+        zone_name,
+        gateway_device_id,
+        data_key,
+        translation_key,
+        icon,
+        device_class=None,
+        unit=None,
+        suggested_display_precision=None,
+    ):
+        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        self._data_key = data_key
+        # None: a sensor with a device class takes its translated name
+        if translation_key is not None:
+            self._attr_translation_key = translation_key
+        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_icon = icon
+        if device_class is not None:
+            self._attr_device_class = device_class
+        if unit is not None:
+            self._attr_native_unit_of_measurement = unit
+        if suggested_display_precision is not None:
+            # Values converted from tenths (e.g. 30 -> 3.0) otherwise show
+            # without the decimal in the frontend whenever it lands on a
+            # round number (e.g. "3" instead of "3.0").
+            self._attr_suggested_display_precision = suggested_display_precision
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def native_value(self):
+        raw = self._device.get(self._data_key)
+        if not _is_number(raw) or raw == NOT_AVAILABLE:
+            return None
+        return raw
+
+
+class LinkedDeviceEnabledSensor(LinkedDeviceEntity, SensorEntity):
+    """A 0/1 feature flag of a valve or ambient sensor, shown as Enabled/Disabled
+    (same convention as the existing OpenWindowEnabledSensor for Wi-Fi radiators)."""
+
+    def __init__(
+        self, coordinator, zone, device, zone_name, gateway_device_id, data_key, translation_key, icon
+    ):
+        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        self._data_key = data_key
+        self._attr_translation_key = translation_key
+        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_icon = icon
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def native_value(self):
+        status = self._device.get(self._data_key)
+        if status == 1:
+            return "Enabled"
+        if status == 0:
+            return "Disabled"
+        return None
+
+
+class LinkedDeviceErrorSensor(LinkedDeviceEntity, SensorEntity):
+    """The device's current error list (`_ERR`); "No errors" when empty."""
+
+    def __init__(
+        self, coordinator, zone, device, zone_name, gateway_device_id, data_key, translation_key, icon
+    ):
+        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        self._data_key = data_key
+        self._attr_translation_key = translation_key
+        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_icon = icon
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def native_value(self):
+        return _format_errors(self._device.get(self._data_key))
+
+
+class GatewayEntity(CoordinatorEntity):
+    """Diagnostic entity for the gateway ("Unità di Connessione") itself,
+    not for one of the valves/ambient sensors behind it."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, gateway_id):
+        super().__init__(coordinator)
+        self._gateway_id = gateway_id
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self._gateway_id)},
+            "name": "Unità di Connessione",
+            "manufacturer": "IRSAP",
+        }
+
+
+class GatewayLastUpdateSensor(GatewayEntity, SensorEntity):
+    """When the gateway last synced with the cloud.
+
+    Shown once here instead of once per valve/Termostato: in the data seen so
+    far `_LUP` is identical across every device behind the same gateway in a
+    given poll (one batch sync). Each valve/Termostato also keeps its own
+    Last Update (see LinkedDeviceLastUpdateSensor) in case one ever lags.
+    """
+
+    def __init__(self, coordinator, gateway_id):
+        super().__init__(coordinator, gateway_id)
+        self._attr_translation_key = "last_update"
+        self._attr_unique_id = f"{gateway_id}_last_update"
+        self._attr_icon = "mdi:update"
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def native_value(self):
+        raw = self.coordinator.desired.get(f"{self._gateway_id}_LUP")
+        if not raw:
+            return None
+        last_update_dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        local_tz = dt_util.DEFAULT_TIME_ZONE
+        return last_update_dt.astimezone(local_tz).strftime("%d-%m-%Y %H:%M")
+
+
+class GatewaySensor(GatewayEntity, SensorEntity):
+    """A single reading of the gateway's own shadow fields, read directly by
+    shadow key suffix (the gateway isn't a `topology.py` linked device)."""
+
+    def __init__(
+        self, coordinator, gateway_id, suffix, data_name, translation_key, icon, formatter=None
+    ):
+        super().__init__(coordinator, gateway_id)
+        self._suffix = suffix
+        self._formatter = formatter
+        self._attr_translation_key = translation_key
+        self._attr_unique_id = f"{gateway_id}_{data_name}"
+        self._attr_icon = icon
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def native_value(self):
+        raw = self.coordinator.desired.get(f"{self._gateway_id}{self._suffix}")
+        if self._formatter is not None:
+            return self._formatter(raw)
+        if not _is_number(raw) or raw == NOT_AVAILABLE:
+            return None
+        return raw
+
+
+class LinkedDeviceLastUpdateSensor(LinkedDeviceEntity, SensorEntity):
+    """When this specific device last reported to the shadow, in the local
+    timezone. Complements GatewayLastUpdateSensor: the two have matched in
+    every poll observed so far, but if a device ever loses radio contact its
+    own _LUP would lag behind the gateway's while this keeps reporting it."""
+
+    def __init__(
+        self, coordinator, zone, device, zone_name, gateway_device_id, data_key, translation_key, icon
+    ):
+        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        self._data_key = data_key
+        self._attr_translation_key = translation_key
+        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_icon = icon
+
+    @property
+    def unique_id(self):
+        return self._attr_unique_id
+
+    @property
+    def native_value(self):
+        raw = self._device.get(self._data_key)
+        if not raw:
+            return None
+        last_update_dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        local_tz = dt_util.DEFAULT_TIME_ZONE
+        return last_update_dt.astimezone(local_tz).strftime("%d-%m-%Y %H:%M")
+
+
+# Diagnostic readings shared by valves and ambient sensors
+# (data_key, translation_key, icon, device_class, unit, entity_cls, suggested_display_precision)
+# translation_key is None only when the device_class's own default name is
+# unambiguous for that device (a single sensor of that class on it).
+_COMMON_LINKED_SENSORS = [
+    (
+        "battery_voltage",
+        "battery_voltage",
+        "mdi:battery",
+        SensorDeviceClass.VOLTAGE,
+        UnitOfElectricPotential.VOLT,
+        LinkedDeviceSensor,
+        1,
+    ),
+    (
+        "rssi",
+        "rssi",
+        "mdi:signal",
+        SensorDeviceClass.SIGNAL_STRENGTH,
+        SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+        LinkedDeviceSensor,
+        None,
+    ),
+    (
+        "measured_temperature",
+        "temperature",
+        "mdi:thermometer",
+        SensorDeviceClass.TEMPERATURE,
+        UnitOfTemperature.CELSIUS,
+        LinkedDeviceSensor,
+        1,
+    ),
+    (
+        "last_update",
+        "last_update",
+        "mdi:update",
+        None,
+        None,
+        LinkedDeviceLastUpdateSensor,
+        None,
+    ),
+    (
+        "errors",
+        "last_error",
+        "mdi:alert-circle-outline",
+        None,
+        None,
+        LinkedDeviceErrorSensor,
+        None,
+    ),
+]
+_LINKED_SENSORS_BY_KIND = {
+    "valve": _COMMON_LINKED_SENSORS
+    + [
+        ("valve_open", "valve_opening", "mdi:valve", None, None, LinkedDeviceSensor, None),
+        (
+            "water_temperature",
+            "water_temperature",
+            "mdi:thermometer-water",
+            SensorDeviceClass.TEMPERATURE,
+            UnitOfTemperature.CELSIUS,
+            LinkedDeviceSensor,
+            1,
+        ),
+        (
+            "open_window_enabled",
+            "open_window_enabled",
+            "mdi:window-open",
+            None,
+            None,
+            LinkedDeviceEnabledSensor,
+            None,
+        ),
+        (
+            "setpoint_temperature",
+            "setpoint_temperature",
+            "mdi:thermometer",
+            SensorDeviceClass.TEMPERATURE,
+            UnitOfTemperature.CELSIUS,
+            LinkedDeviceSensor,
+            1,
+        ),
+        ("child_lock", "child_lock", "mdi:lock", None, None, LinkedDeviceEnabledSensor, None),
+        (
+            "temperature_offset",
+            "temperature_offset",
+            "mdi:thermometer",
+            # A temperature difference, not an absolute reading: no device
+            # class, so HA doesn't try to convert it as one (same reasoning
+            # as the existing TemperatureOffsetSensor for Wi-Fi radiators).
+            None,
+            UnitOfTemperature.CELSIUS,
+            LinkedDeviceSensor,
+            1,
+        ),
+        (
+            "anti_whistle",
+            "anti_whistle",
+            "mdi:volume-off",
+            None,
+            PERCENTAGE,
+            LinkedDeviceSensor,
+            None,
+        ),
+    ],
+    "ambient_sensor": _COMMON_LINKED_SENSORS
+    + [
+        (
+            "humidity",
+            "humidity",
+            "mdi:water-percent",
+            SensorDeviceClass.HUMIDITY,
+            PERCENTAGE,
+            LinkedDeviceSensor,
+            None,
+        ),
+        (
+            "co2",
+            # None: same device class as the existing Co2Sensor, which also
+            # takes HA's default translated name instead of a custom one.
+            None,
+            "mdi:molecule-co2",
+            SensorDeviceClass.CO2,
+            "ppm",
+            LinkedDeviceSensor,
+            None,
+        ),
+        ("voc", "voc", "mdi:air-filter", None, None, LinkedDeviceSensor, None),
+        ("voc_level", "voc_level", "mdi:gauge", None, None, LinkedDeviceSensor, None),
+        (
+            "aqi_uba",
+            "aqi_uba",
+            "mdi:air-filter",
+            None,
+            None,
+            LinkedDeviceSensor,
+            None,
+        ),
+    ],
+}
+
+
+def _build_linked_device_entities(hass, config_entry, coordinator):
+    """Diagnostic entities for every valve and ambient sensor (Termostato)
+    linked to a zone. Nothing is created for a shadow with no Smart Valve
+    devices (plain Wi-Fi radiators): `topology.zone_devices` then returns
+    only empty lists.
+    """
+    desired = coordinator.desired
+    zones = topology.zone_devices(desired)
+    if not any(zones.values()):
+        return []
+
+    gateway_id = topology.gateway_id(desired)
+    entities = []
+    gateway_device_id = None
+    if gateway_id is not None:
+        gateway_device = dr.async_get(hass).async_get_or_create(
+            config_entry_id=config_entry.entry_id,
+            identifiers={(DOMAIN, gateway_id)},
+            name="Unità di Connessione",
+            manufacturer="IRSAP",
+            sw_version=desired.get(f"{gateway_id}_FWV", "Unknown Firmware"),
+        )
+        gateway_device_id = gateway_device.id
+        entities.append(GatewayLastUpdateSensor(coordinator, gateway_id))
+        entities.append(
+            GatewaySensor(coordinator, gateway_id, "_X_RF_Power", "rf_power", "rf_power", "mdi:radio-tower")
+        )
+        entities.append(
+            GatewaySensor(
+                coordinator,
+                gateway_id,
+                "_ERR",
+                "errors",
+                "last_error",
+                "mdi:alert-circle-outline",
+                formatter=_format_errors,
+            )
+        )
+
+    for zone, devices in zones.items():
+        zone_name = desired.get(f"{zone}_NAM", zone)
+        for device in devices:
+            for (
+                data_key,
+                translation_key,
+                icon,
+                device_class,
+                unit,
+                entity_cls,
+                precision,
+            ) in _LINKED_SENSORS_BY_KIND[device["kind"]]:
+                if entity_cls is LinkedDeviceSensor:
+                    entities.append(
+                        LinkedDeviceSensor(
+                            coordinator,
+                            zone,
+                            device,
+                            zone_name,
+                            gateway_device_id,
+                            data_key,
+                            translation_key,
+                            icon,
+                            device_class,
+                            unit,
+                            precision,
+                        )
+                    )
+                else:
+                    # LinkedDeviceEnabledSensor / LinkedDeviceLastUpdateSensor /
+                    # LinkedDeviceErrorSensor: same (coordinator, zone, device,
+                    # zone_name, gateway_device_id, data_key, translation_key, icon) signature
+                    entities.append(
+                        entity_cls(
+                            coordinator,
+                            zone,
+                            device,
+                            zone_name,
+                            gateway_device_id,
+                            data_key,
+                            translation_key,
+                            icon,
+                        )
+                    )
+    return entities
 
 
 # Every diagnostic sensor, with the suffix of its unique_id (serial_suffix)

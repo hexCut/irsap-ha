@@ -113,6 +113,42 @@
       },
       "heating_time": {
         "name": "Tempo di riscaldamento"
+      },
+      "battery_voltage": {
+        "name": "Tensione batteria"
+      },
+      "rssi": {
+        "name": "RSSI"
+      },
+      "temperature": {
+        "name": "Temperatura"
+      },
+      "setpoint_temperature": {
+        "name": "Temperatura di setpoint"
+      },
+      "water_temperature": {
+        "name": "Temperatura acqua"
+      },
+      "valve_opening": {
+        "name": "Apertura valvola"
+      },
+      "anti_whistle": {
+        "name": "Anti-fischio"
+      },
+      "humidity": {
+        "name": "Umidità"
+      },
+      "voc_level": {
+        "name": "Livello VOC"
+      },
+      "aqi_uba": {
+        "name": "Indice qualità aria UBA"
+      },
+      "rf_power": {
+        "name": "Potenza radio"
+      },
+      "last_error": {
+        "name": "Ultimo errore"
       }
     }
   }
