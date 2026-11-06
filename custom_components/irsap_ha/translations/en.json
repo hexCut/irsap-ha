@@ -85,7 +85,7 @@
         "name": "Pilote status"
       },
       "standby": {
-        "name": "Standby"
+        "name": "Standby (status)"
       },
       "open_window_enabled": {
         "name": "Open window enabled"
@@ -106,7 +106,7 @@
         "name": "Open window detected"
       },
       "child_lock": {
-        "name": "Child lock"
+        "name": "Child lock (status)"
       },
       "air_quality": {
         "name": "Air quality"

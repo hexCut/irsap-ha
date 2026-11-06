@@ -106,7 +106,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -117,7 +117,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_child_lock',
+      'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_lock',
     }),
@@ -284,7 +284,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sleep',
       }),
       'device': dict({
@@ -295,7 +295,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_standby',
+      'entity_id': 'sensor.bagno_standby_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_standby',
     }),
@@ -399,7 +399,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -410,7 +410,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_child_lock',
+      'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unlocked',
       'unique_id': 'Bagno_lock',
     }),
@@ -577,7 +577,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sleep',
       }),
       'device': dict({
@@ -588,7 +588,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_standby',
+      'entity_id': 'sensor.bagno_standby_status',
       'state': 'No',
       'unique_id': 'Bagno_standby',
     }),
@@ -776,7 +776,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -787,7 +787,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_child_lock',
+      'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_lock',
     }),
@@ -954,7 +954,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sleep',
       }),
       'device': dict({
@@ -965,7 +965,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_standby',
+      'entity_id': 'sensor.bagno_standby_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_standby',
     }),
@@ -1041,7 +1041,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -1052,7 +1052,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_child_lock',
+      'entity_id': 'sensor.camera_child_lock_status',
       'state': 'Unknown',
       'unique_id': 'Camera_lock',
     }),
@@ -1219,7 +1219,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Standby',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Standby (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sleep',
       }),
       'device': dict({
@@ -1230,7 +1230,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_standby',
+      'entity_id': 'sensor.camera_standby_status',
       'state': 'Unknown',
       'unique_id': 'Camera_standby',
     }),

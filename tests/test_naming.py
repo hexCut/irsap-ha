@@ -1,6 +1,8 @@
 """Entity names: Home Assistant composes them from the device name and a
 translated entity name, and keeps the entity_ids of existing installs."""
 
+import pytest
+
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
@@ -100,3 +102,19 @@ async def test_upgrade_keeps_entity_ids(
     )
     assert _friendly(hass, "switch.bagno_child_lock") == "Bagno Child lock"
     assert hass.states.get("climate.bagno") is None
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+async def test_no_two_entities_share_a_name(
+    hass, config_entry, mock_login, mock_get_shadow, shadow, language
+):
+    """Until 1.7 the read-only status sensors sit next to the switches that
+    replace them: they need names of their own."""
+    shadow["state"]["desired"].update(
+        {"PTO_X_lock": 0, "PTO_X_standby": 0, "PTO_X_OpenWindowSensorEnabled": 1}
+    )
+    hass.config.language = language
+    await _setup(hass, config_entry)
+
+    names = [state.attributes["friendly_name"] for state in hass.states.async_all()]
+    assert len(names) == len(set(names)), sorted(names)
