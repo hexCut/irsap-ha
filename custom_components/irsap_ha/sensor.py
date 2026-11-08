@@ -805,7 +805,14 @@ class PowerSensor(NumericRadiatorSensor):
 
     @classmethod
     def is_supported(cls, radiator):
-        return _is_number(radiator.get("rated_power"))
+        # Without the zone's heat call (`<zone>_CLL`) the sensor would read 0 W
+        # forever: create it disabled instead.
+        heat_call = radiator.get("heat_call")
+        return (
+            _is_number(radiator.get("rated_power"))
+            and _is_number(heat_call)
+            and heat_call in (0, 1)
+        )
 
     def __init__(self, coordinator, radiator, device, unique_id):
         super().__init__(

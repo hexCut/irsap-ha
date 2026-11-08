@@ -106,7 +106,7 @@ Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update
 Radiators that report their counters get two more sensors:
 
 - **Energy**: the energy used by the radiator since it was made, in kWh. It can be added to the Energy dashboard under *Individual devices*.
-- **Power**: the radiator's rated power while it is heating, `0` otherwise. It is an indication, read at each update: use Energy for consumption.
+- **Power**: the radiator's rated power while it is heating (the heat call it reports, `<zone>_CLL`, is on), `0` otherwise. It is an indication, read at each update: use Energy for consumption. A radiator that doesn't report the heat call gets this sensor disabled.
 
 Both are **estimated by the radiator, not metered**: it counts how long the heating element has been on and multiplies by its rated power (`_X_CPW`, or `_NEP` if missing), shown as the `rated_power` attribute of the Power sensor. If the element draws more or less than its rating, the values are off in the same proportion. The time the element has been on is also available as the diagnostic sensor *Heating time*.
 

@@ -331,6 +331,25 @@ async def test_energy_sensors_disabled_without_counters(
         assert registry.async_get(entity_id).disabled_by is not None
 
 
+async def test_power_disabled_without_heat_call(
+    hass, config_entry, mock_login, mock_get_shadow, shadow
+):
+    """Without <zone>_CLL Power would always read 0 W: it is created disabled,
+    while Energy and Heating time stay enabled."""
+    desired = _with_energy_counters(shadow)
+    del desired["PTO_CLL"]
+    await _setup(hass, config_entry)
+    registry = er.async_get(hass)
+
+    def disabled(unique_id):
+        entity_id = registry.async_get_entity_id("sensor", "irsap_ha", unique_id)
+        return registry.async_get(entity_id).disabled_by is not None
+
+    assert disabled("Bagno_power")
+    assert not disabled("Bagno_energy")
+    assert not disabled("Bagno_heating_time")
+
+
 async def test_energy_sensor_names(
     hass, config_entry, mock_login, mock_get_shadow, shadow
 ):
