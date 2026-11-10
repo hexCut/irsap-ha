@@ -136,6 +136,33 @@ async def test_set_temperature_keeps_hvac_mode_off(
     assert state.attributes["temperature"] == 24
 
 
+async def test_set_temperature_with_hvac_mode(
+    hass, config_entry, mock_login, mock_get_shadow, mock_update_shadow, shadow
+):
+    """set_temperature with hvac_mode applies both: setpoint first, then mode."""
+    shadow["state"]["desired"]["PTO_ENB"] = 0
+    await _setup(hass, config_entry)
+    assert hass.states.get(ENTITY).state == "off"
+
+    with patch("custom_components.irsap_ha.climate.asyncio.sleep", _no_sleep):
+        await hass.services.async_call(
+            "climate",
+            "set_temperature",
+            {"entity_id": ENTITY, "temperature": 24, "hvac_mode": "heat"},
+            blocking=True,
+        )
+
+    assert mock_update_shadow.call_count == 2
+    first = mock_update_shadow.call_args_list[0].args[3]["state"]["desired"]
+    second = mock_update_shadow.call_args_list[1].args[3]["state"]["desired"]
+    assert first["PTO_MSP"]["p"]["v"] == 240
+    assert first["PTO_ENB"] == 0  # the setpoint write leaves _ENB alone
+    assert second["PTO_ENB"] == 1
+    state = hass.states.get(ENTITY)
+    assert state.state == "heat"
+    assert state.attributes["temperature"] == 24
+
+
 async def test_native_temperature_members(
     hass, config_entry, mock_login, mock_get_shadow
 ):

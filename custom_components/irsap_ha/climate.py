@@ -3,12 +3,13 @@ import logging
 import time
 from homeassistant.components import persistent_notification
 from homeassistant.components.climate import (
+    ATTR_HVAC_MODE,
     ClimateEntity,
     HVACAction,
     HVACMode,
 )
 from homeassistant.components.climate.const import ClimateEntityFeature
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
@@ -414,12 +415,22 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
 
         return final_payload
 
-    @serialize_writes
     async def async_set_temperature(self, **kwargs):
-        await asyncio.sleep(1)
+        """Set the target temperature and, if the call carries one, the mode.
 
+        ``climate.set_temperature`` can include ``hvac_mode``: Home Assistant
+        passes it here and expects the entity to apply it. The setpoint is
+        written first, then the mode, as two separate commands: each one takes
+        the write lock, which is not re-entrant.
+        """
+        await self._async_write_temperature(kwargs.get(ATTR_TEMPERATURE))
+        if (hvac_mode := kwargs.get(ATTR_HVAC_MODE)) is not None:
+            await self.async_set_hvac_mode(hvac_mode)
+
+    @serialize_writes
+    async def _async_write_temperature(self, temperature):
         "Imposta la temperatura target del radiatore."
-        temperature = kwargs.get("temperature")  # Estrae la temperatura dai kwargs
+        await asyncio.sleep(1)
 
         # Token in cache; se il GetShadow fallisce ne viene chiesto uno nuovo
         token, payload = await async_fetch_shadow(self.hass, self._envID)
