@@ -18,6 +18,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .device_manager import device_manager
+from .ids import device_identifier, unique_id as make_unique_id
 from .shadow import device_values
 from homeassistant.util import dt as dt_util
 
@@ -51,7 +52,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
         if device is not None:
             for sensor_cls, suffix in SENSOR_TYPES:
-                unique_id = f"{r['serial']}_{suffix}"
+                unique_id = make_unique_id(device.envID, r["zone"], suffix)
                 supported = sensor_cls.is_supported(r)
                 # Una misura che il radiatore non ha viene disattivata, non
                 # cancellata: se in seguito arriva un valore vero si riattiva
@@ -254,6 +255,7 @@ def extract_device_info(
     # Associa ogni _NAM ai suoi corrispondenti attributi
     for i, (nam_key, device_info) in enumerate(nam_keys):
         base_key = nam_key[: -len(nam_suffix)]
+        device_info["zone"] = base_key
         corresponding_tmp_key = base_key + tmp_suffix
         corresponding_enb_key = base_key + enb_suffix
 
@@ -373,9 +375,7 @@ class RadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
     def device_info(self):
         """Associa il sensore al dispositivo climate con il seriale corrispondente."""
         return {
-            "identifiers": {
-                (DOMAIN, self._radiator["serial"])
-            },  # Use device serial number
+            "identifiers": {device_identifier(self._device.envID, self._radiator["zone"])},
             "name": f"{self._radiator['serial']}",
             "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",
@@ -426,7 +426,7 @@ class BaseRadiatorSensor(RadiatorCoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, self._radiator["serial"])},
+            "identifiers": {device_identifier(self._device.envID, self._radiator["zone"])},
             "name": f"{self._radiator['serial']}",
             "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",
@@ -698,7 +698,7 @@ class LastUpdateSensor(RadiatorCoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, self._radiator["serial"])},
+            "identifiers": {device_identifier(self._device.envID, self._radiator["zone"])},
             "name": f"{self._radiator['serial']}",
             "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",

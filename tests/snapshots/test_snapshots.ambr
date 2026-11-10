@@ -32,7 +32,7 @@
       'entity_category': None,
       'entity_id': 'climate.bagno',
       'state': 'heat',
-      'unique_id': 'Bagno_climate',
+      'unique_id': 'env-1_PTO_climate',
     }),
     dict({
       'attributes': dict({
@@ -74,7 +74,7 @@
       'entity_category': None,
       'entity_id': 'light.bagno_led',
       'state': 'on',
-      'unique_id': 'Bagno_led',
+      'unique_id': 'env-1_PTO_led',
     }),
     dict({
       'attributes': None,
@@ -88,7 +88,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_air_quality',
       'state': None,
-      'unique_id': 'Bagno_aiq',
+      'unique_id': 'env-1_PTO_aiq',
     }),
     dict({
       'attributes': None,
@@ -102,7 +102,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_carbon_dioxide',
       'state': None,
-      'unique_id': 'Bagno_co2',
+      'unique_id': 'env-1_PTO_co2',
     }),
     dict({
       'attributes': dict({
@@ -119,7 +119,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_lock',
+      'unique_id': 'env-1_PTO_lock',
     }),
     dict({
       'attributes': None,
@@ -133,7 +133,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_energy',
       'state': None,
-      'unique_id': 'Bagno_energy',
+      'unique_id': 'env-1_PTO_energy',
     }),
     dict({
       'attributes': None,
@@ -147,7 +147,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_heating_time',
       'state': None,
-      'unique_id': 'Bagno_heating_time',
+      'unique_id': 'env-1_PTO_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -166,7 +166,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_hysteresis',
       'state': 'unknown',
-      'unique_id': 'Bagno_hysteresis',
+      'unique_id': 'env-1_PTO_hysteresis',
     }),
     dict({
       'attributes': dict({
@@ -183,7 +183,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_ip_address',
       'state': '192.168.0.50',
-      'unique_id': 'Bagno_ip_address',
+      'unique_id': 'env-1_PTO_ip_address',
     }),
     dict({
       'attributes': dict({
@@ -200,7 +200,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_last_update',
       'state': 'N/A',
-      'unique_id': 'Bagno_last_update',
+      'unique_id': 'env-1_PTO_last_update',
     }),
     dict({
       'attributes': dict({
@@ -217,7 +217,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_detected',
       'state': 'Unknown',
-      'unique_id': 'Bagno_openwindow_detected',
+      'unique_id': 'env-1_PTO_openwindow_detected',
     }),
     dict({
       'attributes': dict({
@@ -234,7 +234,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_enabled',
       'state': 'Unknown',
-      'unique_id': 'Bagno_openwindow_enabled',
+      'unique_id': 'env-1_PTO_openwindow_enabled',
     }),
     dict({
       'attributes': dict({
@@ -254,7 +254,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_off_time',
       'state': 'unknown',
-      'unique_id': 'Bagno_openwindow_offset',
+      'unique_id': 'env-1_PTO_openwindow_offset',
     }),
     dict({
       'attributes': dict({
@@ -271,7 +271,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_enable',
       'state': 'Unknown',
-      'unique_id': 'Bagno_pilote_enable',
+      'unique_id': 'env-1_PTO_pilote_enable',
     }),
     dict({
       'attributes': dict({
@@ -288,7 +288,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_pilote_status',
+      'unique_id': 'env-1_PTO_pilote_status',
     }),
     dict({
       'attributes': None,
@@ -302,7 +302,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_power',
       'state': None,
-      'unique_id': 'Bagno_power',
+      'unique_id': 'env-1_PTO_power',
     }),
     dict({
       'attributes': dict({
@@ -322,7 +322,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_signal_strength',
       'state': 'unknown',
-      'unique_id': 'Bagno_wifi_signal',
+      'unique_id': 'env-1_PTO_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -339,7 +339,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_standby_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_standby',
+      'unique_id': 'env-1_PTO_standby',
     }),
     dict({
       'attributes': dict({
@@ -358,7 +358,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_temperature_offset',
       'state': 'unknown',
-      'unique_id': 'Bagno_temperature_offset',
+      'unique_id': 'env-1_PTO_temperature_offset',
     }),
     dict({
       'attributes': None,
@@ -372,7 +372,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_voc',
       'state': None,
-      'unique_id': 'Bagno_voc',
+      'unique_id': 'env-1_PTO_voc',
     }),
   ])
 # ---
@@ -409,7 +409,7 @@
       'entity_category': None,
       'entity_id': 'climate.bagno',
       'state': 'heat',
-      'unique_id': 'Bagno_climate',
+      'unique_id': 'env-1_PTO_climate',
     }),
     dict({
       'attributes': None,
@@ -423,7 +423,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_air_quality',
       'state': None,
-      'unique_id': 'Bagno_aiq',
+      'unique_id': 'env-1_PTO_aiq',
     }),
     dict({
       'attributes': None,
@@ -437,7 +437,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_carbon_dioxide',
       'state': None,
-      'unique_id': 'Bagno_co2',
+      'unique_id': 'env-1_PTO_co2',
     }),
     dict({
       'attributes': dict({
@@ -454,7 +454,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unlocked',
-      'unique_id': 'Bagno_lock',
+      'unique_id': 'env-1_PTO_lock',
     }),
     dict({
       'attributes': dict({
@@ -474,7 +474,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_energy',
       'state': '13.859',
-      'unique_id': 'Bagno_energy',
+      'unique_id': 'env-1_PTO_energy',
     }),
     dict({
       'attributes': dict({
@@ -494,7 +494,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_heating_time',
       'state': '34.6497222222222',
-      'unique_id': 'Bagno_heating_time',
+      'unique_id': 'env-1_PTO_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -513,7 +513,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_hysteresis',
       'state': '0.2',
-      'unique_id': 'Bagno_hysteresis',
+      'unique_id': 'env-1_PTO_hysteresis',
     }),
     dict({
       'attributes': dict({
@@ -530,7 +530,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_ip_address',
       'state': '192.168.0.50',
-      'unique_id': 'Bagno_ip_address',
+      'unique_id': 'env-1_PTO_ip_address',
     }),
     dict({
       'attributes': dict({
@@ -547,7 +547,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_last_update',
       'state': '14-10-2026 11:50',
-      'unique_id': 'Bagno_last_update',
+      'unique_id': 'env-1_PTO_last_update',
     }),
     dict({
       'attributes': dict({
@@ -564,7 +564,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_detected',
       'state': 'Closed',
-      'unique_id': 'Bagno_openwindow_detected',
+      'unique_id': 'env-1_PTO_openwindow_detected',
     }),
     dict({
       'attributes': dict({
@@ -581,7 +581,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_enabled',
       'state': 'Enabled',
-      'unique_id': 'Bagno_openwindow_enabled',
+      'unique_id': 'env-1_PTO_openwindow_enabled',
     }),
     dict({
       'attributes': dict({
@@ -601,7 +601,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_off_time',
       'state': '30',
-      'unique_id': 'Bagno_openwindow_offset',
+      'unique_id': 'env-1_PTO_openwindow_offset',
     }),
     dict({
       'attributes': dict({
@@ -618,7 +618,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_enable',
       'state': 'Disabled',
-      'unique_id': 'Bagno_pilote_enable',
+      'unique_id': 'env-1_PTO_pilote_enable',
     }),
     dict({
       'attributes': dict({
@@ -635,7 +635,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Inactive',
-      'unique_id': 'Bagno_pilote_status',
+      'unique_id': 'env-1_PTO_pilote_status',
     }),
     dict({
       'attributes': dict({
@@ -656,7 +656,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_power',
       'state': '0',
-      'unique_id': 'Bagno_power',
+      'unique_id': 'env-1_PTO_power',
     }),
     dict({
       'attributes': dict({
@@ -676,7 +676,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_signal_strength',
       'state': '-61',
-      'unique_id': 'Bagno_wifi_signal',
+      'unique_id': 'env-1_PTO_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -693,7 +693,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_standby_status',
       'state': 'No',
-      'unique_id': 'Bagno_standby',
+      'unique_id': 'env-1_PTO_standby',
     }),
     dict({
       'attributes': dict({
@@ -712,7 +712,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_temperature_offset',
       'state': '0.0',
-      'unique_id': 'Bagno_temperature_offset',
+      'unique_id': 'env-1_PTO_temperature_offset',
     }),
     dict({
       'attributes': None,
@@ -726,7 +726,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_voc',
       'state': None,
-      'unique_id': 'Bagno_voc',
+      'unique_id': 'env-1_PTO_voc',
     }),
     dict({
       'attributes': dict({
@@ -743,7 +743,7 @@
       'entity_category': <EntityCategory.CONFIG: 'config'>,
       'entity_id': 'switch.bagno_child_lock',
       'state': 'off',
-      'unique_id': 'Bagno_child_lock_switch',
+      'unique_id': 'env-1_PTO_child_lock_switch',
     }),
     dict({
       'attributes': dict({
@@ -760,7 +760,7 @@
       'entity_category': <EntityCategory.CONFIG: 'config'>,
       'entity_id': 'switch.bagno_open_window_detection',
       'state': 'on',
-      'unique_id': 'Bagno_open_window_switch',
+      'unique_id': 'env-1_PTO_open_window_switch',
     }),
     dict({
       'attributes': dict({
@@ -777,7 +777,7 @@
       'entity_category': <EntityCategory.CONFIG: 'config'>,
       'entity_id': 'switch.bagno_standby',
       'state': 'off',
-      'unique_id': 'Bagno_standby_switch',
+      'unique_id': 'env-1_PTO_standby_switch',
     }),
   ])
 # ---
@@ -814,7 +814,7 @@
       'entity_category': None,
       'entity_id': 'climate.bagno',
       'state': 'heat',
-      'unique_id': 'Bagno_climate',
+      'unique_id': 'env-1_AAA_climate',
     }),
     dict({
       'attributes': dict({
@@ -847,7 +847,7 @@
       'entity_category': None,
       'entity_id': 'climate.camera',
       'state': 'off',
-      'unique_id': 'Camera_climate',
+      'unique_id': 'env-1_BBB_climate',
     }),
     dict({
       'attributes': None,
@@ -861,7 +861,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_air_quality',
       'state': None,
-      'unique_id': 'Bagno_aiq',
+      'unique_id': 'env-1_AAA_aiq',
     }),
     dict({
       'attributes': None,
@@ -875,7 +875,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_carbon_dioxide',
       'state': None,
-      'unique_id': 'Bagno_co2',
+      'unique_id': 'env-1_AAA_co2',
     }),
     dict({
       'attributes': dict({
@@ -892,7 +892,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_lock',
+      'unique_id': 'env-1_AAA_lock',
     }),
     dict({
       'attributes': None,
@@ -906,7 +906,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_energy',
       'state': None,
-      'unique_id': 'Bagno_energy',
+      'unique_id': 'env-1_AAA_energy',
     }),
     dict({
       'attributes': None,
@@ -920,7 +920,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_heating_time',
       'state': None,
-      'unique_id': 'Bagno_heating_time',
+      'unique_id': 'env-1_AAA_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -939,7 +939,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_hysteresis',
       'state': '0.2',
-      'unique_id': 'Bagno_hysteresis',
+      'unique_id': 'env-1_AAA_hysteresis',
     }),
     dict({
       'attributes': dict({
@@ -956,7 +956,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_ip_address',
       'state': '10.0.0.1',
-      'unique_id': 'Bagno_ip_address',
+      'unique_id': 'env-1_AAA_ip_address',
     }),
     dict({
       'attributes': dict({
@@ -973,7 +973,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_last_update',
       'state': 'N/A',
-      'unique_id': 'Bagno_last_update',
+      'unique_id': 'env-1_AAA_last_update',
     }),
     dict({
       'attributes': dict({
@@ -990,7 +990,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_detected',
       'state': 'Unknown',
-      'unique_id': 'Bagno_openwindow_detected',
+      'unique_id': 'env-1_AAA_openwindow_detected',
     }),
     dict({
       'attributes': dict({
@@ -1007,7 +1007,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_enabled',
       'state': 'Unknown',
-      'unique_id': 'Bagno_openwindow_enabled',
+      'unique_id': 'env-1_AAA_openwindow_enabled',
     }),
     dict({
       'attributes': dict({
@@ -1027,7 +1027,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_off_time',
       'state': 'unknown',
-      'unique_id': 'Bagno_openwindow_offset',
+      'unique_id': 'env-1_AAA_openwindow_offset',
     }),
     dict({
       'attributes': dict({
@@ -1044,7 +1044,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_enable',
       'state': 'Unknown',
-      'unique_id': 'Bagno_pilote_enable',
+      'unique_id': 'env-1_AAA_pilote_enable',
     }),
     dict({
       'attributes': dict({
@@ -1061,7 +1061,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_pilote_status',
+      'unique_id': 'env-1_AAA_pilote_status',
     }),
     dict({
       'attributes': None,
@@ -1075,7 +1075,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_power',
       'state': None,
-      'unique_id': 'Bagno_power',
+      'unique_id': 'env-1_AAA_power',
     }),
     dict({
       'attributes': dict({
@@ -1095,7 +1095,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_signal_strength',
       'state': '-50',
-      'unique_id': 'Bagno_wifi_signal',
+      'unique_id': 'env-1_AAA_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -1112,7 +1112,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_standby_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_standby',
+      'unique_id': 'env-1_AAA_standby',
     }),
     dict({
       'attributes': dict({
@@ -1131,7 +1131,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_temperature_offset',
       'state': 'unknown',
-      'unique_id': 'Bagno_temperature_offset',
+      'unique_id': 'env-1_AAA_temperature_offset',
     }),
     dict({
       'attributes': None,
@@ -1145,7 +1145,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_voc',
       'state': None,
-      'unique_id': 'Bagno_voc',
+      'unique_id': 'env-1_AAA_voc',
     }),
     dict({
       'attributes': dict({
@@ -1162,7 +1162,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_air_quality',
       'state': '3',
-      'unique_id': 'Camera_aiq',
+      'unique_id': 'env-1_BBB_aiq',
     }),
     dict({
       'attributes': dict({
@@ -1182,7 +1182,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_carbon_dioxide',
       'state': '650',
-      'unique_id': 'Camera_co2',
+      'unique_id': 'env-1_BBB_co2',
     }),
     dict({
       'attributes': dict({
@@ -1199,7 +1199,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_child_lock_status',
       'state': 'Unknown',
-      'unique_id': 'Camera_lock',
+      'unique_id': 'env-1_BBB_lock',
     }),
     dict({
       'attributes': None,
@@ -1213,7 +1213,7 @@
       'entity_category': None,
       'entity_id': 'sensor.camera_energy',
       'state': None,
-      'unique_id': 'Camera_energy',
+      'unique_id': 'env-1_BBB_energy',
     }),
     dict({
       'attributes': None,
@@ -1227,7 +1227,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_heating_time',
       'state': None,
-      'unique_id': 'Camera_heating_time',
+      'unique_id': 'env-1_BBB_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -1246,7 +1246,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_hysteresis',
       'state': '0.3',
-      'unique_id': 'Camera_hysteresis',
+      'unique_id': 'env-1_BBB_hysteresis',
     }),
     dict({
       'attributes': dict({
@@ -1263,7 +1263,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_ip_address',
       'state': '10.0.0.2',
-      'unique_id': 'Camera_ip_address',
+      'unique_id': 'env-1_BBB_ip_address',
     }),
     dict({
       'attributes': dict({
@@ -1280,7 +1280,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_last_update',
       'state': 'N/A',
-      'unique_id': 'Camera_last_update',
+      'unique_id': 'env-1_BBB_last_update',
     }),
     dict({
       'attributes': dict({
@@ -1297,7 +1297,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_open_window_detected',
       'state': 'Unknown',
-      'unique_id': 'Camera_openwindow_detected',
+      'unique_id': 'env-1_BBB_openwindow_detected',
     }),
     dict({
       'attributes': dict({
@@ -1314,7 +1314,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_open_window_enabled',
       'state': 'Unknown',
-      'unique_id': 'Camera_openwindow_enabled',
+      'unique_id': 'env-1_BBB_openwindow_enabled',
     }),
     dict({
       'attributes': dict({
@@ -1334,7 +1334,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_open_window_off_time',
       'state': 'unknown',
-      'unique_id': 'Camera_openwindow_offset',
+      'unique_id': 'env-1_BBB_openwindow_offset',
     }),
     dict({
       'attributes': dict({
@@ -1351,7 +1351,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_pilote_enable',
       'state': 'Unknown',
-      'unique_id': 'Camera_pilote_enable',
+      'unique_id': 'env-1_BBB_pilote_enable',
     }),
     dict({
       'attributes': dict({
@@ -1368,7 +1368,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_pilote_status',
       'state': 'Unknown',
-      'unique_id': 'Camera_pilote_status',
+      'unique_id': 'env-1_BBB_pilote_status',
     }),
     dict({
       'attributes': None,
@@ -1382,7 +1382,7 @@
       'entity_category': None,
       'entity_id': 'sensor.camera_power',
       'state': None,
-      'unique_id': 'Camera_power',
+      'unique_id': 'env-1_BBB_power',
     }),
     dict({
       'attributes': dict({
@@ -1402,7 +1402,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_signal_strength',
       'state': '-70',
-      'unique_id': 'Camera_wifi_signal',
+      'unique_id': 'env-1_BBB_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -1419,7 +1419,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_standby_status',
       'state': 'Unknown',
-      'unique_id': 'Camera_standby',
+      'unique_id': 'env-1_BBB_standby',
     }),
     dict({
       'attributes': dict({
@@ -1438,7 +1438,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_temperature_offset',
       'state': 'unknown',
-      'unique_id': 'Camera_temperature_offset',
+      'unique_id': 'env-1_BBB_temperature_offset',
     }),
     dict({
       'attributes': dict({
@@ -1456,7 +1456,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_voc',
       'state': '120',
-      'unique_id': 'Camera_voc',
+      'unique_id': 'env-1_BBB_voc',
     }),
   ])
 # ---

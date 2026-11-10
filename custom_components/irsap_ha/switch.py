@@ -24,6 +24,7 @@ from .api import (
 )
 from .const import APP_CLIENT_ID, DOMAIN, WRITE_SETTLE_TIME
 from .hvac_action import written_by_device
+from .ids import device_identifier, unique_id
 from .shadow import linked_device
 
 _LOGGER = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
         self._suffix = suffix
         self._attr_translation_key = translation_key
         self._log_name = f"{serial} {translation_key}"
-        self._attr_unique_id = f"{serial}_{unique_suffix}"
+        self._attr_unique_id = unique_id(coordinator.envID, zone, unique_suffix)
         self._attr_icon = icon
         self._attr_is_on = self._read(coordinator.desired)
         # Dopo un comando lo shadow può essere ancora quello vecchio
@@ -104,7 +105,7 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
 
     @property
     def device_info(self):
-        return {"identifiers": {(DOMAIN, self._serial)}}
+        return {"identifiers": {device_identifier(self.coordinator.envID, self._zone)}}
 
     def _read(self, desired):
         key = device_key(desired, self._zone, self._suffix)

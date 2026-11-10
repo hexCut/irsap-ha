@@ -126,10 +126,11 @@ async def test_model_with_air_sensors(
 
 
 async def test_existing_unsupported_sensor_is_disabled_then_re_enabled(
-    hass, config_entry, mock_login, mock_get_shadow, shadow
+    hass, config_entry_v1, mock_login, mock_get_shadow, shadow
 ):
     """Upgrade path: an enabled CO2 sensor from an older version gets disabled,
     and comes back on its own once the radiator reports a real value."""
+    config_entry = config_entry_v1
     config_entry.add_to_hass(hass)
     registry = er.async_get(hass)
     unique_id = "Bagno_co2"
@@ -152,8 +153,9 @@ async def test_existing_unsupported_sensor_is_disabled_then_re_enabled(
 
 
 async def test_sensor_disabled_by_user_stays_disabled(
-    hass, config_entry, mock_login, mock_get_shadow, shadow
+    hass, config_entry_v1, mock_login, mock_get_shadow, shadow
 ):
+    config_entry = config_entry_v1
     config_entry.add_to_hass(hass)
     registry = er.async_get(hass)
     registry.async_get_or_create(
@@ -199,7 +201,7 @@ async def test_units_and_categories(
 
     # Energy and power are primary entities (Energy dashboard); the rest,
     # heating time included, diagnostic
-    measurements = {"Bagno_energy", "Bagno_power"}
+    measurements = {"env-1_PTO_energy", "env-1_PTO_power"}
     registry = er.async_get(hass)
     for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id):
         if entry.domain == "sensor":
@@ -326,7 +328,7 @@ async def test_energy_sensors_disabled_without_counters(
     """A radiator that doesn't report the counters gets them disabled."""
     await _setup(hass, config_entry)
     registry = er.async_get(hass)
-    for unique_id in ("Bagno_energy", "Bagno_heating_time", "Bagno_power"):
+    for unique_id in ("env-1_PTO_energy", "env-1_PTO_heating_time", "env-1_PTO_power"):
         entity_id = registry.async_get_entity_id("sensor", "irsap_ha", unique_id)
         assert registry.async_get(entity_id).disabled_by is not None
 
@@ -345,9 +347,9 @@ async def test_power_disabled_without_heat_call(
         entity_id = registry.async_get_entity_id("sensor", "irsap_ha", unique_id)
         return registry.async_get(entity_id).disabled_by is not None
 
-    assert disabled("Bagno_power")
-    assert not disabled("Bagno_energy")
-    assert not disabled("Bagno_heating_time")
+    assert disabled("env-1_PTO_power")
+    assert not disabled("env-1_PTO_energy")
+    assert not disabled("env-1_PTO_heating_time")
 
 
 async def test_energy_sensor_names(
@@ -364,6 +366,6 @@ async def test_energy_sensor_names(
         entity_id = registry.async_get_entity_id("sensor", "irsap_ha", unique_id)
         return hass.states.get(entity_id).attributes["friendly_name"]
 
-    assert friendly("Bagno_energy") == "Bagno Energia"
-    assert friendly("Bagno_power") == "Bagno Potenza"
-    assert friendly("Bagno_heating_time") == "Bagno Tempo di riscaldamento"
+    assert friendly("env-1_PTO_energy") == "Bagno Energia"
+    assert friendly("env-1_PTO_power") == "Bagno Potenza"
+    assert friendly("env-1_PTO_heating_time") == "Bagno Tempo di riscaldamento"
