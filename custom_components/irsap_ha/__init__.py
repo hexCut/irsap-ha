@@ -51,13 +51,24 @@ async def async_setup_entry(hass, config_entry):
     # A room renamed, added or removed in the app: reload, so devices and
     # entities follow (the zone id doesn't change, only the name)
     rooms = zone_names(coordinator.desired)
+    # Zones missing at the previous refresh: a removal is believed only when
+    # the next refresh confirms it, so a partial shadow can't cause reloads
+    missing_before = set()
 
     @callback
     def _reload_when_rooms_change():
+        nonlocal missing_before
         current = zone_names(coordinator.desired)
-        if current and current != rooms:
-            _LOGGER.info(f"Rooms changed in the IRSAP cloud ({rooms} -> {current}), reloading")
-            hass.config_entries.async_schedule_reload(config_entry.entry_id)
+        if not current or current == rooms:
+            missing_before = set()
+            return
+        missing = rooms.keys() - current.keys()
+        if missing and missing != missing_before:
+            _LOGGER.debug(f"Zones {sorted(missing)} missing from the IRSAP cloud, waiting for the next update")
+            missing_before = missing
+            return
+        _LOGGER.info(f"Rooms changed in the IRSAP cloud ({rooms} -> {current}), reloading")
+        hass.config_entries.async_schedule_reload(config_entry.entry_id)
 
     config_entry.async_on_unload(coordinator.async_add_listener(_reload_when_rooms_change))
 

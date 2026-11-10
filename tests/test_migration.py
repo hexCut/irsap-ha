@@ -1,6 +1,7 @@
 """Config entry migration 1 -> 2: devices and entities re-keyed by zone id (#52)."""
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import area_registry as ar
@@ -140,7 +141,6 @@ async def test_migrates_devices_and_entities(
     assert bagno.name_by_user == "Scaldasalviette"
     camera = devices.async_get(device_ids["Bagno camera"])
     assert camera.identifiers == {(DOMAIN, "env-1_PLX")}
-    assert (dr.CONNECTION_NETWORK_MAC, "11:22:33:44:55:66") in camera.connections
     # No new device for the two radiators
     assert len(dr.async_entries_for_config_entry(devices, entry.entry_id)) == 3
 
@@ -235,3 +235,50 @@ async def test_newer_entry_is_not_touched(
     hass.config_entries.async_update_entry(entry, version=3)
     assert not await hass.config_entries.async_setup(entry.entry_id)
     assert entry.state is ConfigEntryState.MIGRATION_ERROR
+
+
+async def _refresh(hass, seconds):
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=seconds))
+    await hass.async_block_till_done()
+
+
+async def test_partial_shadow_does_not_reload(
+    hass, config_entry, mock_login, mock_get_shadow, shadow
+):
+    """A refresh missing a zone once (partial shadow) is ignored."""
+    _two_radiators(shadow)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    desired = shadow["state"]["desired"]
+    full = dict(desired)
+
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
+        del desired["PLX_NAM"]
+        await _refresh(hass, 61)
+        desired.update(full)
+        await _refresh(hass, 122)
+        del desired["PLX_NAM"]
+        await _refresh(hass, 183)
+        desired.update(full)
+        await _refresh(hass, 244)
+
+    reload.assert_not_called()
+
+
+async def test_removed_zone_reloads_when_confirmed(
+    hass, config_entry, mock_login, mock_get_shadow, shadow
+):
+    """A zone missing at two refreshes in a row was really removed."""
+    _two_radiators(shadow)
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
+        del shadow["state"]["desired"]["PLX_NAM"]
+        await _refresh(hass, 61)
+        reload.assert_not_called()
+        await _refresh(hass, 122)
+
+    reload.assert_called_once_with(config_entry.entry_id)

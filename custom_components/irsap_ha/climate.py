@@ -16,7 +16,6 @@ from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
 )
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, WRITE_SETTLE_TIME
 from .api import (
@@ -299,7 +298,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     def device_info(self):
         """Return device information."""
         radiator = self._device.radiator
-        info = {
+        return {
             # Zone id, not the room name: it survives a rename in the app
             "identifiers": {device_identifier(self._device.envID, radiator["zone"])},
             "name": radiator["serial"],
@@ -307,10 +306,6 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
             "manufacturer": "IRSAP",
             "sw_version": self._device.radiator.get("firmware", "unknown"),
         }
-        mac = radiator.get("mac")
-        if isinstance(mac, str) and mac:
-            info["connections"] = {(dr.CONNECTION_NETWORK_MAC, dr.format_mac(mac))}
-        return info
 
     # Funzione per inviare il payload aggiornato alle API
     async def _send_target_temperature_to_api(self, token, envID, updated_payload):
