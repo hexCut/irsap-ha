@@ -1,0 +1,1188 @@
+{
+  "home_assistant": {
+    "arch": "x86_64",
+    "dev": false,
+    "docker": true,
+    "hassio": false,
+    "installation_type": "Home Assistant Container",
+    "os_name": "Linux",
+    "os_version": "6.12.105-production+truenas",
+    "python_version": "3.14.10",
+    "timezone": "Europe/Rome",
+    "version": "2026.11.0",
+    "virtualenv": false,
+    "container_arch": "amd64",
+    "run_as_root": true
+  },
+  "custom_components": {
+    "irsap_ha": {
+      "documentation": "https://github.com/hexCut/irsap-ha/wiki",
+      "version": "1.6.1b1",
+      "requirements": [
+        "warrant"
+      ]
+    }
+  },
+  "integration_manifest": {
+    "domain": "irsap_ha",
+    "name": "IRSAP NOW Integration",
+    "codeowners": [
+      "hexCut",
+      "valerix85",
+      "Sim0cYz"
+    ],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/hexCut/irsap-ha/wiki",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/hexCut/irsap-ha/issues",
+    "requirements": [
+      "warrant"
+    ],
+    "version": "1.6.1b1",
+    "is_built_in": false,
+    "overwrites_built_in": false
+  },
+  "setup_times": {
+    "null": {
+      "setup": 3.562401980161667e-05
+    },
+    "01M6R1C2X2GBZE8T5M2C4JHAZ2": {
+      "wait_import_platforms": -0.0033069439232349396,
+      "config_entry_setup": 5.054082099813968
+    }
+  },
+  "data": {
+    "entry": {
+      "data": {
+        "envID": "**REDACTED**",
+        "password": "**REDACTED**",
+        "token": "**REDACTED**",
+        "username": "**REDACTED**"
+      },
+      "options": {},
+      "pref_disable_polling": false
+    },
+    "token_cached": true,
+    "coordinator": {
+      "last_update_success": true,
+      "update_interval_seconds": 60.0,
+      "last_exception": null
+    },
+    "shadow": {
+      "clientId": "**REDACTED**",
+      "id": "**REDACTED**",
+      "timestamp": 1794350242309,
+      "version": 3794,
+      "sk": "shadow",
+      "state": {
+        "desired": {
+          "Dm-_LUP": "2026-11-10T22:37:21.458Z",
+          "Dm-_X_OpenWind": 1,
+          "Dm-_X_OffsTemp": 0,
+          "Dm-_X_JoinStatus": 2,
+          "Dm-_X_AntiWhistle": 5,
+          "Dm-_X_HotRequired": 0,
+          "Dm-_TYP": "MEH",
+          "Dm-_MID": "Dpc",
+          "Dm-_STA": 5,
+          "Dm-_BOU": true,
+          "Dm-_SRL": "**REDACTED**",
+          "Dm-_CNT": "**REDACTED**",
+          "Dm-_ERR": [],
+          "Dm-_SHV": 3794,
+          "Dm-_X_BlockMode": 1,
+          "Dm-_X_IdentifyMode": 0,
+          "Dm-_X_CAP": [
+            12,
+            1,
+            4
+          ],
+          "Dm-_X_DBLevel": -64,
+          "Dm-_SLV": 1,
+          "Dm-_X_RadioLevel": 1,
+          "Dm-_FWV": "1.25",
+          "Dm-_X_ValveOpen": 0,
+          "Dm-_X_EnvTemp": 211,
+          "Dm-_X_WaterTemp": 214,
+          "Dm-_X_CalcTemp": 211,
+          "Dm-_X_BatteryVoltage": 31,
+          "Dm-_X_MotorPulse": 2832,
+          "Dm-_PLV": 2,
+          "D7E_TYP": "MEH",
+          "D7E_MID": "Dpc",
+          "D7E_STA": 5,
+          "D7E_X_IdentifyMode": 0,
+          "D7E_SRL": "**REDACTED**",
+          "D7E_BOU": true,
+          "D7E_X_OpenWind": 1,
+          "D7E_X_OffsTemp": 0,
+          "D7E_X_AntiWhistle": 5,
+          "D7E_X_HotRequired": 0,
+          "D7E_X_JoinStatus": 2,
+          "D7E_LUP": "2026-11-10T22:37:21.458Z",
+          "D7E_ERR": [],
+          "D7E_CNT": "**REDACTED**",
+          "D7E_X_BlockMode": 1,
+          "D7E_SHV": 3794,
+          "D7E_X_CAP": [
+            12,
+            1,
+            4
+          ],
+          "D7E_X_DBLevel": -67,
+          "D7E_SLV": 1,
+          "D7E_X_RadioLevel": 1,
+          "D7E_FWV": "1.25",
+          "D7E_X_ValveOpen": 0,
+          "D7E_X_EnvTemp": 207,
+          "D7E_X_WaterTemp": 209,
+          "D7E_X_CalcTemp": 207,
+          "D7E_X_BatteryVoltage": 28,
+          "D7E_X_MotorPulse": 2016,
+          "D7E_PLV": 2,
+          "Dpc_X_OpenWindowTime": 30,
+          "Dpc_X_WaterTemp": 500,
+          "Dpc_X_GM_Reset": 0,
+          "Dpc_SHV": 3794,
+          "Dpc_X_Histeresis": [
+            1,
+            5
+          ],
+          "Dpc_X_OpenMinValve": 5,
+          "Dpc_X_StatusJoin": 2,
+          "Dpc_X_TimeZone": -1,
+          "Dpc_LUP": "2026-11-10T22:37:21.458Z",
+          "Dpc_X_VocPeriod": 8,
+          "Dpc_X_TimeEvent": 25,
+          "Dpc_X_VocLimitDw": 65,
+          "Dpc_X_dHW_Mode": 0,
+          "Dpc_X_ThsMax_Pwm_0": 800,
+          "Dpc_X_SNTP_HOST": "",
+          "Dpc_X_dHW_SetPoint": 200,
+          "Dpc_TYP": "SYS",
+          "Dpc_X_dHW_TimeSlot": [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+          ],
+          "Dpc_MID": "Dpc",
+          "Dpc_X_ThsMin_Out0_10": 0,
+          "Dpc_X_ThsMax_Out0_10": 800,
+          "Dpc_STA": 2,
+          "Dpc_SRL": "**REDACTED**",
+          "Dpc_X_ThsMin_Pwm_100": 0,
+          "Dpc_PLV": -1,
+          "Dpc_BOU": true,
+          "Dpc_X_dHW_Command": 0,
+          "Dpc_X_EM_period": 6,
+          "Dpc_FWV": "1.24 (1.16)",
+          "Dpc_CNT": "**REDACTED**",
+          "Dpc_X_VocLimitUp": 660,
+          "Dpc_ERR": [],
+          "Dpc_X_DateTime": 1794350240,
+          "Dpc_X_Status": 2,
+          "Dpc_X_FwImage": [
+            1, 25, 1, 15, 1, 11
+          ],
+          "Dpc_X_CAP": [],
+          "Dpc_X_RF_Power": 13,
+          "DlZ_X_OffsTemp": 0,
+          "DlZ_LUP": "2026-11-10T22:37:21.458Z",
+          "DlZ_X_OpenWind": 1,
+          "DlZ_SHV": 3794,
+          "DlZ_BOU": true,
+          "DlZ_X_HotRequired": 0,
+          "DlZ_SRL": "**REDACTED**",
+          "DlZ_X_BlockMode": 1,
+          "DlZ_STA": 5,
+          "DlZ_ERR": [],
+          "DlZ_CNT": "**REDACTED**",
+          "DlZ_X_IdentifyMode": 0,
+          "DlZ_MID": "Dpc",
+          "DlZ_X_JoinStatus": 2,
+          "DlZ_TYP": "MEH",
+          "DlZ_X_AntiWhistle": 0,
+          "DlZ_X_CAP": [
+            12,
+            1,
+            4
+          ],
+          "DlZ_X_DBLevel": -52,
+          "DlZ_SLV": 1,
+          "DlZ_X_RadioLevel": 1,
+          "DlZ_FWV": "1.25",
+          "DlZ_X_ValveOpen": 0,
+          "DlZ_X_EnvTemp": 209,
+          "DlZ_X_WaterTemp": 210,
+          "DlZ_X_CalcTemp": 209,
+          "DlZ_X_BatteryVoltage": 31,
+          "DlZ_X_MotorPulse": 2592,
+          "DlZ_PLV": 2,
+          "D6w_CNT": "**REDACTED**",
+          "D6w_ERR": [],
+          "D6w_BOU": true,
+          "D6w_X_OpenWind": 1,
+          "D6w_X_JoinStatus": 2,
+          "D6w_SRL": "**REDACTED**",
+          "D6w_STA": 5,
+          "D6w_MID": "Dpc",
+          "D6w_X_OffsTemp": 0,
+          "D6w_TYP": "MEH",
+          "D6w_X_AntiWhistle": 5,
+          "D6w_X_HotRequired": 0,
+          "D6w_LUP": "2026-11-10T22:37:21.458Z",
+          "D6w_SHV": 3794,
+          "D6w_X_BlockMode": 1,
+          "D6w_X_IdentifyMode": 0,
+          "D6w_X_CAP": [
+            12,
+            1,
+            4
+          ],
+          "D6w_X_DBLevel": -71,
+          "D6w_SLV": 1,
+          "D6w_X_RadioLevel": 1,
+          "D6w_FWV": "1.25",
+          "D6w_X_ValveOpen": 0,
+          "D6w_X_EnvTemp": 193,
+          "D6w_X_WaterTemp": 193,
+          "D6w_X_CalcTemp": 193,
+          "D6w_X_BatteryVoltage": 32,
+          "D6w_X_MotorPulse": 2688,
+          "D6w_PLV": 2,
+          "D+g_LUP": "2026-11-10T22:37:21.458Z",
+          "D+g_X_VocLevel": 1,
+          "D+g_SHV": 3794,
+          "D+g_X_HotRequired": 0,
+          "D+g_CNT": "**REDACTED**",
+          "D+g_ERR": [],
+          "D+g_SRL": "**REDACTED**",
+          "D+g_BOU": true,
+          "D+g_X_JoinStatus": 2,
+          "D+g_MID": "Dpc",
+          "D+g_STA": 5,
+          "D+g_X_IdentifyMode": 0,
+          "D+g_TYP": "SU",
+          "D+g_X_RelayMode": 0,
+          "D+g_X_CAP": [
+            0,
+            3,
+            2,
+            1,
+            15,
+            4,
+            7
+          ],
+          "D+g_X_AqiUba": 0,
+          "D+g_X_RelayStatus": 0,
+          "D+g_X_DBLevel": -64,
+          "D+g_SLV": 1,
+          "D+g_X_RadioLevel": 1,
+          "D+g_X_EnvTemp": 195,
+          "D+g_FWV": "1.15",
+          "D+g_X_BatteryVoltage": 27,
+          "D+g_X_CO2Value": 400,
+          "D+g_X_EnvHumidity": 68,
+          "D+g_X_VocValue": 0,
+          "D+g_PLV": 2,
+          "Dc8_MID": "Dpc",
+          "Dc8_SRL": "**REDACTED**",
+          "Dc8_STA": 5,
+          "Dc8_X_OpenWind": 1,
+          "Dc8_TYP": "MEH",
+          "Dc8_ERR": [],
+          "Dc8_X_JoinStatus": 2,
+          "Dc8_X_HotRequired": 0,
+          "Dc8_X_IdentifyMode": 0,
+          "Dc8_BOU": true,
+          "Dc8_X_AntiWhistle": 5,
+          "Dc8_CNT": "**REDACTED**",
+          "Dc8_X_BlockMode": 1,
+          "Dc8_X_OffsTemp": 0,
+          "Dc8_LUP": "2026-11-10T22:37:21.458Z",
+          "Dc8_SHV": 3794,
+          "Dc8_X_CAP": [
+            12,
+            1,
+            4
+          ],
+          "Dc8_X_DBLevel": -71,
+          "Dc8_SLV": 1,
+          "Dc8_X_RadioLevel": 1,
+          "Dc8_FWV": "1.25",
+          "Dc8_X_ValveOpen": 0,
+          "Dc8_X_EnvTemp": 193,
+          "Dc8_X_WaterTemp": 190,
+          "Dc8_X_CalcTemp": 195,
+          "Dc8_X_BatteryVoltage": 31,
+          "Dc8_X_MotorPulse": 2784,
+          "Dc8_PLV": 2,
+          "PLS_HUM": 68,
+          "PLS_WSC": "uuid-cameretta",
+          "PLS_ENB": 1,
+          "PLS_AIQ": 1,
+          "PLS_TMP": 195,
+          "PLS_NAM": "Cameretta",
+          "PLS_CLL": 0,
+          "PLS_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T06:00:00.000Z"
+          },
+          "PLS_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 220
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "PLS_STA": 2,
+          "PLS_MOD": 2,
+          "PLS_ORD": 3,
+          "PLS_OPW": 0,
+          "PLS_ICN": 4,
+          "PLS_MSP": {
+            "p": {
+              "v": 180,
+              "m": 3,
+              "k": "MANUAL",
+              "u": 0
+            }
+          },
+          "PLS_X_ICN": 24,
+          "PlS_MSP": {
+            "p": {
+              "u": 0,
+              "v": 306,
+              "m": 3,
+              "k": "MANUAL"
+            }
+          },
+          "PlS_MOD": 2,
+          "PlS_ORD": 5,
+          "PlS_OPW": 0,
+          "PlS_AIQ": null,
+          "PlS_CLL": 0,
+          "PlS_NAM": "Ingresso",
+          "PlS_TMP": 211,
+          "PlS_HUM": null,
+          "PlS_WSC": "uuid-ingresso",
+          "PlS_ENB": 1,
+          "PlS_ICN": 3,
+          "PlS_STA": 2,
+          "PlS_X_ICN": 8,
+          "PlS_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T05:00:00.000Z"
+          },
+          "PlS_TSP": {
+            "p": {
+              "u": 0,
+              "v": 320,
+              "m": 3,
+              "k": "TEMPORARY"
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "Puh_ENB": 1,
+          "Puh_AIQ": null,
+          "Puh_CLL": 0,
+          "Puh_NAM": "Camera",
+          "Puh_TMP": 207,
+          "Puh_WSC": "uuid-camera",
+          "Puh_HUM": null,
+          "Puh_MSP": {
+            "p": {
+              "v": 180,
+              "m": 3,
+              "k": "MANUAL",
+              "u": 0
+            }
+          },
+          "Puh_ORD": 1,
+          "Puh_X_ICN": 2,
+          "Puh_OPW": 0,
+          "Puh_ICN": 3,
+          "Puh_MOD": 2,
+          "Puh_TSP": {
+            "p": {
+              "u": 0,
+              "v": 320,
+              "m": 3,
+              "k": "TEMPORARY"
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "Puh_STA": 2,
+          "Puh_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T06:30:00.000Z"
+          },
+          "PyD_AIQ": null,
+          "PyD_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T05:00:00.000Z"
+          },
+          "PyD_STA": 2,
+          "PyD_TSP": {
+            "p": {
+              "u": 0,
+              "v": 320,
+              "m": 3,
+              "k": "TEMPORARY"
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "PyD_ICN": 5,
+          "PyD_MOD": 2,
+          "PyD_OPW": 0,
+          "PyD_ORD": 4,
+          "PyD_MSP": {
+            "p": {
+              "v": 180,
+              "m": 3,
+              "k": "MANUAL",
+              "u": 0
+            }
+          },
+          "PyD_X_ICN": 4,
+          "PyD_HUM": null,
+          "PyD_NAM": "Bagno",
+          "PyD_TMP": 193,
+          "PyD_CLL": 0,
+          "PyD_WSC": "uuid-bagno",
+          "PyD_ENB": 1,
+          "P7+_NAM": "Soggiorno",
+          "P7+_TMP": 209,
+          "P7+_HUM": null,
+          "P7+_WSC": "uuid-soggiorno",
+          "P7+_CLL": 0,
+          "P7+_ENB": 1,
+          "P7+_X_ICN": 7,
+          "P7+_AIQ": null,
+          "P7+_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T05:00:00.000Z"
+          },
+          "P7+_STA": 2,
+          "P7+_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 201
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "P7+_ICN": 2,
+          "P7+_OPW": 0,
+          "P7+_MOD": 2,
+          "P7+_ORD": 2,
+          "P7+_MSP": {
+            "p": {
+              "u": 0,
+              "v": 305,
+              "m": 3,
+              "k": "MANUAL"
+            }
+          },
+          "G+R_CLL": 0,
+          "G+R_ENB": 1,
+          "G+R_X_Name": "Camera",
+          "G+R_LUP": 1794350241,
+          "G+R_CAP": {
+            "CH": {
+              "mode": "CH",
+              "daysGroupingModes": [
+                0,
+                1,
+                2
+              ],
+              "programmingModes": [
+                0
+              ],
+              "valueMin": 12,
+              "valueStep": 0.1,
+              "valueMax": 32,
+              "timeRangeStep": 60,
+              "dayMaxRangeCount": 8
+            },
+            "SENSING": {
+              "mode": "SENSING",
+              "sensors": {
+                "TMP": {
+                  "accuracy": 0,
+                  "valueMin": -1000,
+                  "valueMax": 1000
+                }
+              }
+            }
+          },
+          "G+R_MSP": {
+            "p": {
+              "k": "MANUAL",
+              "m": 3,
+              "u": 0,
+              "v": 180
+            }
+          },
+          "G+R_MOD": 2,
+          "G+R_OPW": 0,
+          "G+R_ICN": 3,
+          "G+R_MID": "Dpc",
+          "G+R_STA": 2,
+          "G+R_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T06:30:00.000Z"
+          },
+          "G+R_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 320
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "G+R_PLD": "Puh",
+          "G+R_X_SP_Active": 120,
+          "G+R_X_SP_Expired": "2026-11-11T06:30:00.000Z",
+          "G+R_TMP": 207,
+          "GoR_MSP": {
+            "p": {
+              "k": "MANUAL",
+              "m": 3,
+              "u": 0,
+              "v": 305
+            }
+          },
+          "GoR_MOD": 2,
+          "GoR_OPW": 0,
+          "GoR_ICN": 2,
+          "GoR_MID": "Dpc",
+          "GoR_STA": 2,
+          "GoR_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T05:00:00.000Z"
+          },
+          "GoR_PLD": "P7+",
+          "GoR_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 201
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "GoR_CLL": 0,
+          "GoR_ENB": 1,
+          "GoR_X_Name": "Soggiorno",
+          "GoR_LUP": 1794350241,
+          "GoR_CAP": {
+            "CH": {
+              "mode": "CH",
+              "daysGroupingModes": [
+                0,
+                1,
+                2
+              ],
+              "programmingModes": [
+                0
+              ],
+              "valueMin": 12,
+              "valueStep": 0.1,
+              "valueMax": 32,
+              "timeRangeStep": 60,
+              "dayMaxRangeCount": 8
+            },
+            "SENSING": {
+              "mode": "SENSING",
+              "sensors": {
+                "TMP": {
+                  "accuracy": 0,
+                  "valueMin": -1000,
+                  "valueMax": 1000
+                }
+              }
+            }
+          },
+          "GoR_X_SP_Active": 120,
+          "GoR_X_SP_Expired": "2026-11-11T05:00:00.000Z",
+          "GoR_TMP": 209,
+          "GR4_MSP": {
+            "p": {
+              "k": "MANUAL",
+              "m": 3,
+              "u": 0,
+              "v": 306
+            }
+          },
+          "GR4_MOD": 2,
+          "GR4_OPW": 0,
+          "GR4_LUP": 1794350241,
+          "GR4_CAP": {
+            "CH": {
+              "mode": "CH",
+              "daysGroupingModes": [
+                0,
+                1,
+                2
+              ],
+              "programmingModes": [
+                0
+              ],
+              "valueMin": 12,
+              "valueStep": 0.1,
+              "valueMax": 32,
+              "timeRangeStep": 60,
+              "dayMaxRangeCount": 8
+            },
+            "SENSING": {
+              "mode": "SENSING",
+              "sensors": {
+                "TMP": {
+                  "accuracy": 0,
+                  "valueMin": -1000,
+                  "valueMax": 1000
+                }
+              }
+            }
+          },
+          "GR4_CLL": 0,
+          "GR4_ENB": 1,
+          "GR4_ICN": 3,
+          "GR4_MID": "Dpc",
+          "GR4_X_Name": "Ingresso",
+          "GR4_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T05:00:00.000Z"
+          },
+          "GR4_STA": 2,
+          "GR4_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 320
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "GR4_PLD": "PlS",
+          "GR4_X_SP_Active": 120,
+          "GR4_X_SP_Expired": "2026-11-11T05:00:00.000Z",
+          "GR4_TMP": 211,
+          "GsC_MSP": {
+            "p": {
+              "k": "MANUAL",
+              "m": 3,
+              "u": 0,
+              "v": 180
+            }
+          },
+          "GsC_MOD": 2,
+          "GsC_OPW": 0,
+          "GsC_ICN": 4,
+          "GsC_MID": "Dpc",
+          "GsC_STA": 2,
+          "GsC_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T06:00:00.000Z"
+          },
+          "GsC_PLD": "PLS",
+          "GsC_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 220
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "GsC_CLL": 0,
+          "GsC_X_Name": "Cameretta",
+          "GsC_ENB": 1,
+          "GsC_LUP": 1794350241,
+          "GsC_CAP": {
+            "CH": {
+              "mode": "CH",
+              "daysGroupingModes": [
+                0,
+                1,
+                2
+              ],
+              "programmingModes": [
+                0
+              ],
+              "valueMin": 12,
+              "valueStep": 0.1,
+              "valueMax": 32,
+              "timeRangeStep": 60,
+              "dayMaxRangeCount": 8
+            },
+            "SENSING": {
+              "mode": "SENSING",
+              "sensors": {
+                "TMP": {
+                  "accuracy": 1,
+                  "valueMin": -1000,
+                  "valueMax": 1000
+                },
+                "AIQ": {
+                  "accuracy": 0,
+                  "valueMin": 1,
+                  "valueMax": 3
+                },
+                "HUM": {
+                  "accuracy": 0,
+                  "valueMin": 0,
+                  "valueMax": 100
+                }
+              }
+            }
+          },
+          "GsC_X_SP_Active": 120,
+          "GsC_X_SP_Expired": "2026-11-11T06:00:00.000Z",
+          "GsC_TMP": 195,
+          "GsC_AIQ": 1,
+          "GsC_HUM": 68,
+          "GsC_X_BadCo2Value": 400,
+          "GsC_X_BadVocValue": 0,
+          "G-N_TSP": {
+            "p": {
+              "k": "TEMPORARY",
+              "m": 3,
+              "u": 0,
+              "v": 320
+            },
+            "e": "1970-01-01T00:00:00.000Z"
+          },
+          "G-N_PLD": "PyD",
+          "G-N_CSP": {
+            "p": {
+              "k": "CURRENT",
+              "m": 3,
+              "u": 0,
+              "v": 120
+            },
+            "e": "2026-11-11T05:00:00.000Z"
+          },
+          "G-N_STA": 2,
+          "G-N_MID": "Dpc",
+          "G-N_ICN": 5,
+          "G-N_ENB": 1,
+          "G-N_CLL": 0,
+          "G-N_X_Name": "Bagno",
+          "G-N_CAP": {
+            "CH": {
+              "mode": "CH",
+              "daysGroupingModes": [
+                0,
+                1,
+                2
+              ],
+              "programmingModes": [
+                0
+              ],
+              "valueMin": 12,
+              "valueStep": 0.1,
+              "valueMax": 32,
+              "timeRangeStep": 60,
+              "dayMaxRangeCount": 8
+            },
+            "SENSING": {
+              "mode": "SENSING",
+              "sensors": {
+                "TMP": {
+                  "accuracy": 0,
+                  "valueMin": -1000,
+                  "valueMax": 1000
+                }
+              }
+            }
+          },
+          "G-N_LUP": 1794350241,
+          "G-N_OPW": 0,
+          "G-N_MOD": 2,
+          "G-N_MSP": {
+            "p": {
+              "k": "MANUAL",
+              "m": 3,
+              "u": 0,
+              "v": 180
+            }
+          },
+          "G-N_X_SP_Active": 120,
+          "G-N_X_SP_Expired": "2026-11-11T05:00:00.000Z",
+          "G-N_TMP": 193,
+          "W37_BOU": true,
+          "W37_MID": "Dpc",
+          "W37_CAP": [
+            12,
+            1,
+            4
+          ],
+          "W37_GID": "GsC",
+          "W37_DID": "DfY",
+          "Wr3_CAP": [
+            12,
+            1,
+            4
+          ],
+          "Wr3_GID": "G-N",
+          "Wr3_MID": "Dpc",
+          "Wr3_BOU": true,
+          "Wr3_DID": "DQd",
+          "WQW_GID": "GsC",
+          "WQW_CAP": [
+            7
+          ],
+          "WQW_DID": "D+g",
+          "WQW_BOU": true,
+          "WQW_MID": "Dpc",
+          "WIg_DID": "D7E",
+          "WIg_GID": "G+R",
+          "WIg_CAP": [
+            12,
+            1,
+            4
+          ],
+          "WIg_MID": "Dpc",
+          "WIg_BOU": true,
+          "Woh_MID": "Dpc",
+          "Woh_BOU": true,
+          "Woh_DID": "D6w",
+          "Woh_GID": "G-N",
+          "Woh_CAP": [
+            12,
+            1,
+            4
+          ],
+          "Wkw_MID": "Dpc",
+          "Wkw_BOU": true,
+          "Wkw_DID": "DyX",
+          "Wkw_GID": "GoR",
+          "Wkw_CAP": [
+            12,
+            1,
+            4
+          ],
+          "Woc_GID": "G+R",
+          "Woc_CAP": [
+            12,
+            1,
+            4
+          ],
+          "Woc_MID": "Dpc",
+          "Woc_BOU": true,
+          "Woc_DID": "DQR",
+          "WVj_DID": "D66",
+          "WVj_GID": "GoR",
+          "WVj_CAP": [
+            12,
+            1,
+            4
+          ],
+          "WVj_MID": "Dpc",
+          "WVj_BOU": true,
+          "WJ7_MID": "Dpc",
+          "WJ7_BOU": true,
+          "WJ7_DID": "Dc6",
+          "WJ7_CAP": [
+            12,
+            1,
+            4
+          ],
+          "WJ7_GID": "G+R",
+          "WKM_CAP": [
+            12,
+            1,
+            4
+          ],
+          "WKM_GID": "GsC",
+          "WKM_DID": "Dc8",
+          "WKM_MID": "Dpc",
+          "WKM_BOU": true,
+          "WOM_DID": "DJR",
+          "WOM_CAP": [
+            12,
+            1,
+            4
+          ],
+          "WOM_GID": "G+R",
+          "WOM_MID": "Dpc",
+          "WOM_BOU": true,
+          "WvK_DID": "D+g",
+          "WvK_GID": "GsC",
+          "WvK_CAP": [
+            0,
+            3,
+            2,
+            1,
+            4
+          ],
+          "WvK_MID": "Dpc",
+          "WvK_BOU": true,
+          "WLy_MID": "Dpc",
+          "WLy_BOU": true,
+          "WLy_DID": "Dm-",
+          "WLy_GID": "GR4",
+          "WLy_CAP": [
+            12,
+            1,
+            4
+          ],
+          "W-b_CAP": [
+            12,
+            1,
+            4
+          ],
+          "W-b_GID": "GoR",
+          "W-b_DID": "DlZ",
+          "W-b_MID": "Dpc",
+          "W-b_BOU": true,
+          "E_MOD": 0,
+          "E_PRS": "**REDACTED**",
+          "E_TZ": "Europe/Rome",
+          "E_STP": [
+            {
+              "k": "COM",
+              "u": 0,
+              "m": 1,
+              "v": 200
+            },
+            {
+              "k": "ECO",
+              "u": 0,
+              "m": 1,
+              "v": 180
+            },
+            {
+              "k": "OFF",
+              "u": 0,
+              "m": 1,
+              "v": 50
+            },
+            {
+              "k": "COM",
+              "u": 0,
+              "m": 2,
+              "v": 250
+            },
+            {
+              "k": "ECO",
+              "u": 0,
+              "m": 2,
+              "v": 270
+            },
+            {
+              "k": "OFF",
+              "u": 0,
+              "m": 2,
+              "v": 360
+            },
+            {
+              "k": "4",
+              "u": 2,
+              "m": 5,
+              "v": 4
+            },
+            {
+              "k": "1",
+              "u": 2,
+              "m": 5,
+              "v": 1
+            },
+            {
+              "k": "2",
+              "u": 2,
+              "m": 5,
+              "v": 2
+            },
+            {
+              "k": "3",
+              "u": 2,
+              "m": 5,
+              "v": 3
+            },
+            {
+              "k": "0",
+              "u": 2,
+              "m": 5,
+              "v": 0
+            },
+            {
+              "k": "CS1",
+              "u": 0,
+              "m": 1,
+              "v": 120,
+              "n": "Spento"
+            },
+            {
+              "k": "CS2",
+              "u": 0,
+              "m": 1,
+              "v": 215,
+              "n": "Caldo"
+            }
+          ],
+          "E_CTM": "2021-11-17T15:55:12.188Z",
+          "E_EXT": 129,
+          "E_EXH": 98,
+          "E_CPC": 0,
+          "E_X_EcoAdvance": 0,
+          "E_WTH": 804,
+          "E_CLL": 0,
+          "E_WTD": {
+            "current": {
+              "dt": 1794350233,
+              "temperature": 129,
+              "humidity": 98,
+              "weather": 804
+            },
+            "next": [],
+            "dayDetails": {
+              "sunrise": 1794290215,
+              "sunset": 1794325239,
+              "temperatures": {
+                "min": 117,
+                "max": 130
+              }
+            }
+          },
+          "E_NAM": "Casa",
+          "E_X_ComfortAdvance": 0,
+          "E_X_DevNames": {
+            "66": "Valvola - 73c6",
+            "r2": "Unità di connessione - f:63",
+            "vv": "Valvola - 73c6",
+            "uV": "Valvola - 73c6",
+            "6w": "Valvola - 04dd",
+            "JR": "Valvola - 73c6",
+            "+X": "Unità di connessione - f:63",
+            "kY": "Valvola - 73c6",
+            "d7": "Valvola - 73c6",
+            "+g": "Termostato - 0145",
+            "Bb": "Unità di connessione - f:63",
+            "m-": "Ingresso ",
+            "QR": "Ingresso",
+            "Ns": "Valvola - 73c6",
+            "-z": "Valvola - 73c6",
+            "lZ": "Valvola - 62dd",
+            "7E": "Valvola - 73c6",
+            "rb": "Unità di connessione - f:63",
+            "Dv": "Valvola - 73c6",
+            "pc": "Unità di connessione - f:63",
+            "c6": "Valvola - 73c6",
+            "fY": "Valvola - 0d45",
+            "Qd": "Valvola - 04dd",
+            "c8": "Valvola - 0d45",
+            "nm": "Valvola - 73c6",
+            "eD": "Valvola - 73c6",
+            "yX": "Soggiorno "
+          },
+          "E_TIM": 60,
+          "E_SEA": 1,
+          "E_SCH": [
+            {
+              "w": [],
+              "n": "",
+              "m": 1,
+              "k": "uuid-camera"
+            },
+            {
+              "w": [],
+              "n": "",
+              "m": 1,
+              "k": "uuid-soggiorno"
+            },
+            {
+              "w": [],
+              "n": "",
+              "m": 1,
+              "k": "uuid-cameretta"
+            },
+            {
+              "w": [],
+              "n": "",
+              "m": 1,
+              "k": "uuid-bagno"
+            },
+            {
+              "w": [],
+              "n": "",
+              "m": 1,
+              "k": "uuid-ingresso"
+            }
+          ],
+          "E_X_EcoComfort": 1,
+          "E_X_VAC": {},
+          "E_VER": 1,
+          "E_ID": "**REDACTED**",
+          "E_LOC": "**REDACTED**"
+        }
+      },
+      "deleted": {
+        "reported": {},
+        "desired": {}
+      }
+    }
+  },
+  "issues": []
+}
