@@ -33,12 +33,13 @@ def written_by_device(payload):
 def compute_hvac_action(desired_payload, base_key, from_device, previous=None):
     """Return what the radiator is actually doing (issue #20).
 
-    The shadow has no per-radiator relay flag, but:
-    - ``E_CLL`` is the environment's heat call: the radiator sets it to 1 while
-      it heats and back to 0 once the setpoint is reached. The integration (and
-      the app) also write ``E_CLL = 1`` on every setpoint change, so the value
-      is used only when the radiator wrote the shadow last (``from_device``)
-      and the environment has a single radiator.
+    The heat calls are read only when the radiator wrote the shadow last
+    (``from_device``): the integration (and the app) also write ``E_CLL = 1``
+    on every setpoint change. In order:
+    - ``<zone>_CLL`` is the radiator's own heat call: it sets it to 1 while it
+      heats and back to 0 once the setpoint is reached (issue #58).
+    - ``E_CLL`` is the environment's heat call, the OR of the radiators': it
+      stands for one radiator only when the environment has a single one.
     - Otherwise the action is inferred from ``<zone>_CSP`` (the setpoint the
       radiator is applying, ``_MSP`` as fallback) and ``<zone>_TMP``, both in
       tenths of a degree, with the radiator's hysteresis (see
@@ -47,6 +48,10 @@ def compute_hvac_action(desired_payload, base_key, from_device, previous=None):
     """
     if desired_payload.get(f"{base_key}_ENB") != 1:
         return HVACAction.OFF
+
+    zone_cll = desired_payload.get(f"{base_key}_CLL")
+    if from_device and zone_cll in (0, 1):
+        return HVACAction.HEATING if zone_cll == 1 else HVACAction.IDLE
 
     e_cll = desired_payload.get("E_CLL")
     if from_device and count_zones(desired_payload) == 1 and e_cll in (0, 1):

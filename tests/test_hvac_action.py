@@ -83,6 +83,41 @@ def test_multi_zone_inferred_with_hysteresis():
     assert compute_hvac_action({**d, "PcC_TMP": 267}, "PcC", True) == idle
 
 
+@pytest.mark.parametrize(
+    ("pcc_cll", "abc_cll"), [(1, 0), (0, 1)]
+)
+def test_multi_zone_uses_zone_cll_from_device(pcc_cll, abc_cll):
+    """Each radiator's own heat call (issue #58): two radiators at the same
+    temperature and setpoint, one heating and one idle, which the estimate
+    can't tell apart."""
+    d = two_zones(
+        E_CLL=1,
+        PcC_TMP=200,
+        PcC_CSP={"p": {"v": 200}},
+        ABC_TMP=200,
+        ABC_CSP={"p": {"v": 200}},
+        PcC_CLL=pcc_cll,
+        ABC_CLL=abc_cll,
+    )
+    # Without the heat calls, both are estimated the same
+    assert compute_hvac_action(d, "PcC", False) == compute_hvac_action(d, "ABC", False)
+    action = {1: HVACAction.HEATING, 0: HVACAction.IDLE}
+    assert compute_hvac_action(d, "PcC", True) == action[pcc_cll]
+    assert compute_hvac_action(d, "ABC", True) == action[abc_cll]
+
+
+def test_zone_cll_written_by_app_is_ignored():
+    """After a command the shadow is ours: estimate, as with E_CLL."""
+    d = two_zones(PcC_TMP=264, PcC_CSP={"p": {"v": 250}}, PcC_CLL=1)
+    assert compute_hvac_action(d, "PcC", False) == HVACAction.IDLE
+
+
+def test_zone_cll_off_when_disabled():
+    assert compute_hvac_action(two_zones(PcC_ENB=0, PcC_CLL=1), "PcC", True) == (
+        HVACAction.OFF
+    )
+
+
 def test_multi_zone_falls_back_to_msp():
     d = two_zones()
     del d["PcC_CSP"]
@@ -229,3 +264,27 @@ def test_inference_uses_hysteresis_from_shadow():
     assert compute_hvac_action({**d, "PcC_TMP": 274}, "PcC", True, heating) == idle
     assert compute_hvac_action({**d, "PcC_TMP": 263}, "PcC", True, idle) == idle
     assert compute_hvac_action({**d, "PcC_TMP": 262}, "PcC", True, idle) == heating
+
+
+async def test_entity_two_radiators_use_their_own_heat_call(
+    hass, config_entry, mock_login, mock_get_shadow, shadow
+):
+    """Two radiators at the same temperature and setpoint: one heating, one
+    idle, as each reports (issue #58)."""
+    shadow["clientId"] = "dev-RE_00:00:00:00:00:00#RE"
+    desired = shadow["state"]["desired"]
+    desired.update(
+        {
+            "E_CLL": 1,
+            "PTO_CLL": 1,
+            "PLX_NAM": "Bagno camera",
+            "PLX_ENB": 1,
+            "PLX_TMP": desired["PTO_TMP"],
+            "PLX_MSP": copy.deepcopy(desired["PTO_MSP"]),
+            "PLX_CSP": copy.deepcopy(desired["PTO_CSP"]),
+            "PLX_CLL": 0,
+        }
+    )
+    await _setup(hass, config_entry)
+    assert hass.states.get(ENTITY).attributes["hvac_action"] == "heating"
+    assert hass.states.get("climate.bagno_camera").attributes["hvac_action"] == "idle"

@@ -626,6 +626,7 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
                 _LOGGER.debug(
                     f"hvac_action for {self._log_name}: "
                     f"ENB={desired_payload.get(enb_key)} "
+                    f"CLL={desired_payload.get(base_key + '_CLL')} "
                     f"E_CLL={desired_payload.get('E_CLL')} "
                     f"written_by={'device' if from_device else 'app'} "
                     f"TMP={tmp_value} "

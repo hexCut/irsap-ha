@@ -89,10 +89,10 @@ Requires Home Assistant 2024.11.0 or newer.
 
 Besides the mode (heat / off), each radiator reports what it is actually doing: *heating*, *idle* (setpoint reached) or *off*.
 
-- **One radiator in the home:** the value comes from the radiator's own heat call (`E_CLL`), read only when the radiator itself wrote the cloud state last. Right after a command from Home Assistant or the app, the action is estimated until the radiator reports again.
-- **Several radiators:** the cloud has no per-radiator heat call, so the action is *estimated* from the measured temperature and the setpoint, with the radiator's own hysteresis, read from the cloud (0.2 °C on firmware 3.22: it heats until the room is that much above the setpoint and starts again that much below it). It can differ from what the radiator is really doing.
+- **Radiators that report their heat call** (`<zone>_CLL`): the value is the radiator's own, read when the radiator itself wrote the cloud state last. With a single radiator in the home, the home's heat call (`E_CLL`) is used if the radiator's is missing.
+- **Otherwise**, and right after a command from Home Assistant or the app until the radiator reports again, the action is *estimated* from the measured temperature and the setpoint, with the radiator's own hysteresis, read from the cloud (0.2 °C on firmware 3.22: it heats until the room is that much above the setpoint and starts again that much below it). It can differ from what the radiator is really doing.
 
-The radiator sends a new temperature reading only every few minutes (20 on firmware 3.22), so the action can lag behind the real heating by that much.
+The radiator updates its heat call within seconds, shown at the next update. It sends a new temperature reading only every few minutes (20 on firmware 3.22), so an estimated action can lag behind the real heating by that much.
 
 ### Diagnostic sensors
 
