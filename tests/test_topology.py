@@ -48,6 +48,7 @@ SHADOW = {
     "Dv1_X_ValveOpen": 0,
     "Dv1_X_OpenWind": 1,
     "Dv1_X_BlockMode": 1,
+    "Dv1_X_OffsTemp": -5,
     "Dv1_X_AntiWhistle": 5,
     "Dv1_LUP": "2026-11-06T09:40:46.275Z",
     "Dv1_ERR": [],
@@ -113,6 +114,7 @@ def test_camera_has_a_valve_and_a_deduplicated_ambient_sensor():
     assert valve["water_temperature"] == pytest.approx(21.0)
     assert valve["open_window_enabled"] == 1
     assert valve["child_lock"] == 1
+    assert valve["temperature_offset"] == pytest.approx(-0.5)
     assert valve["anti_whistle"] == 5
     assert valve["last_update"] == SHADOW["Dv1_LUP"]
 

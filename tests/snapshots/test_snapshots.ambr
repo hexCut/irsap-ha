@@ -1406,9 +1406,29 @@
     }),
     dict({
       'attributes': dict({
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Valvola Temperature offset',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:thermometer',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTemperature.CELSIUS: '°C'>,
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Valvola',
+        'name': 'Camera Valvola',
+        'sw_version': '1.25',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.camera_valvola_temperature_offset',
+      'state': '-0.5',
+      'unique_id': 'Dv1_temperature_offset',
+    }),
+    dict({
+      'attributes': dict({
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Valvola Valve opening',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:valve',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: '%',
       }),
       'device': dict({
         'manufacturer': 'IRSAP',
@@ -1489,23 +1509,6 @@
       'entity_id': 'sensor.unita_di_connessione_last_update',
       'state': '06-11-2026 01:40',
       'unique_id': 'Dpc_last_update',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Unità di Connessione RF power',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:radio-tower',
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': None,
-        'name': 'Unità di Connessione',
-        'sw_version': '1.24',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.unita_di_connessione_rf_power',
-      'state': '13',
-      'unique_id': 'Dpc_rf_power',
     }),
   ])
 # ---

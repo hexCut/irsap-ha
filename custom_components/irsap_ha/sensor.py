@@ -1172,7 +1172,7 @@ _COMMON_LINKED_SENSORS = [
 _LINKED_SENSORS_BY_KIND = {
     "valve": _COMMON_LINKED_SENSORS
     + [
-        ("valve_open", "valve_opening", "mdi:valve", None, None, LinkedDeviceSensor, None),
+        ("valve_open", "valve_opening", "mdi:valve", None, PERCENTAGE, LinkedDeviceSensor, None),
         (
             "water_temperature",
             "water_temperature",
@@ -1201,6 +1201,21 @@ _LINKED_SENSORS_BY_KIND = {
             1,
         ),
         ("child_lock", "child_lock", "mdi:lock", None, None, LinkedDeviceEnabledSensor, None),
+        (
+            "temperature_offset",
+            "temperature_offset",
+            "mdi:thermometer",
+            # A temperature difference, not an absolute reading: no device
+            # class, so HA doesn't try to convert it as one (same reasoning
+            # as the existing TemperatureOffsetSensor for Wi-Fi radiators).
+            # Confirmed meaning: the discrepancy between the valve's measured
+            # temperature and a real reading from a standalone thermometer,
+            # set by the user.
+            None,
+            UnitOfTemperature.CELSIUS,
+            LinkedDeviceSensor,
+            1,
+        ),
         (
             "anti_whistle",
             "anti_whistle",
@@ -1263,9 +1278,6 @@ def _build_linked_device_entities(hass, config_entry, coordinator):
         )
         gateway_device_id = gateway_device.id
         entities.append(GatewayLastUpdateSensor(coordinator, gateway_id))
-        entities.append(
-            GatewaySensor(coordinator, gateway_id, "_X_RF_Power", "rf_power", "rf_power", "mdi:radio-tower")
-        )
         entities.append(
             GatewaySensor(
                 coordinator,

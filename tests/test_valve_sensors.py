@@ -26,7 +26,6 @@ VALVE_ZONE = {
     "Dpc_TYP": "SYS",
     "Dpc_FWV": "1.24",
     "Dpc_LUP": "2026-11-06T09:40:46.275Z",
-    "Dpc_X_RF_Power": 13,
     "Dpc_ERR": [],
     "Dv1_TYP": "MEH",
     "Dv1_FWV": "1.25",
@@ -38,6 +37,7 @@ VALVE_ZONE = {
     "Dv1_X_EnvTemp": 208,
     "Dv1_X_CalcTemp": 207,
     "Dv1_X_BlockMode": 1,
+    "Dv1_X_OffsTemp": -5,
     "Dv1_X_AntiWhistle": 5,
     "Dv1_LUP": "2026-11-06T09:40:46.275Z",
     "Dv1_ERR": [],
@@ -63,6 +63,7 @@ VALVE_TEMPERATURE = "sensor.cameretta_valvola_temperature"
 VALVE_LAST_UPDATE = "sensor.cameretta_valvola_last_update"
 VALVE_SETPOINT = "sensor.cameretta_valvola_setpoint_temperature"
 VALVE_CHILD_LOCK = "sensor.cameretta_valvola_child_lock_status"  # "(status)" suffix from the shared translation key, see #50
+VALVE_TEMP_OFFSET = "sensor.cameretta_valvola_temperature_offset"
 VALVE_ANTI_WHISTLE = "sensor.cameretta_valvola_anti_whistle"
 TERMOSTATO_TEMPERATURE = "sensor.cameretta_termostato_temperature"
 TERMOSTATO_LAST_UPDATE = "sensor.cameretta_termostato_last_update"
@@ -91,7 +92,9 @@ async def test_valve_and_ambient_sensor_entities(
     assert valve_battery.attributes["device_class"] == "voltage"
 
     assert hass.states.get(VALVE_RSSI).state == "-75"
-    assert hass.states.get(VALVE_OPEN).state == "0"
+    valve_open = hass.states.get(VALVE_OPEN)
+    assert valve_open.state == "0"
+    assert valve_open.attributes["unit_of_measurement"] == "%"
     assert hass.states.get(VALVE_WATER_TEMP).state == "21.0"
     assert hass.states.get(VALVE_OPEN_WINDOW).state == "Enabled"
     # Each physical device reports its own measured temperature (distinct
@@ -102,6 +105,7 @@ async def test_valve_and_ambient_sensor_entities(
     assert hass.states.get(TERMOSTATO_LAST_UPDATE).state not in (None, "unknown")
     assert hass.states.get(VALVE_SETPOINT).state == "20.7"
     assert hass.states.get(VALVE_CHILD_LOCK).state == "Enabled"
+    assert hass.states.get(VALVE_TEMP_OFFSET).state == "-0.5"
     anti_whistle = hass.states.get(VALVE_ANTI_WHISTLE)
     assert anti_whistle.state == "5"
     assert anti_whistle.attributes["unit_of_measurement"] == "%"
@@ -135,10 +139,6 @@ async def test_error_sensors_by_unique_id(
     valve_error_id = registry.async_get_entity_id("sensor", DOMAIN, "Dv1_errors")
     assert valve_error_id is not None
     assert hass.states.get(valve_error_id).state == "No errors"
-
-    gateway_rf_id = registry.async_get_entity_id("sensor", DOMAIN, "Dpc_rf_power")
-    assert gateway_rf_id is not None
-    assert hass.states.get(gateway_rf_id).state == "13"
 
     gateway_error_id = registry.async_get_entity_id("sensor", DOMAIN, "Dpc_errors")
     assert gateway_error_id is not None

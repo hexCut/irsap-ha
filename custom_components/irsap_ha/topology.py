@@ -38,6 +38,9 @@ _VALVE_FIELDS = {
     # the shared _X_OpenWindowTime/_X_OpenMinValve thresholds).
     "open_window_enabled": "_X_OpenWind",
     "child_lock": "_X_BlockMode",
+    # Discrepancy between the valve's measured temperature and a real
+    # reading from a standalone thermometer, set by the user.
+    "temperature_offset": "_X_OffsTemp",
     # Anti-whistle level, 0-100%; already in that scale, no /10 conversion.
     "anti_whistle": "_X_AntiWhistle",
 }
@@ -56,6 +59,7 @@ _TENTHS_FIELDS = (
     "setpoint_temperature",
     "water_temperature",
     "battery_voltage",
+    "temperature_offset",
 )
 
 

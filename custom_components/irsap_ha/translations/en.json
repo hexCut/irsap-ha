@@ -141,9 +141,6 @@
       "voc_level": {
         "name": "VOC level"
       },
-      "rf_power": {
-        "name": "RF power"
-      },
       "last_error": {
         "name": "Last error"
       }
