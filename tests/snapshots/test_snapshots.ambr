@@ -122,6 +122,34 @@
       'unique_id': 'Bagno_lock',
     }),
     dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_energy',
+      'state': None,
+      'unique_id': 'Bagno_energy',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_heating_time',
+      'state': None,
+      'unique_id': 'Bagno_heating_time',
+    }),
+    dict({
       'attributes': dict({
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Hysteresis',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sine-wave',
@@ -261,6 +289,20 @@
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_pilote_status',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_power',
+      'state': None,
+      'unique_id': 'Bagno_power',
     }),
     dict({
       'attributes': dict({
@@ -416,6 +458,46 @@
     }),
     dict({
       'attributes': dict({
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'energy',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Energy',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:lightning-bolt',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.TOTAL_INCREASING: 'total_increasing'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfEnergy.KILO_WATT_HOUR: 'kWh'>,
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_energy',
+      'state': '13.859',
+      'unique_id': 'Bagno_energy',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Heating time',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:timer-outline',
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.TOTAL_INCREASING: 'total_increasing'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.HOURS: 'h'>,
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_heating_time',
+      'state': '34.6497222222222',
+      'unique_id': 'Bagno_heating_time',
+    }),
+    dict({
+      'attributes': dict({
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Hysteresis',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sine-wave',
         <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
@@ -554,6 +636,27 @@
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Inactive',
       'unique_id': 'Bagno_pilote_status',
+    }),
+    dict({
+      'attributes': dict({
+        <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'power',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Power',
+        <EntityStateAttribute.ICON: 'icon'>: 'mdi:flash',
+        'rated_power': 400,
+        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfPower.WATT: 'W'>,
+      }),
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '3.22',
+      }),
+      'disabled_by': None,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_power',
+      'state': '0',
+      'unique_id': 'Bagno_power',
     }),
     dict({
       'attributes': dict({
@@ -792,6 +895,34 @@
       'unique_id': 'Bagno_lock',
     }),
     dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '1.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_energy',
+      'state': None,
+      'unique_id': 'Bagno_energy',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '1.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_heating_time',
+      'state': None,
+      'unique_id': 'Bagno_heating_time',
+    }),
+    dict({
       'attributes': dict({
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Hysteresis',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sine-wave',
@@ -933,6 +1064,20 @@
       'unique_id': 'Bagno_pilote_status',
     }),
     dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Bagno',
+        'sw_version': '1.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_power',
+      'state': None,
+      'unique_id': 'Bagno_power',
+    }),
+    dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Signal strength',
@@ -1055,6 +1200,34 @@
       'entity_id': 'sensor.camera_child_lock_status',
       'state': 'Unknown',
       'unique_id': 'Camera_lock',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Camera',
+        'sw_version': '2.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.camera_energy',
+      'state': None,
+      'unique_id': 'Camera_energy',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Camera',
+        'sw_version': '2.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.camera_heating_time',
+      'state': None,
+      'unique_id': 'Camera_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -1196,6 +1369,20 @@
       'entity_id': 'sensor.camera_pilote_status',
       'state': 'Unknown',
       'unique_id': 'Camera_pilote_status',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'RE',
+        'name': 'Camera',
+        'sw_version': '2.0',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.camera_power',
+      'state': None,
+      'unique_id': 'Camera_power',
     }),
     dict({
       'attributes': dict({

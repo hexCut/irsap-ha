@@ -96,10 +96,21 @@ The radiator sends a new temperature reading only every few minutes (20 on firmw
 
 ### Diagnostic sensors
 
-Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update, hysteresis, temperature offset, open window, pilot wire, child lock and, on the models that have them, CO2, VOC and air quality). They are listed under *Diagnostic* on the device page and are refreshed with the rest of the data.
+Each radiator also has diagnostic sensors (Wi-Fi signal, IP address, last update, hysteresis, temperature offset, open window, pilot wire, child lock, heating time and, on the models that have them, CO2, VOC and air quality). They are listed under *Diagnostic* on the device page and are refreshed with the rest of the data.
 
 - Values have proper units: Wi-Fi in dBm, hysteresis and temperature offset in °C, open-window off time in minutes, CO2 in ppm.
 - A measurement the radiator doesn't have (the cloud reports `65535` or nothing) is created **disabled**, so it doesn't clutter the UI. If the radiator later reports a real value, the sensor is enabled again automatically. A sensor you disabled yourself is never re-enabled.
+
+### Energy and power
+
+Radiators that report their counters get two more sensors:
+
+- **Energy**: the energy used by the radiator since it was made, in kWh. It can be added to the Energy dashboard under *Individual devices*.
+- **Power**: the radiator's rated power while it is heating (the heat call it reports, `<zone>_CLL`, is on), `0` otherwise. It is an indication, read at each update: use Energy for consumption. A radiator that doesn't report the heat call gets this sensor disabled.
+
+Both are **estimated by the radiator, not metered**: it counts how long the heating element has been on and multiplies by its rated power (`_X_CPW`, or `_NEP` if missing), shown as the `rated_power` attribute of the Power sensor. If the element draws more or less than its rating, the values are off in the same proportion. The time the element has been on is also available as the diagnostic sensor *Heating time*.
+
+Tested on RE towel warmers, firmware 3.22. Owners of other models: please attach a diagnostics file (see below) to an issue, so we can check that the counters are the same.
 
 ### Radiator settings
 
