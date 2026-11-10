@@ -48,7 +48,6 @@ SHADOW = {
     "Dv1_X_ValveOpen": 0,
     "Dv1_X_OpenWind": 1,
     "Dv1_X_BlockMode": 1,
-    "Dv1_X_OffsTemp": -5,
     "Dv1_X_AntiWhistle": 5,
     "Dv1_LUP": "2026-11-06T09:40:46.275Z",
     "Dv1_ERR": [],
@@ -62,7 +61,6 @@ SHADOW = {
     "Ds1_X_CO2Value": 400,
     "Ds1_X_VocValue": 0,
     "Ds1_X_VocLevel": 1,
-    "Ds1_X_AqiUba": 0,
     "Ds1_LUP": "2026-11-06T09:40:46.275Z",
     "Ds1_ERR": [],
     # Valve Dv2 (Bagno) - distinct values, to catch any cross-zone mixup
@@ -115,7 +113,6 @@ def test_camera_has_a_valve_and_a_deduplicated_ambient_sensor():
     assert valve["water_temperature"] == pytest.approx(21.0)
     assert valve["open_window_enabled"] == 1
     assert valve["child_lock"] == 1
-    assert valve["temperature_offset"] == pytest.approx(-0.5)
     assert valve["anti_whistle"] == 5
     assert valve["last_update"] == SHADOW["Dv1_LUP"]
 
@@ -124,7 +121,6 @@ def test_camera_has_a_valve_and_a_deduplicated_ambient_sensor():
     assert sensor["humidity"] == 58
     assert sensor["co2"] == 400
     assert sensor["voc_level"] == 1
-    assert sensor["aqi_uba"] == 0
     assert sensor["battery_voltage"] == pytest.approx(2.7)
     assert sensor["last_update"] == SHADOW["Ds1_LUP"]
 

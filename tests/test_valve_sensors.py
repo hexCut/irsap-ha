@@ -38,7 +38,6 @@ VALVE_ZONE = {
     "Dv1_X_EnvTemp": 208,
     "Dv1_X_CalcTemp": 207,
     "Dv1_X_BlockMode": 1,
-    "Dv1_X_OffsTemp": -5,
     "Dv1_X_AntiWhistle": 5,
     "Dv1_LUP": "2026-11-06T09:40:46.275Z",
     "Dv1_ERR": [],
@@ -50,7 +49,6 @@ VALVE_ZONE = {
     "Ds1_X_CO2Value": 400,
     "Ds1_X_VocValue": 0,
     "Ds1_X_VocLevel": 1,
-    "Ds1_X_AqiUba": 0,
     "Ds1_X_EnvTemp": 207,
     "Ds1_LUP": "2026-11-06T09:40:46.275Z",
     "Ds1_ERR": [],
@@ -65,7 +63,6 @@ VALVE_TEMPERATURE = "sensor.cameretta_valvola_temperature"
 VALVE_LAST_UPDATE = "sensor.cameretta_valvola_last_update"
 VALVE_SETPOINT = "sensor.cameretta_valvola_setpoint_temperature"
 VALVE_CHILD_LOCK = "sensor.cameretta_valvola_child_lock"
-VALVE_TEMP_OFFSET = "sensor.cameretta_valvola_temperature_offset"
 VALVE_ANTI_WHISTLE = "sensor.cameretta_valvola_anti_whistle"
 TERMOSTATO_TEMPERATURE = "sensor.cameretta_termostato_temperature"
 TERMOSTATO_LAST_UPDATE = "sensor.cameretta_termostato_last_update"
@@ -105,7 +102,6 @@ async def test_valve_and_ambient_sensor_entities(
     assert hass.states.get(TERMOSTATO_LAST_UPDATE).state not in (None, "unknown")
     assert hass.states.get(VALVE_SETPOINT).state == "20.7"
     assert hass.states.get(VALVE_CHILD_LOCK).state == "Enabled"
-    assert hass.states.get(VALVE_TEMP_OFFSET).state == "-0.5"
     anti_whistle = hass.states.get(VALVE_ANTI_WHISTLE)
     assert anti_whistle.state == "5"
     assert anti_whistle.attributes["unit_of_measurement"] == "%"
@@ -128,19 +124,13 @@ async def test_valve_and_ambient_sensor_entities(
     assert hass.states.get(wifi_entity_id) is not None
 
 
-async def test_aqi_and_error_sensors_by_unique_id(
+async def test_error_sensors_by_unique_id(
     hass, config_entry, mock_login, mock_get_shadow, shadow
 ):
-    """Looked up by unique_id, not by guessed entity_id slug: "Air Quality
-    Index (UBA)" has punctuation HA may slugify unpredictably."""
     shadow["state"]["desired"].update(VALVE_ZONE)
     await _setup(hass, config_entry)
 
     registry = er.async_get(hass)
-
-    aqi_entity_id = registry.async_get_entity_id("sensor", DOMAIN, "Ds1_aqi_uba")
-    assert aqi_entity_id is not None
-    assert hass.states.get(aqi_entity_id).state == "0"
 
     valve_error_id = registry.async_get_entity_id("sensor", DOMAIN, "Dv1_errors")
     assert valve_error_id is not None

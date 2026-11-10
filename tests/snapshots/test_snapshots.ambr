@@ -985,24 +985,6 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Termostato Air quality index UBA',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:air-filter',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'Termostato',
-        'name': 'Camera Termostato',
-        'sw_version': '1.15',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_termostato_air_quality_index_uba',
-      'state': '0',
-      'unique_id': 'Ds1_aqi_uba',
-    }),
-    dict({
-      'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'voltage',
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Termostato Battery voltage',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:battery',
@@ -1337,25 +1319,6 @@
       'entity_id': 'sensor.camera_valvola_temperature',
       'state': '20.8',
       'unique_id': 'Dv1_measured_temperature',
-    }),
-    dict({
-      'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Valvola Temperature offset',
-        <EntityStateAttribute.ICON: 'icon'>: 'mdi:thermometer',
-        <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-        <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTemperature.CELSIUS: '°C'>,
-      }),
-      'device': dict({
-        'manufacturer': 'IRSAP',
-        'model': 'Valvola',
-        'name': 'Camera Valvola',
-        'sw_version': '1.25',
-      }),
-      'disabled_by': None,
-      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_valvola_temperature_offset',
-      'state': '-0.5',
-      'unique_id': 'Dv1_temperature_offset',
     }),
     dict({
       'attributes': dict({

@@ -141,9 +141,6 @@
       "voc_level": {
         "name": "Livello VOC"
       },
-      "aqi_uba": {
-        "name": "Indice qualità aria UBA"
-      },
       "rf_power": {
         "name": "Potenza radio"
       },

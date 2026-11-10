@@ -142,7 +142,6 @@ def _smart_valve():
             "Dv1_X_ValveOpen": 0,
             "Dv1_X_OpenWind": 1,
             "Dv1_X_BlockMode": 1,
-            "Dv1_X_OffsTemp": -5,
             "Dv1_X_AntiWhistle": 5,
             "Dv1_LUP": "2026-11-06T09:40:46.275Z",
             "Dv1_ERR": [],
@@ -155,7 +154,6 @@ def _smart_valve():
             "Ds1_X_CO2Value": 400,
             "Ds1_X_VocValue": 0,
             "Ds1_X_VocLevel": 1,
-            "Ds1_X_AqiUba": 0,
             "Ds1_LUP": "2026-11-06T09:40:46.275Z",
             "Ds1_ERR": [],
         }

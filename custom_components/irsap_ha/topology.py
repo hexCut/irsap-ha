@@ -38,9 +38,6 @@ _VALVE_FIELDS = {
     # the shared _X_OpenWindowTime/_X_OpenMinValve thresholds).
     "open_window_enabled": "_X_OpenWind",
     "child_lock": "_X_BlockMode",
-    # Calibration offset applied to the measured temperature; probable
-    # meaning from CLAUDE.md, not confirmed against real behaviour.
-    "temperature_offset": "_X_OffsTemp",
     # Anti-whistle level, 0-100%; already in that scale, no /10 conversion.
     "anti_whistle": "_X_AntiWhistle",
 }
@@ -50,8 +47,6 @@ _AMBIENT_SENSOR_FIELDS = {
     "co2": "_X_CO2Value",
     "voc": "_X_VocValue",
     "voc_level": "_X_VocLevel",
-    # Air quality index (UBA scale?), meaning not confirmed.
-    "aqi_uba": "_X_AqiUba",
 }
 
 # Fields reported in tenths of a unit (temperature in tenths of °C, battery
@@ -61,7 +56,6 @@ _TENTHS_FIELDS = (
     "setpoint_temperature",
     "water_temperature",
     "battery_voltage",
-    "temperature_offset",
 )
 
 

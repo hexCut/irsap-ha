@@ -1202,18 +1202,6 @@ _LINKED_SENSORS_BY_KIND = {
         ),
         ("child_lock", "child_lock", "mdi:lock", None, None, LinkedDeviceEnabledSensor, None),
         (
-            "temperature_offset",
-            "temperature_offset",
-            "mdi:thermometer",
-            # A temperature difference, not an absolute reading: no device
-            # class, so HA doesn't try to convert it as one (same reasoning
-            # as the existing TemperatureOffsetSensor for Wi-Fi radiators).
-            None,
-            UnitOfTemperature.CELSIUS,
-            LinkedDeviceSensor,
-            1,
-        ),
-        (
             "anti_whistle",
             "anti_whistle",
             "mdi:volume-off",
@@ -1247,15 +1235,6 @@ _LINKED_SENSORS_BY_KIND = {
         ),
         ("voc", "voc", "mdi:air-filter", None, None, LinkedDeviceSensor, None),
         ("voc_level", "voc_level", "mdi:gauge", None, None, LinkedDeviceSensor, None),
-        (
-            "aqi_uba",
-            "aqi_uba",
-            "mdi:air-filter",
-            None,
-            None,
-            LinkedDeviceSensor,
-            None,
-        ),
     ],
 }
 
