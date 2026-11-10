@@ -515,7 +515,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -526,9 +526,37 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_child_lock',
+      'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_lock',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_energy',
+      'state': None,
+      'unique_id': 'Bagno_energy',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.bagno_heating_time',
+      'state': None,
+      'unique_id': 'Bagno_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -672,6 +700,20 @@
       'unique_id': 'Bagno_pilote_status',
     }),
     dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'Unknown Model',
+        'name': 'Bagno',
+        'sw_version': 'Unknown Firmware',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.bagno_power',
+      'state': None,
+      'unique_id': 'Bagno_power',
+    }),
+    dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Signal strength',
@@ -693,7 +735,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Bagno Standby (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sleep',
       }),
       'device': dict({
@@ -704,7 +746,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.bagno_standby',
+      'entity_id': 'sensor.bagno_standby_status',
       'state': 'Unknown',
       'unique_id': 'Bagno_standby',
     }),
@@ -771,7 +813,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -782,9 +824,37 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_child_lock',
+      'entity_id': 'sensor.camera_child_lock_status',
       'state': 'Unknown',
       'unique_id': 'Camera_lock',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'SYS',
+        'name': 'Camera',
+        'sw_version': '1.24',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.camera_energy',
+      'state': None,
+      'unique_id': 'Camera_energy',
+    }),
+    dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'SYS',
+        'name': 'Camera',
+        'sw_version': '1.24',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+      'entity_id': 'sensor.camera_heating_time',
+      'state': None,
+      'unique_id': 'Camera_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -928,6 +998,20 @@
       'unique_id': 'Camera_pilote_status',
     }),
     dict({
+      'attributes': None,
+      'device': dict({
+        'manufacturer': 'IRSAP',
+        'model': 'SYS',
+        'name': 'Camera',
+        'sw_version': '1.24',
+      }),
+      'disabled_by': <RegistryEntryDisabler.INTEGRATION: 'integration'>,
+      'entity_category': None,
+      'entity_id': 'sensor.camera_power',
+      'state': None,
+      'unique_id': 'Camera_power',
+    }),
+    dict({
       'attributes': dict({
         <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'signal_strength',
         <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Signal strength',
@@ -949,7 +1033,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Standby',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Standby (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:sleep',
       }),
       'device': dict({
@@ -960,7 +1044,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_standby',
+      'entity_id': 'sensor.camera_standby_status',
       'state': 'Unknown',
       'unique_id': 'Camera_standby',
     }),
@@ -1194,7 +1278,7 @@
     }),
     dict({
       'attributes': dict({
-        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Valvola Child lock',
+        <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Camera Valvola Child lock (status)',
         <EntityStateAttribute.ICON: 'icon'>: 'mdi:lock',
       }),
       'device': dict({
@@ -1205,7 +1289,7 @@
       }),
       'disabled_by': None,
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-      'entity_id': 'sensor.camera_valvola_child_lock',
+      'entity_id': 'sensor.camera_valvola_child_lock_status',
       'state': 'Enabled',
       'unique_id': 'Dv1_child_lock',
     }),
