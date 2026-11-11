@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from custom_components.irsap_ha.topology import (
+    device_app_name,
     gateway_id,
     linked_devices,
     zone_devices,
@@ -71,6 +72,8 @@ def test_cameretta_has_a_valve_and_a_deduplicated_ambient_sensor():
     assert valve["water_temperature"] == pytest.approx(19.0)
     assert valve["anti_whistle"] == 5
 
+    assert valve["app_name"] == "Valvola - 0d45"
+
     sensor = devices["D+g"]
     assert sensor["kind"] == "ambient_sensor"
     assert sensor["measured_temperature"] == pytest.approx(19.5)
@@ -79,6 +82,7 @@ def test_cameretta_has_a_valve_and_a_deduplicated_ambient_sensor():
     assert sensor["voc"] == 0
     assert sensor["voc_level"] == 1
     assert sensor["battery_voltage"] == pytest.approx(2.7)
+    assert sensor["app_name"] == "Termostato - 0145"
 
 
 def test_single_valve_zones_have_distinct_real_values():
@@ -105,6 +109,20 @@ def test_camera_has_the_lowest_battery():
         for zone in ("PlS", "PyD", "P7+")
     ]
     assert all(camera_battery < other for other in other_batteries)
+
+
+def test_device_app_name_prefers_the_app_names_field():
+    """E_X_DevNames is keyed by the device id without its leading "D"
+    (e.g. "Dm-" -> "m-"). The Ingresso valve was renamed by the user to
+    match its zone; the others keep the app's own generic label."""
+    assert device_app_name(DESIRED, "Dm-") == "Ingresso"  # trailing space stripped
+    assert device_app_name(DESIRED, "D7E") == "Valvola - 73c6"
+    assert device_app_name(DESIRED, "Dpc") == "Unità di connessione - f:63"
+
+
+def test_device_app_name_is_none_when_not_found():
+    assert device_app_name(DESIRED, "Dxx") is None
+    assert device_app_name({}, "Dm-") is None
 
 
 def test_gateway_id_finds_the_connection_unit():

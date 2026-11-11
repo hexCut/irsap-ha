@@ -81,6 +81,21 @@ def _groups_for_zone(desired, zone):
     ]
 
 
+def device_app_name(desired, device_id):
+    """Name shown for this device in the IRSAP NOW app (``E_X_DevNames``),
+    keyed by the device id without its leading ``"D"`` (e.g. ``"Dc8"`` ->
+    ``"c8"``). A user-renamed device shows that name (e.g. a single valve
+    renamed after its zone); otherwise the app's own generic label (e.g.
+    "Valvola - 0d45"). ``None`` if the shadow has no such entry at all (no
+    Smart Valve devices, or a device not listed for some reason).
+    """
+    names = desired.get("E_X_DevNames")
+    if not names:
+        return None
+    name = names.get(device_id[1:])
+    return name.strip() if name else None
+
+
 def _device_values(desired, device_id, device_type):
     fields = _VALVE_FIELDS if device_type == VALVE_TYPE else _AMBIENT_SENSOR_FIELDS
     kind = "valve" if device_type == VALVE_TYPE else "ambient_sensor"
@@ -92,7 +107,12 @@ def _device_values(desired, device_id, device_type):
     for name in _TENTHS_FIELDS:
         if name in values:
             values[name] = values[name] / 10
-    return {"device_id": device_id, "kind": kind, **values}
+    return {
+        "device_id": device_id,
+        "kind": kind,
+        "app_name": device_app_name(desired, device_id),
+        **values,
+    }
 
 
 def linked_devices(desired, zone):

@@ -179,6 +179,37 @@ async def test_valve_and_termostato_are_separate_devices_via_the_gateway(
     assert valve.id != termostato.id
 
 
+async def test_device_names_follow_the_irsap_app(
+    hass, config_entry, mock_login, mock_get_shadow, shadow
+):
+    """A device the user renamed in the IRSAP NOW app (E_X_DevNames, keyed by
+    the device id without its leading "D") keeps that name instead of our
+    own "{zone} {role}" label; a device with no such entry (Ds1 here) keeps
+    falling back to it."""
+    shadow["state"]["desired"].update(VALVE_ZONE)
+    shadow["state"]["desired"]["E_X_DevNames"] = {
+        "v1": "Ingresso ",  # trailing space, as seen in real diagnostics
+        "pc": "Router di casa",
+    }
+    await _setup(hass, config_entry)
+
+    env_id = config_entry.data["envID"]
+    device_registry = dr.async_get(hass)
+    valve = device_registry.async_get_device_by_identifier(
+        device_identifier(env_id, "Dv1"), config_entry.entry_id
+    )
+    termostato = device_registry.async_get_device_by_identifier(
+        device_identifier(env_id, "Ds1"), config_entry.entry_id
+    )
+    gateway = device_registry.async_get_device_by_identifier(
+        device_identifier(env_id, "Dpc"), config_entry.entry_id
+    )
+
+    assert valve.name == "Ingresso"
+    assert termostato.name == "Cameretta Termostato"
+    assert gateway.name == "Router di casa"
+
+
 async def test_gateway_has_its_own_last_update_sensor(
     hass, config_entry, mock_login, mock_get_shadow, shadow
 ):

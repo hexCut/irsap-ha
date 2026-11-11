@@ -903,9 +903,14 @@ class LinkedDeviceEntity(CoordinatorEntity):
     @property
     def device_info(self):
         role = LINKED_DEVICE_ROLE[self._device["kind"]]
+        # Prefer the name shown for this device in the IRSAP NOW app (set by
+        # the user, or the app's own generic label) so the device matches
+        # what's seen there; fall back to our own label only if the shadow
+        # has no E_X_DevNames entry for it at all.
+        name = self._device.get("app_name") or f"{self._zone_name} {role}"
         info = {
             "identifiers": {device_identifier(self._env_id, self._device_id)},
-            "name": f"{self._zone_name} {role}",
+            "name": name,
             "manufacturer": "IRSAP",
             "model": role,
             "sw_version": self._device.get("firmware", "Unknown Firmware"),
@@ -1039,16 +1044,17 @@ class GatewayEntity(CoordinatorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, env_id, gateway_id):
+    def __init__(self, coordinator, env_id, gateway_id, name):
         super().__init__(coordinator)
         self._env_id = env_id
         self._gateway_id = gateway_id
+        self._name = name
 
     @property
     def device_info(self):
         return {
             "identifiers": {device_identifier(self._env_id, self._gateway_id)},
-            "name": "Unità di Connessione",
+            "name": self._name,
             "manufacturer": "IRSAP",
         }
 
@@ -1062,8 +1068,8 @@ class GatewayLastUpdateSensor(GatewayEntity, SensorEntity):
     Last Update (see LinkedDeviceLastUpdateSensor) in case one ever lags.
     """
 
-    def __init__(self, coordinator, env_id, gateway_id):
-        super().__init__(coordinator, env_id, gateway_id)
+    def __init__(self, coordinator, env_id, gateway_id, name):
+        super().__init__(coordinator, env_id, gateway_id, name)
         self._attr_translation_key = "last_update"
         self._attr_unique_id = make_unique_id(env_id, gateway_id, "last_update")
         self._attr_icon = "mdi:update"
@@ -1091,13 +1097,14 @@ class GatewaySensor(GatewayEntity, SensorEntity):
         coordinator,
         env_id,
         gateway_id,
+        name,
         suffix,
         data_name,
         translation_key,
         icon,
         formatter=None,
     ):
-        super().__init__(coordinator, env_id, gateway_id)
+        super().__init__(coordinator, env_id, gateway_id, name)
         self._suffix = suffix
         self._formatter = formatter
         self._attr_translation_key = translation_key
@@ -1308,20 +1315,25 @@ def _build_linked_device_entities(hass, config_entry, coordinator):
     entities = []
     gateway_device_id = None
     if gateway_id is not None:
+        # Prefer the name shown for the gateway in the IRSAP NOW app (set by
+        # the user, or the app's own generic label); fall back to our own
+        # label only if the shadow has no E_X_DevNames entry for it.
+        gateway_name = topology.device_app_name(desired, gateway_id) or "Unità di Connessione"
         gateway_device = dr.async_get(hass).async_get_or_create(
             config_entry_id=config_entry.entry_id,
             identifiers={device_identifier(env_id, gateway_id)},
-            name="Unità di Connessione",
+            name=gateway_name,
             manufacturer="IRSAP",
             sw_version=desired.get(f"{gateway_id}_FWV", "Unknown Firmware"),
         )
         gateway_device_id = gateway_device.id
-        entities.append(GatewayLastUpdateSensor(coordinator, env_id, gateway_id))
+        entities.append(GatewayLastUpdateSensor(coordinator, env_id, gateway_id, gateway_name))
         entities.append(
             GatewaySensor(
                 coordinator,
                 env_id,
                 gateway_id,
+                gateway_name,
                 "_ERR",
                 "errors",
                 "last_error",
