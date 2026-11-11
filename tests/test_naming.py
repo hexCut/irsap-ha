@@ -44,15 +44,15 @@ async def test_names_follow_the_language(
         # new entity_ids follow the language too (sensor.bagno_isteresi)
         return registry.async_get_entity_id(domain, "irsap_ha", unique_id)
 
-    hysteresis = by_unique_id("sensor", "Bagno_hysteresis")
+    hysteresis = by_unique_id("sensor", "env-1_PTO_hysteresis")
     assert hysteresis == "sensor.bagno_isteresi"
     assert _friendly(hass, hysteresis) == "Bagno Isteresi"
     assert (
-        _friendly(hass, by_unique_id("switch", "Bagno_child_lock_switch"))
+        _friendly(hass, by_unique_id("switch", "env-1_PTO_child_lock_switch"))
         == "Bagno Blocco bambini"
     )
     assert (
-        _friendly(hass, by_unique_id("sensor", "Bagno_temperature_offset"))
+        _friendly(hass, by_unique_id("sensor", "env-1_PTO_temperature_offset"))
         == "Bagno Compensazione della temperatura"
     )
 
@@ -63,7 +63,7 @@ async def test_names_follow_a_renamed_device(
     await _setup(hass, config_entry)
     devices = dr.async_get(hass)
     device = devices.async_get_device_by_identifier(
-        ("irsap_ha", "Bagno"), config_entry.entry_id
+        ("irsap_ha", "env-1_PTO"), config_entry.entry_id
     )
     devices.async_update_device(device.id, name_by_user="Scaldasalviette")
     await hass.async_block_till_done()
@@ -73,11 +73,12 @@ async def test_names_follow_a_renamed_device(
 
 
 async def test_upgrade_keeps_entity_ids(
-    hass, config_entry, mock_login, mock_get_shadow, shadow
+    hass, config_entry_v1, mock_login, mock_get_shadow, shadow
 ):
     """Entities created by an older version keep their entity_id: only the
     friendly name changes."""
     shadow["state"]["desired"]["PTO_X_lock"] = 0
+    config_entry = config_entry_v1
     config_entry.add_to_hass(hass)
     registry = er.async_get(hass)
     old = {

@@ -3,11 +3,13 @@ from .const import DOMAIN
 
 import logging
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-from .api import WRITE_DATA_KEYS
+from homeassistant.core import HomeAssistant, callback
+from .api import WRITE_DATA_KEYS, async_fetch_shadow
 from .auth import AUTH_DATA_KEYS, store_credentials
 from .coordinator import IrsapCoordinator
 from .device_manager import device_manager
+from .ids import zone_names
+from .migration import async_migrate_v1_to_v2
 from .setup import async_setup as setup_component
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,6 +48,54 @@ async def async_setup_entry(hass, config_entry):
     # Ricarica l'integrazione quando cambiano le opzioni (es. intervallo di aggiornamento)
     config_entry.async_on_unload(config_entry.add_update_listener(_async_reload_entry))
 
+    # A room renamed, added or removed in the app: reload, so devices and
+    # entities follow (the zone id doesn't change, only the name)
+    rooms = zone_names(coordinator.desired)
+    # Zones missing at the previous refresh: a removal is believed only when
+    # the next refresh confirms it, so a partial shadow can't cause reloads
+    missing_before = set()
+
+    @callback
+    def _reload_when_rooms_change():
+        nonlocal missing_before
+        current = zone_names(coordinator.desired)
+        if not current or current == rooms:
+            missing_before = set()
+            return
+        missing = rooms.keys() - current.keys()
+        if missing and missing != missing_before:
+            _LOGGER.debug(f"Zones {sorted(missing)} missing from the IRSAP cloud, waiting for the next update")
+            missing_before = missing
+            return
+        _LOGGER.info(f"Rooms changed in the IRSAP cloud ({rooms} -> {current}), reloading")
+        hass.config_entries.async_schedule_reload(config_entry.entry_id)
+
+    config_entry.async_on_unload(coordinator.async_add_listener(_reload_when_rooms_change))
+
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry) -> bool:
+    """Migrate an entry created by an older version of the integration."""
+    if config_entry.version > 2:
+        # Created by a newer version: don't touch it
+        return False
+    if config_entry.version == 1:
+        store_credentials(
+            hass, config_entry.data["username"], config_entry.data["password"]
+        )
+        _, payload = await async_fetch_shadow(hass, config_entry.data["envID"])
+        if payload is None:
+            _LOGGER.error(
+                "Cannot migrate the IRSAP entry: the IRSAP cloud did not answer. "
+                "Restart Home Assistant to try again"
+            )
+            return False
+        await async_migrate_v1_to_v2(
+            hass, config_entry, payload.get("state", {}).get("desired", {})
+        )
+        hass.config_entries.async_update_entry(config_entry, version=2)
+        _LOGGER.info("Migrated the IRSAP entry to version 2 (devices keyed by zone id)")
     return True
 
 

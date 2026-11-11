@@ -79,6 +79,24 @@ def config_entry():
         domain=DOMAIN,
         title="user@example.com",
         unique_id=DOMAIN,
+        version=2,
+        data={
+            "username": "user@example.com",
+            "password": "secret",
+            "token": "setup-token",
+            "envID": "env-1",
+        },
+    )
+
+
+@pytest.fixture
+def config_entry_v1():
+    """An entry created by 1.6 or older: devices and entities keyed by room name."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="user@example.com",
+        unique_id=DOMAIN,
+        version=1,
         data={
             "username": "user@example.com",
             "password": "secret",

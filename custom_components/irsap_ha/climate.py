@@ -26,6 +26,7 @@ from .api import (
 )
 import json
 from .device import RadiatorDevice
+from .ids import device_identifier, unique_id
 from .shadow import device_values
 from .device_manager import device_manager
 from . import modes
@@ -58,7 +59,9 @@ async def async_setup_entry(
         device = RadiatorDevice(r, envID)
         device_manager.add_device(device)  # Aggiungi il dispositivo al manager
         entities.append(
-            RadiatorClimate(coordinator, r, envID, unique_id=f"{r['serial']}_climate")
+            RadiatorClimate(
+                coordinator, r, envID, unique_id=unique_id(envID, r["zone"], "climate")
+            )
         )
     async_add_entities(entities)
 
@@ -132,6 +135,7 @@ def extract_device_info(
     # Associa ogni _NAM ai suoi corrispondenti attributi in ordine di apparizione
     for i, (nam_key, device_info) in enumerate(nam_keys):
         base_key = nam_key[: -len(nam_suffix)]
+        device_info["zone"] = base_key
         corresponding_tmp_key = base_key + tmp_suffix
         corresponding_enb_key = base_key + enb_suffix
 
@@ -293,11 +297,11 @@ class RadiatorClimate(CoordinatorEntity, ClimateEntity):
     @property
     def device_info(self):
         """Return device information."""
+        radiator = self._device.radiator
         return {
-            "identifiers": {
-                (DOMAIN, self._device.radiator["serial"])
-            },  # Use device serial number
-            "name": self._device.radiator["serial"],
+            # Zone id, not the room name: it survives a rename in the app
+            "identifiers": {device_identifier(self._device.envID, radiator["zone"])},
+            "name": radiator["serial"],
             "model": self._device.radiator.get("model", "Unknown model"),
             "manufacturer": "IRSAP",
             "sw_version": self._device.radiator.get("firmware", "unknown"),

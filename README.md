@@ -124,6 +124,12 @@ They change the same settings as the IRSAP NOW app, and changes made in the app 
 
 The read-only *Child Lock*, *Standby* and *Open Window Enabled* sensors show the same settings. They are kept in the 1.6 betas and will be removed in 1.7: if an automation or dashboard uses them, switch it to the new switches.
 
+### Renaming rooms
+
+Radiators are identified by their room in the IRSAP cloud, not by the room's name: renaming a room in the IRSAP NOW app renames the device in Home Assistant at the next update, and keeps its entities, entity IDs, areas and settings.
+
+Up to 1.6 they were identified by the name. The first start after updating moves the existing devices and entities to the new identifiers, keeping everything. A room renamed in the app **before** updating can't be matched any more: its old device and entities are left as they are (the log lists them) and new ones are created; remove the old ones by hand.
+
 ### Diagnostics
 
 To report a problem, download the diagnostics file: *Settings → Devices & services → IRSAP NOW Integration → ⋮ → Download diagnostics*. It contains the integration's state and the data the IRSAP cloud reports for your radiators. Credentials, the token, your home's address and coordinates, MAC and IP addresses are removed.

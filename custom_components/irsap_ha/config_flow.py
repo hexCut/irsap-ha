@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     "Handle a config flow for radiators integration."
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         "Handle the initial step."

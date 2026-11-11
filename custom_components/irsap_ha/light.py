@@ -11,6 +11,7 @@ from homeassistant.components.light import LightEntity, ColorMode
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .device_manager import device_manager
+from .ids import device_identifier, unique_id as make_unique_id
 import asyncio
 import colorsys
 
@@ -45,7 +46,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     coordinator,
                     radiator,
                     unique_id,
-                    unique_id=f"{radiator['serial']}_led",
+                    unique_id=make_unique_id(
+                        coordinator.envID, radiator["zone"], "led"
+                    ),
                 )
             )
         else:
@@ -74,6 +77,7 @@ def extract_device_info(
                 if key.endswith(nam_suffix) and not key.startswith(exclude_suffix):
                     temp_devices[key] = {
                         "serial": value,
+                        "zone": key[: -len(nam_suffix)],
                         "state": False,  # Default a OFF
                         "color": {"h": 0, "s": 0, "v": 0},  # Default colore
                         "has_led": False,  # Flag per la verifica del LED
@@ -231,9 +235,7 @@ class RadiatorLight(CoordinatorEntity, LightEntity):
     def device_info(self):
         "Associa il sensore al dispositivo climate con il seriale corrispondente."
         return {
-            "identifiers": {
-                (DOMAIN, self._radiator["serial"])
-            },  # Use device serial number
+            "identifiers": {device_identifier(self._envID, self._radiator["zone"])},
             "name": f"{self._radiator['serial']}",
             "model": self._radiator.get("model", "Unknown Model"),
             "manufacturer": "IRSAP",
