@@ -13,19 +13,13 @@ import time
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import (
-    async_fetch_shadow,
-    async_update_shadow,
-    remember_write,
-    serialize_writes,
-)
-from .const import APP_CLIENT_ID, DOMAIN, WRITE_SETTLE_TIME
+from .api import async_write_device_setting, serialize_writes
+from .const import DOMAIN, WRITE_SETTLE_TIME
 from .hvac_action import written_by_device
 from .ids import device_identifier, unique_id
-from .shadow import linked_device
+from .shadow import device_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,19 +34,6 @@ SWITCH_TYPES = [
         "_X_OpenWindowSensorEnabled",
     ),
 ]
-
-
-def device_key(desired, zone, suffix):
-    """Shadow key holding a device setting for a zone, or None.
-
-    Follows the zone -> device link; without it, falls back to the only key
-    with that suffix when the home has a single one.
-    """
-    device = linked_device(desired, zone)
-    if device is not None and f"{device}{suffix}" in desired:
-        return f"{device}{suffix}"
-    keys = [key for key in desired if key.endswith(suffix)]
-    return keys[0] if len(keys) == 1 else None
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -134,34 +115,14 @@ class RadiatorSettingSwitch(CoordinatorEntity, SwitchEntity):
 
     @serialize_writes
     async def _async_write(self, value):
-        envID = self.coordinator.envID
-        token, payload = await async_fetch_shadow(self.hass, envID)
-        if payload is None:
-            raise HomeAssistantError("IRSAP cloud not reachable")
-        desired = payload["state"]["desired"]
-        key = device_key(desired, self._zone, self._suffix)
-        if key is None:
-            raise HomeAssistantError(f"{self._log_name}: setting not found")
-
-        _LOGGER.debug(
-            f"{self._log_name}: writing {key}={value} (was {desired.get(key)})"
+        await async_write_device_setting(
+            self.hass,
+            self.coordinator.envID,
+            self._zone,
+            self._suffix,
+            value,
+            self._log_name,
         )
-        desired[key] = value
-        desired.pop("sk", None)
-        payload["timestamp"] = int(time.time() * 1000)
-        payload["clientId"] = APP_CLIENT_ID
-        ordered = {
-            "id": payload.get("id"),
-            "clientId": payload["clientId"],
-            "timestamp": payload["timestamp"],
-            "version": payload.get("version"),
-            "state": payload["state"],
-        }
-        if not await async_update_shadow(self.hass, token, envID, ordered):
-            raise HomeAssistantError(f"{self._log_name}: the IRSAP cloud refused it")
-        remember_write(self.hass, ordered)
-        _LOGGER.debug(f"{self._log_name}: UpdateShadow accepted {key}={value}")
-
         self._attr_is_on = value == 1
         self._ignore_updates_until = time.monotonic() + WRITE_SETTLE_TIME
         self.async_write_ha_state()

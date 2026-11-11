@@ -17,6 +17,19 @@ def linked_device(desired_payload, zone):
     return None
 
 
+def device_key(desired, zone, suffix):
+    """Shadow key holding a device setting for a zone, or None.
+
+    Follows the zone -> device link; without it, falls back to the only key
+    with that suffix when the home has a single one.
+    """
+    device = linked_device(desired, zone)
+    if device is not None and f"{device}{suffix}" in desired:
+        return f"{device}{suffix}"
+    keys = [key for key in desired if key.endswith(suffix)]
+    return keys[0] if len(keys) == 1 else None
+
+
 def device_values(desired_payload, zone, fields):
     """Read device fields for a zone through its linked device.
 

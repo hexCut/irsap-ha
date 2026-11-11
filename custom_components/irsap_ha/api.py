@@ -9,10 +9,12 @@ import logging
 import time
 
 import aiohttp
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .auth import async_get_token
-from .const import API_TIMEOUT, DOMAIN, WRITE_SETTLE_TIME
+from .const import API_TIMEOUT, APP_CLIENT_ID, DOMAIN, WRITE_SETTLE_TIME
+from .shadow import device_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -161,3 +163,35 @@ async def async_fetch_shadow(hass, envID):
     if payload is not None and _writing.get():
         payload = _base_for_write(hass, payload)
     return token, payload
+
+
+async def async_write_device_setting(hass, envID, zone, suffix, value, log_name):
+    """Write one of a radiator's device settings (``<device><suffix>``).
+
+    Reads the whole shadow, changes that key and writes it back. Call it from
+    a method decorated with ``serialize_writes``.
+    """
+    token, payload = await async_fetch_shadow(hass, envID)
+    if payload is None:
+        raise HomeAssistantError("IRSAP cloud not reachable")
+    desired = payload["state"]["desired"]
+    key = device_key(desired, zone, suffix)
+    if key is None:
+        raise HomeAssistantError(f"{log_name}: setting not found")
+
+    _LOGGER.debug(f"{log_name}: writing {key}={value} (was {desired.get(key)})")
+    desired[key] = value
+    desired.pop("sk", None)
+    payload["timestamp"] = int(time.time() * 1000)
+    payload["clientId"] = APP_CLIENT_ID
+    ordered = {
+        "id": payload.get("id"),
+        "clientId": payload["clientId"],
+        "timestamp": payload["timestamp"],
+        "version": payload.get("version"),
+        "state": payload["state"],
+    }
+    if not await async_update_shadow(hass, token, envID, ordered):
+        raise HomeAssistantError(f"{log_name}: the IRSAP cloud refused it")
+    remember_write(hass, ordered)
+    _LOGGER.debug(f"{log_name}: UpdateShadow accepted {key}={value}")
