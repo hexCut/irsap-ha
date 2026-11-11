@@ -122,6 +122,8 @@ Each radiator that reports them gets three switches, under *Configuration* on th
 
 They change the same settings as the IRSAP NOW app, and changes made in the app show up in Home Assistant at the next update.
 
+Radiators that support it also get an **Identify** button, under *Diagnostic*: the radiator's LED blinks (1 s on, 1 s off) for about 5 minutes, to tell which radiator is which.
+
 The read-only *Child Lock*, *Standby* and *Open Window Enabled* sensors show the same settings. They are kept in the 1.6 betas and will be removed in 1.7: if an automation or dashboard uses them, switch it to the new switches.
 
 ### Renaming rooms

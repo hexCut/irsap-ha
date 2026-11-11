@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.irsap_ha.switch import device_key
+from custom_components.irsap_ha.shadow import device_key
 
 LOCK = "switch.bagno_child_lock"
 STANDBY = "switch.bagno_standby"
@@ -71,7 +71,7 @@ async def test_turn_on_writes_the_device_key(
     await _setup(hass, config_entry)
 
     with patch(
-        "custom_components.irsap_ha.switch.async_update_shadow", return_value=True
+        "custom_components.irsap_ha.api.async_update_shadow", return_value=True
     ) as update:
         await hass.services.async_call(
             "switch", "turn_on", {"entity_id": LOCK}, blocking=True
@@ -106,7 +106,7 @@ async def test_write_failure_raises(
     await _setup(hass, config_entry)
     with (
         patch(
-            "custom_components.irsap_ha.switch.async_update_shadow", return_value=False
+            "custom_components.irsap_ha.api.async_update_shadow", return_value=False
         ),
         pytest.raises(HomeAssistantError),
     ):
@@ -140,7 +140,7 @@ async def test_concurrent_switches_dont_undo_each_other(
         return True
 
     with patch(
-        "custom_components.irsap_ha.switch.async_update_shadow",
+        "custom_components.irsap_ha.api.async_update_shadow",
         side_effect=slow_update,
     ):
         await asyncio.gather(
