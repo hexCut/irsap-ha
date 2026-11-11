@@ -409,7 +409,7 @@
       'entity_category': None,
       'entity_id': 'climate.bagno',
       'state': 'heat',
-      'unique_id': 'Bagno_climate',
+      'unique_id': 'env-1_PTO_climate',
     }),
     dict({
       'attributes': dict({
@@ -441,7 +441,7 @@
       'entity_category': None,
       'entity_id': 'climate.camera',
       'state': 'heat',
-      'unique_id': 'Camera_climate',
+      'unique_id': 'env-1_Cam_climate',
     }),
     dict({
       'attributes': dict({
@@ -483,7 +483,7 @@
       'entity_category': None,
       'entity_id': 'light.bagno_led',
       'state': 'on',
-      'unique_id': 'Bagno_led',
+      'unique_id': 'env-1_PTO_led',
     }),
     dict({
       'attributes': None,
@@ -497,7 +497,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_air_quality',
       'state': None,
-      'unique_id': 'Bagno_aiq',
+      'unique_id': 'env-1_PTO_aiq',
     }),
     dict({
       'attributes': None,
@@ -511,7 +511,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_carbon_dioxide',
       'state': None,
-      'unique_id': 'Bagno_co2',
+      'unique_id': 'env-1_PTO_co2',
     }),
     dict({
       'attributes': dict({
@@ -528,7 +528,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_child_lock_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_lock',
+      'unique_id': 'env-1_PTO_lock',
     }),
     dict({
       'attributes': None,
@@ -542,7 +542,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_energy',
       'state': None,
-      'unique_id': 'Bagno_energy',
+      'unique_id': 'env-1_PTO_energy',
     }),
     dict({
       'attributes': None,
@@ -556,7 +556,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_heating_time',
       'state': None,
-      'unique_id': 'Bagno_heating_time',
+      'unique_id': 'env-1_PTO_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -575,7 +575,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_hysteresis',
       'state': 'unknown',
-      'unique_id': 'Bagno_hysteresis',
+      'unique_id': 'env-1_PTO_hysteresis',
     }),
     dict({
       'attributes': dict({
@@ -592,7 +592,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_ip_address',
       'state': '192.168.0.50',
-      'unique_id': 'Bagno_ip_address',
+      'unique_id': 'env-1_PTO_ip_address',
     }),
     dict({
       'attributes': dict({
@@ -609,7 +609,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_last_update',
       'state': '06-11-2026 01:40',
-      'unique_id': 'Bagno_last_update',
+      'unique_id': 'env-1_PTO_last_update',
     }),
     dict({
       'attributes': dict({
@@ -626,7 +626,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_detected',
       'state': 'Unknown',
-      'unique_id': 'Bagno_openwindow_detected',
+      'unique_id': 'env-1_PTO_openwindow_detected',
     }),
     dict({
       'attributes': dict({
@@ -643,7 +643,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_enabled',
       'state': 'Unknown',
-      'unique_id': 'Bagno_openwindow_enabled',
+      'unique_id': 'env-1_PTO_openwindow_enabled',
     }),
     dict({
       'attributes': dict({
@@ -663,7 +663,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_open_window_off_time',
       'state': 'unknown',
-      'unique_id': 'Bagno_openwindow_offset',
+      'unique_id': 'env-1_PTO_openwindow_offset',
     }),
     dict({
       'attributes': dict({
@@ -680,7 +680,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_enable',
       'state': 'Unknown',
-      'unique_id': 'Bagno_pilote_enable',
+      'unique_id': 'env-1_PTO_pilote_enable',
     }),
     dict({
       'attributes': dict({
@@ -697,7 +697,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_pilote_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_pilote_status',
+      'unique_id': 'env-1_PTO_pilote_status',
     }),
     dict({
       'attributes': None,
@@ -711,7 +711,7 @@
       'entity_category': None,
       'entity_id': 'sensor.bagno_power',
       'state': None,
-      'unique_id': 'Bagno_power',
+      'unique_id': 'env-1_PTO_power',
     }),
     dict({
       'attributes': dict({
@@ -731,7 +731,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_signal_strength',
       'state': 'unknown',
-      'unique_id': 'Bagno_wifi_signal',
+      'unique_id': 'env-1_PTO_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -748,7 +748,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_standby_status',
       'state': 'Unknown',
-      'unique_id': 'Bagno_standby',
+      'unique_id': 'env-1_PTO_standby',
     }),
     dict({
       'attributes': dict({
@@ -767,7 +767,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_temperature_offset',
       'state': 'unknown',
-      'unique_id': 'Bagno_temperature_offset',
+      'unique_id': 'env-1_PTO_temperature_offset',
     }),
     dict({
       'attributes': None,
@@ -781,7 +781,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.bagno_voc',
       'state': None,
-      'unique_id': 'Bagno_voc',
+      'unique_id': 'env-1_PTO_voc',
     }),
     dict({
       'attributes': None,
@@ -795,7 +795,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_air_quality',
       'state': None,
-      'unique_id': 'Camera_aiq',
+      'unique_id': 'env-1_Cam_aiq',
     }),
     dict({
       'attributes': None,
@@ -809,7 +809,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_carbon_dioxide',
       'state': None,
-      'unique_id': 'Camera_co2',
+      'unique_id': 'env-1_Cam_co2',
     }),
     dict({
       'attributes': dict({
@@ -826,7 +826,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_child_lock_status',
       'state': 'Unknown',
-      'unique_id': 'Camera_lock',
+      'unique_id': 'env-1_Cam_lock',
     }),
     dict({
       'attributes': None,
@@ -840,7 +840,7 @@
       'entity_category': None,
       'entity_id': 'sensor.camera_energy',
       'state': None,
-      'unique_id': 'Camera_energy',
+      'unique_id': 'env-1_Cam_energy',
     }),
     dict({
       'attributes': None,
@@ -854,7 +854,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_heating_time',
       'state': None,
-      'unique_id': 'Camera_heating_time',
+      'unique_id': 'env-1_Cam_heating_time',
     }),
     dict({
       'attributes': dict({
@@ -873,7 +873,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_hysteresis',
       'state': 'unknown',
-      'unique_id': 'Camera_hysteresis',
+      'unique_id': 'env-1_Cam_hysteresis',
     }),
     dict({
       'attributes': dict({
@@ -890,7 +890,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_ip_address',
       'state': 'IP non disponibile',
-      'unique_id': 'Camera_ip_address',
+      'unique_id': 'env-1_Cam_ip_address',
     }),
     dict({
       'attributes': dict({
@@ -907,7 +907,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_last_update',
       'state': '06-11-2026 01:40',
-      'unique_id': 'Camera_last_update',
+      'unique_id': 'env-1_Cam_last_update',
     }),
     dict({
       'attributes': dict({
@@ -924,7 +924,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_open_window_detected',
       'state': 'Unknown',
-      'unique_id': 'Camera_openwindow_detected',
+      'unique_id': 'env-1_Cam_openwindow_detected',
     }),
     dict({
       'attributes': dict({
@@ -941,7 +941,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_open_window_enabled',
       'state': 'Unknown',
-      'unique_id': 'Camera_openwindow_enabled',
+      'unique_id': 'env-1_Cam_openwindow_enabled',
     }),
     dict({
       'attributes': dict({
@@ -961,7 +961,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_open_window_off_time',
       'state': 'unknown',
-      'unique_id': 'Camera_openwindow_offset',
+      'unique_id': 'env-1_Cam_openwindow_offset',
     }),
     dict({
       'attributes': dict({
@@ -978,7 +978,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_pilote_enable',
       'state': 'Unknown',
-      'unique_id': 'Camera_pilote_enable',
+      'unique_id': 'env-1_Cam_pilote_enable',
     }),
     dict({
       'attributes': dict({
@@ -995,7 +995,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_pilote_status',
       'state': 'Unknown',
-      'unique_id': 'Camera_pilote_status',
+      'unique_id': 'env-1_Cam_pilote_status',
     }),
     dict({
       'attributes': None,
@@ -1009,7 +1009,7 @@
       'entity_category': None,
       'entity_id': 'sensor.camera_power',
       'state': None,
-      'unique_id': 'Camera_power',
+      'unique_id': 'env-1_Cam_power',
     }),
     dict({
       'attributes': dict({
@@ -1029,7 +1029,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_signal_strength',
       'state': 'unknown',
-      'unique_id': 'Camera_wifi_signal',
+      'unique_id': 'env-1_Cam_wifi_signal',
     }),
     dict({
       'attributes': dict({
@@ -1046,7 +1046,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_standby_status',
       'state': 'Unknown',
-      'unique_id': 'Camera_standby',
+      'unique_id': 'env-1_Cam_standby',
     }),
     dict({
       'attributes': dict({
@@ -1065,7 +1065,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_temperature_offset',
       'state': 'unknown',
-      'unique_id': 'Camera_temperature_offset',
+      'unique_id': 'env-1_Cam_temperature_offset',
     }),
     dict({
       'attributes': dict({
@@ -1085,7 +1085,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_battery_voltage',
       'state': '2.7',
-      'unique_id': 'Ds1_battery_voltage',
+      'unique_id': 'env-1_Ds1_battery_voltage',
     }),
     dict({
       'attributes': dict({
@@ -1105,7 +1105,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_carbon_dioxide',
       'state': '400',
-      'unique_id': 'Ds1_co2',
+      'unique_id': 'env-1_Ds1_co2',
     }),
     dict({
       'attributes': dict({
@@ -1125,7 +1125,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_humidity',
       'state': '58',
-      'unique_id': 'Ds1_humidity',
+      'unique_id': 'env-1_Ds1_humidity',
     }),
     dict({
       'attributes': dict({
@@ -1142,7 +1142,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_last_error',
       'state': 'No errors',
-      'unique_id': 'Ds1_errors',
+      'unique_id': 'env-1_Ds1_errors',
     }),
     dict({
       'attributes': dict({
@@ -1159,7 +1159,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_last_update',
       'state': '06-11-2026 01:40',
-      'unique_id': 'Ds1_last_update',
+      'unique_id': 'env-1_Ds1_last_update',
     }),
     dict({
       'attributes': dict({
@@ -1179,7 +1179,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_rssi',
       'state': '-64',
-      'unique_id': 'Ds1_rssi',
+      'unique_id': 'env-1_Ds1_rssi',
     }),
     dict({
       'attributes': dict({
@@ -1199,7 +1199,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_temperature',
       'state': '20.7',
-      'unique_id': 'Ds1_measured_temperature',
+      'unique_id': 'env-1_Ds1_measured_temperature',
     }),
     dict({
       'attributes': dict({
@@ -1217,7 +1217,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_voc',
       'state': '0',
-      'unique_id': 'Ds1_voc',
+      'unique_id': 'env-1_Ds1_voc',
     }),
     dict({
       'attributes': dict({
@@ -1235,7 +1235,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_termostato_voc_level',
       'state': '1',
-      'unique_id': 'Ds1_voc_level',
+      'unique_id': 'env-1_Ds1_voc_level',
     }),
     dict({
       'attributes': dict({
@@ -1254,7 +1254,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_anti_whistle',
       'state': '5',
-      'unique_id': 'Dv1_anti_whistle',
+      'unique_id': 'env-1_Dv1_anti_whistle',
     }),
     dict({
       'attributes': dict({
@@ -1274,7 +1274,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_battery_voltage',
       'state': '3.0',
-      'unique_id': 'Dv1_battery_voltage',
+      'unique_id': 'env-1_Dv1_battery_voltage',
     }),
     dict({
       'attributes': dict({
@@ -1291,7 +1291,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_child_lock_status',
       'state': 'Enabled',
-      'unique_id': 'Dv1_child_lock',
+      'unique_id': 'env-1_Dv1_child_lock',
     }),
     dict({
       'attributes': dict({
@@ -1308,7 +1308,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_last_error',
       'state': 'No errors',
-      'unique_id': 'Dv1_errors',
+      'unique_id': 'env-1_Dv1_errors',
     }),
     dict({
       'attributes': dict({
@@ -1325,7 +1325,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_last_update',
       'state': '06-11-2026 01:40',
-      'unique_id': 'Dv1_last_update',
+      'unique_id': 'env-1_Dv1_last_update',
     }),
     dict({
       'attributes': dict({
@@ -1342,7 +1342,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_open_window_enabled',
       'state': 'Enabled',
-      'unique_id': 'Dv1_open_window_enabled',
+      'unique_id': 'env-1_Dv1_open_window_enabled',
     }),
     dict({
       'attributes': dict({
@@ -1362,7 +1362,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_rssi',
       'state': '-75',
-      'unique_id': 'Dv1_rssi',
+      'unique_id': 'env-1_Dv1_rssi',
     }),
     dict({
       'attributes': dict({
@@ -1382,7 +1382,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_setpoint_temperature',
       'state': '20.7',
-      'unique_id': 'Dv1_setpoint_temperature',
+      'unique_id': 'env-1_Dv1_setpoint_temperature',
     }),
     dict({
       'attributes': dict({
@@ -1402,7 +1402,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_temperature',
       'state': '20.8',
-      'unique_id': 'Dv1_measured_temperature',
+      'unique_id': 'env-1_Dv1_measured_temperature',
     }),
     dict({
       'attributes': dict({
@@ -1421,7 +1421,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_temperature_offset',
       'state': '-0.5',
-      'unique_id': 'Dv1_temperature_offset',
+      'unique_id': 'env-1_Dv1_temperature_offset',
     }),
     dict({
       'attributes': dict({
@@ -1440,7 +1440,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_valve_opening',
       'state': '0',
-      'unique_id': 'Dv1_valve_open',
+      'unique_id': 'env-1_Dv1_valve_open',
     }),
     dict({
       'attributes': dict({
@@ -1460,7 +1460,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_valvola_water_temperature',
       'state': '21.0',
-      'unique_id': 'Dv1_water_temperature',
+      'unique_id': 'env-1_Dv1_water_temperature',
     }),
     dict({
       'attributes': None,
@@ -1474,7 +1474,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.camera_voc',
       'state': None,
-      'unique_id': 'Camera_voc',
+      'unique_id': 'env-1_Cam_voc',
     }),
     dict({
       'attributes': dict({
@@ -1491,7 +1491,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.unita_di_connessione_last_error',
       'state': 'No errors',
-      'unique_id': 'Dpc_errors',
+      'unique_id': 'env-1_Dpc_errors',
     }),
     dict({
       'attributes': dict({
@@ -1508,7 +1508,7 @@
       'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
       'entity_id': 'sensor.unita_di_connessione_last_update',
       'state': '06-11-2026 01:40',
-      'unique_id': 'Dpc_last_update',
+      'unique_id': 'env-1_Dpc_last_update',
     }),
   ])
 # ---

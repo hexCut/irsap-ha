@@ -876,8 +876,9 @@ class LinkedDeviceEntity(CoordinatorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, zone, device, zone_name, gateway_device_id):
+    def __init__(self, coordinator, env_id, zone, device, zone_name, gateway_device_id):
         super().__init__(coordinator)
+        self._env_id = env_id
         self._zone = zone
         self._device_id = device["device_id"]
         self._device = device
@@ -903,7 +904,7 @@ class LinkedDeviceEntity(CoordinatorEntity):
     def device_info(self):
         role = LINKED_DEVICE_ROLE[self._device["kind"]]
         info = {
-            "identifiers": {(DOMAIN, self._device_id)},
+            "identifiers": {device_identifier(self._env_id, self._device_id)},
             "name": f"{self._zone_name} {role}",
             "manufacturer": "IRSAP",
             "model": role,
@@ -924,6 +925,7 @@ class LinkedDeviceSensor(LinkedDeviceEntity, SensorEntity):
     def __init__(
         self,
         coordinator,
+        env_id,
         zone,
         device,
         zone_name,
@@ -935,12 +937,12 @@ class LinkedDeviceSensor(LinkedDeviceEntity, SensorEntity):
         unit=None,
         suggested_display_precision=None,
     ):
-        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        super().__init__(coordinator, env_id, zone, device, zone_name, gateway_device_id)
         self._data_key = data_key
         # None: a sensor with a device class takes its translated name
         if translation_key is not None:
             self._attr_translation_key = translation_key
-        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_unique_id = make_unique_id(env_id, device["device_id"], data_key)
         self._attr_icon = icon
         if device_class is not None:
             self._attr_device_class = device_class
@@ -969,12 +971,21 @@ class LinkedDeviceEnabledSensor(LinkedDeviceEntity, SensorEntity):
     (same convention as the existing OpenWindowEnabledSensor for Wi-Fi radiators)."""
 
     def __init__(
-        self, coordinator, zone, device, zone_name, gateway_device_id, data_key, translation_key, icon
+        self,
+        coordinator,
+        env_id,
+        zone,
+        device,
+        zone_name,
+        gateway_device_id,
+        data_key,
+        translation_key,
+        icon,
     ):
-        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        super().__init__(coordinator, env_id, zone, device, zone_name, gateway_device_id)
         self._data_key = data_key
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_unique_id = make_unique_id(env_id, device["device_id"], data_key)
         self._attr_icon = icon
 
     @property
@@ -995,12 +1006,21 @@ class LinkedDeviceErrorSensor(LinkedDeviceEntity, SensorEntity):
     """The device's current error list (`_ERR`); "No errors" when empty."""
 
     def __init__(
-        self, coordinator, zone, device, zone_name, gateway_device_id, data_key, translation_key, icon
+        self,
+        coordinator,
+        env_id,
+        zone,
+        device,
+        zone_name,
+        gateway_device_id,
+        data_key,
+        translation_key,
+        icon,
     ):
-        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        super().__init__(coordinator, env_id, zone, device, zone_name, gateway_device_id)
         self._data_key = data_key
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_unique_id = make_unique_id(env_id, device["device_id"], data_key)
         self._attr_icon = icon
 
     @property
@@ -1019,14 +1039,15 @@ class GatewayEntity(CoordinatorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, gateway_id):
+    def __init__(self, coordinator, env_id, gateway_id):
         super().__init__(coordinator)
+        self._env_id = env_id
         self._gateway_id = gateway_id
 
     @property
     def device_info(self):
         return {
-            "identifiers": {(DOMAIN, self._gateway_id)},
+            "identifiers": {device_identifier(self._env_id, self._gateway_id)},
             "name": "Unità di Connessione",
             "manufacturer": "IRSAP",
         }
@@ -1041,10 +1062,10 @@ class GatewayLastUpdateSensor(GatewayEntity, SensorEntity):
     Last Update (see LinkedDeviceLastUpdateSensor) in case one ever lags.
     """
 
-    def __init__(self, coordinator, gateway_id):
-        super().__init__(coordinator, gateway_id)
+    def __init__(self, coordinator, env_id, gateway_id):
+        super().__init__(coordinator, env_id, gateway_id)
         self._attr_translation_key = "last_update"
-        self._attr_unique_id = f"{gateway_id}_last_update"
+        self._attr_unique_id = make_unique_id(env_id, gateway_id, "last_update")
         self._attr_icon = "mdi:update"
 
     @property
@@ -1066,13 +1087,21 @@ class GatewaySensor(GatewayEntity, SensorEntity):
     shadow key suffix (the gateway isn't a `topology.py` linked device)."""
 
     def __init__(
-        self, coordinator, gateway_id, suffix, data_name, translation_key, icon, formatter=None
+        self,
+        coordinator,
+        env_id,
+        gateway_id,
+        suffix,
+        data_name,
+        translation_key,
+        icon,
+        formatter=None,
     ):
-        super().__init__(coordinator, gateway_id)
+        super().__init__(coordinator, env_id, gateway_id)
         self._suffix = suffix
         self._formatter = formatter
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"{gateway_id}_{data_name}"
+        self._attr_unique_id = make_unique_id(env_id, gateway_id, data_name)
         self._attr_icon = icon
 
     @property
@@ -1096,12 +1125,21 @@ class LinkedDeviceLastUpdateSensor(LinkedDeviceEntity, SensorEntity):
     own _LUP would lag behind the gateway's while this keeps reporting it."""
 
     def __init__(
-        self, coordinator, zone, device, zone_name, gateway_device_id, data_key, translation_key, icon
+        self,
+        coordinator,
+        env_id,
+        zone,
+        device,
+        zone_name,
+        gateway_device_id,
+        data_key,
+        translation_key,
+        icon,
     ):
-        super().__init__(coordinator, zone, device, zone_name, gateway_device_id)
+        super().__init__(coordinator, env_id, zone, device, zone_name, gateway_device_id)
         self._data_key = data_key
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"{device['device_id']}_{data_key}"
+        self._attr_unique_id = make_unique_id(env_id, device["device_id"], data_key)
         self._attr_icon = icon
 
     @property
@@ -1265,22 +1303,24 @@ def _build_linked_device_entities(hass, config_entry, coordinator):
     if not any(zones.values()):
         return []
 
+    env_id = coordinator.envID
     gateway_id = topology.gateway_id(desired)
     entities = []
     gateway_device_id = None
     if gateway_id is not None:
         gateway_device = dr.async_get(hass).async_get_or_create(
             config_entry_id=config_entry.entry_id,
-            identifiers={(DOMAIN, gateway_id)},
+            identifiers={device_identifier(env_id, gateway_id)},
             name="Unità di Connessione",
             manufacturer="IRSAP",
             sw_version=desired.get(f"{gateway_id}_FWV", "Unknown Firmware"),
         )
         gateway_device_id = gateway_device.id
-        entities.append(GatewayLastUpdateSensor(coordinator, gateway_id))
+        entities.append(GatewayLastUpdateSensor(coordinator, env_id, gateway_id))
         entities.append(
             GatewaySensor(
                 coordinator,
+                env_id,
                 gateway_id,
                 "_ERR",
                 "errors",
@@ -1306,6 +1346,7 @@ def _build_linked_device_entities(hass, config_entry, coordinator):
                     entities.append(
                         LinkedDeviceSensor(
                             coordinator,
+                            env_id,
                             zone,
                             device,
                             zone_name,
@@ -1320,11 +1361,13 @@ def _build_linked_device_entities(hass, config_entry, coordinator):
                     )
                 else:
                     # LinkedDeviceEnabledSensor / LinkedDeviceLastUpdateSensor /
-                    # LinkedDeviceErrorSensor: same (coordinator, zone, device,
-                    # zone_name, gateway_device_id, data_key, translation_key, icon) signature
+                    # LinkedDeviceErrorSensor: same (coordinator, env_id, zone,
+                    # device, zone_name, gateway_device_id, data_key,
+                    # translation_key, icon) signature
                     entities.append(
                         entity_cls(
                             coordinator,
+                            env_id,
                             zone,
                             device,
                             zone_name,

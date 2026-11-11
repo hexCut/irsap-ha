@@ -4,6 +4,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.irsap_ha.const import DOMAIN
+from custom_components.irsap_ha.ids import device_identifier, unique_id
 
 # A Smart Valve zone ("Cameretta"): one valve (Dv1) and one ambient sensor
 # (Ds1), both wired through group Gsc and gateway Dpc ("Unità di Connessione").
@@ -123,7 +124,9 @@ async def test_valve_and_ambient_sensor_entities(
     # up by unique_id, not a guessed entity_id slug, since the dev branch's
     # entity-naming rework can change the friendly name / auto-generated slug)
     registry = er.async_get(hass)
-    wifi_entity_id = registry.async_get_entity_id("sensor", DOMAIN, "Bagno_wifi_signal")
+    wifi_entity_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, unique_id(config_entry.data["envID"], "PTO", "wifi_signal")
+    )
     assert wifi_entity_id is not None
     assert hass.states.get(wifi_entity_id) is not None
 
@@ -135,12 +138,17 @@ async def test_error_sensors_by_unique_id(
     await _setup(hass, config_entry)
 
     registry = er.async_get(hass)
+    env_id = config_entry.data["envID"]
 
-    valve_error_id = registry.async_get_entity_id("sensor", DOMAIN, "Dv1_errors")
+    valve_error_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, unique_id(env_id, "Dv1", "errors")
+    )
     assert valve_error_id is not None
     assert hass.states.get(valve_error_id).state == "No errors"
 
-    gateway_error_id = registry.async_get_entity_id("sensor", DOMAIN, "Dpc_errors")
+    gateway_error_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, unique_id(env_id, "Dpc", "errors")
+    )
     assert gateway_error_id is not None
     assert hass.states.get(gateway_error_id).state == "No errors"
 
@@ -151,10 +159,17 @@ async def test_valve_and_termostato_are_separate_devices_via_the_gateway(
     shadow["state"]["desired"].update(VALVE_ZONE)
     await _setup(hass, config_entry)
 
+    env_id = config_entry.data["envID"]
     device_registry = dr.async_get(hass)
-    gateway = device_registry.async_get_device_by_identifier((DOMAIN, "Dpc"), config_entry.entry_id)
-    valve = device_registry.async_get_device_by_identifier((DOMAIN, "Dv1"), config_entry.entry_id)
-    termostato = device_registry.async_get_device_by_identifier((DOMAIN, "Ds1"), config_entry.entry_id)
+    gateway = device_registry.async_get_device_by_identifier(
+        device_identifier(env_id, "Dpc"), config_entry.entry_id
+    )
+    valve = device_registry.async_get_device_by_identifier(
+        device_identifier(env_id, "Dv1"), config_entry.entry_id
+    )
+    termostato = device_registry.async_get_device_by_identifier(
+        device_identifier(env_id, "Ds1"), config_entry.entry_id
+    )
 
     assert gateway is not None and gateway.name == "Unità di Connessione"
     assert valve is not None and valve.name == "Cameretta Valvola"
@@ -173,7 +188,9 @@ async def test_gateway_has_its_own_last_update_sensor(
     await _setup(hass, config_entry)
 
     registry = er.async_get(hass)
-    entity_id = registry.async_get_entity_id("sensor", DOMAIN, "Dpc_last_update")
+    entity_id = registry.async_get_entity_id(
+        "sensor", DOMAIN, unique_id(config_entry.data["envID"], "Dpc", "last_update")
+    )
     assert entity_id is not None
     state = hass.states.get(entity_id)
     assert state is not None
@@ -188,10 +205,11 @@ async def test_duplicate_link_does_not_duplicate_entities(
     await _setup(hass, config_entry)
 
     registry = er.async_get(hass)
+    expected_unique_id = unique_id(config_entry.data["envID"], "Ds1", "humidity")
     matches = [
         entry
         for entry in er.async_entries_for_config_entry(registry, config_entry.entry_id)
-        if entry.unique_id == "Ds1_humidity"
+        if entry.unique_id == expected_unique_id
     ]
     assert len(matches) == 1
 
@@ -204,7 +222,9 @@ async def test_orphan_link_creates_no_entity(
 
     device_registry = dr.async_get(hass)
     assert (
-        device_registry.async_get_device_by_identifier((DOMAIN, "Dorphan"), config_entry.entry_id)
+        device_registry.async_get_device_by_identifier(
+            device_identifier(config_entry.data["envID"], "Dorphan"), config_entry.entry_id
+        )
         is None
     )
 
