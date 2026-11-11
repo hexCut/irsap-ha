@@ -112,10 +112,60 @@ def _two_radiators():
     return shadow
 
 
+def _smart_valve():
+    """A zone served by a Smart Valve (not a Wi-Fi radiator) plus its ambient
+    sensor ("Termostato"), wired through the gateway ("Unità di Connessione")
+    via group/link records, alongside the existing Wi-Fi radiator zone."""
+    shadow = copy.deepcopy(SHADOW)
+    shadow["state"]["desired"].update(
+        {
+            "Cam_NAM": "Camera",
+            "Cam_TMP": 207,
+            "Cam_ENB": 1,
+            "Gc_PLD": "Cam",
+            "Gc_MID": "Dpc",
+            "Wv1_GID": "Gc",
+            "Wv1_DID": "Dv1",
+            "Ws1_GID": "Gc",
+            "Ws1_DID": "Ds1",
+            "Dpc_TYP": "SYS",
+            "Dpc_FWV": "1.24",
+            "Dpc_LUP": "2026-11-06T09:40:46.275Z",
+            "Dv1_TYP": "MEH",
+            "Dv1_FWV": "1.25",
+            "Dv1_X_BatteryVoltage": 30,
+            "Dv1_X_DBLevel": -75,
+            "Dv1_X_EnvTemp": 208,
+            "Dv1_X_CalcTemp": 207,
+            "Dv1_X_WaterTemp": 210,
+            "Dv1_X_ValveOpen": 0,
+            "Dv1_X_OpenWind": 1,
+            "Dv1_X_BlockMode": 1,
+            "Dv1_X_OffsTemp": -5,
+            "Dv1_X_AntiWhistle": 5,
+            "Dv1_LUP": "2026-11-06T09:40:46.275Z",
+            "Dv1_ERR": [],
+            "Ds1_TYP": "SU",
+            "Ds1_FWV": "1.15",
+            "Ds1_X_BatteryVoltage": 27,
+            "Ds1_X_DBLevel": -64,
+            "Ds1_X_EnvTemp": 207,
+            "Ds1_X_EnvHumidity": 58,
+            "Ds1_X_CO2Value": 400,
+            "Ds1_X_VocValue": 0,
+            "Ds1_X_VocLevel": 1,
+            "Ds1_LUP": "2026-11-06T09:40:46.275Z",
+            "Ds1_ERR": [],
+        }
+    )
+    return shadow
+
+
 SHADOWS = {
     "default": lambda: copy.deepcopy(SHADOW),
     "towel_warmer": _towel_warmer,
     "two_radiators": _two_radiators,
+    "smart_valve": _smart_valve,
 }
 
 

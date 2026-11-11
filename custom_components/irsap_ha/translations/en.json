@@ -113,6 +113,36 @@
       },
       "heating_time": {
         "name": "Heating time"
+      },
+      "battery_voltage": {
+        "name": "Battery voltage"
+      },
+      "rssi": {
+        "name": "RSSI"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "setpoint_temperature": {
+        "name": "Setpoint temperature"
+      },
+      "water_temperature": {
+        "name": "Water temperature"
+      },
+      "valve_opening": {
+        "name": "Valve opening"
+      },
+      "anti_whistle": {
+        "name": "Anti-whistle"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "voc_level": {
+        "name": "VOC level"
+      },
+      "last_error": {
+        "name": "Last error"
       }
     }
   }
